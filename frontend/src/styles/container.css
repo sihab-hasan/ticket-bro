@@ -1,0 +1,218 @@
+/* container.css - Professional Responsive Container System */
+
+:root {
+  /* Breakpoints - Mobile First */
+  --breakpoint-xs: 0;
+  --breakpoint-sm: 576px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 992px;
+  --breakpoint-xl: 1200px;
+  --breakpoint-xxl: 1400px;
+  --breakpoint-xxxl: 1600px;
+
+  --breakpoint-inline-min: 320px;    /* Minimum supported */
+  --breakpoint-xs: 375px;            /* Mobile */
+  --breakpoint-sm: 640px;            /* Mobile Landscape */
+  --breakpoint-md: 768px;            /* Tablet */
+  --breakpoint-lg: 1024px;           /* Desktop */
+  --breakpoint-xl: 1280px;            /* Desktop HD */
+  --breakpoint-xxl: 1536px;           /* Desktop Full HD */
+  --breakpoint-xxxl: 1920px;          /* Desktop 2K */
+  --breakpoint-max: 2560px; 
+
+  /* Container Max Widths */
+  --container-sm: 540px;
+  --container-md: 720px;
+  --container-lg: 960px;
+  --container-xl: 1140px;
+  --container-xxl: 1320px;
+  --container-xxxl: 1500px;
+
+  /* Container Padding - Fluid scale */
+  --container-padding-xs: 1rem;
+  --container-padding-sm: 1.5rem;
+  --container-padding-md: 2rem;
+  --container-padding-lg: 2.5rem;
+  --container-padding-xl: 3rem;
+  --container-padding-xxl: 4rem;
+
+  /* Gutters for grid systems */
+  --gutter-xs: 0.5rem;
+  --gutter-sm: 1rem;
+  --gutter-md: 1.5rem;
+  --gutter-lg: 2rem;
+}
+
+/* Base Container */
+.container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--container-padding-xs);
+  padding-right: var(--container-padding-xs);
+  box-sizing: border-box;
+}
+
+/* Responsive Container Sizes */
+@media (min-width: 576px) {
+  .container {
+    max-width: var(--container-sm);
+    padding-left: var(--container-padding-sm);
+    padding-right: var(--container-padding-sm);
+  }
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: var(--container-md);
+    padding-left: var(--container-padding-md);
+    padding-right: var(--container-padding-md);
+  }
+}
+
+@media (min-width: 992px) {
+  .container {
+    max-width: var(--container-lg);
+    padding-left: var(--container-padding-lg);
+    padding-right: var(--container-padding-lg);
+  }
+}
+
+@media (min-width: 1200px) {
+  .container {
+    max-width: var(--container-xl);
+    padding-left: var(--container-padding-xl);
+    padding-right: var(--container-padding-xl);
+  }
+}
+
+@media (min-width: 1400px) {
+  .container {
+    max-width: var(--container-xxl);
+    padding-left: var(--container-padding-xxl);
+    padding-right: var(--container-padding-xxl);
+  }
+}
+
+/* Fluid Container - Full width with padding */
+.container-fluid {
+  width: 100%;
+  padding-left: var(--container-padding-xs);
+  padding-right: var(--container-padding-xs);
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+  .container-fluid {
+    padding-left: var(--container-padding-md);
+    padding-right: var(--container-padding-md);
+  }
+}
+
+@media (min-width: 1200px) {
+  .container-fluid {
+    padding-left: var(--container-padding-xl);
+    padding-right: var(--container-padding-xl);
+  }
+}
+
+/* No Padding Container */
+.container-no-padding {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Container Variants */
+.container-sm {
+  max-width: var(--container-sm);
+}
+
+.container-md {
+  max-width: var(--container-md);
+}
+
+.container-lg {
+  max-width: var(--container-lg);
+}
+
+.container-xl {
+  max-width: var(--container-xl);
+}
+
+.container-xxl {
+  max-width: var(--container-xxl);
+}
+
+/* Container with Background */
+.container-bg {
+  position: relative;
+  isolation: isolate;
+}
+
+.container-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: inherit;
+  z-index: -1;
+}
+
+/* Centered Content with Max Width */
+.container-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.container-center > * {
+  width: 100%;
+  max-width: var(--container-lg);
+}
+
+/* Full Bleed Container (for sections that need to break out) */
+.full-bleed {
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+}
+
+/* Grid System Integration */
+.container-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: var(--gutter-md);
+  padding-left: var(--container-padding-xs);
+  padding-right: var(--container-padding-xs);
+}
+
+@media (min-width: 768px) {
+  .container-grid {
+    gap: var(--gutter-lg);
+    padding-left: var(--container-padding-md);
+    padding-right: var(--container-padding-md);
+  }
+}
+
+/* Utility Classes */
+.container-no-gutter {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.container-no-max {
+  max-width: none !important;
+}
+
+/* Print Styles */
+@media print {
+  .container,
+  .container-fluid {
+    max-width: 100%;
+    padding: 0;
+  }
+}

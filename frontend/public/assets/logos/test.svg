@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" 
+     xmlns:xlink="http://www.w3.org/1999/xlink" 
+     aria-hidden="true" 
+     role="img" 
+     width="512" 
+     height="512" 
+     preserveAspectRatio="xMidYMid meet" 
+     viewBox="0 0 512 512">
+  <title>TB Logo</title>
+  
+  <defs>
+    <linearGradient id="limeBrandGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#a3e635"/>
+      <stop offset="100%" stop-color="#4d7c0f"/>
+    </linearGradient>
+    
+    <filter id="depthShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="6"/>
+      <feOffset dx="0" dy="8" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.4"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" fill="#1a1a1a" rx="100" ry="100"/>
+
+  <text x="230" y="295" 
+        font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" 
+        font-weight="900" 
+        font-size="320" 
+        text-anchor="middle" 
+        dominant-baseline="middle" 
+        letter-spacing="-55"
+        filter="url(#depthShadow)">
+    <tspan fill="url(#limeBrandGradient)" dx="-10">T</tspan>
+    <tspan fill="url(#limeBrandGradient)" dx="-5">B</tspan>
+  </text>
+</svg>
