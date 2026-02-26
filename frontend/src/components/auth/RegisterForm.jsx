@@ -1,52 +1,81 @@
-import React, { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Link } from "react-router-dom";
-import {
-  Mail,
-  Lock,
-  User,
-  Phone,
-  Eye,
-  EyeOff,
-  ArrowRight,
-  Check,
-} from "lucide-react";
-import { registerSchema, getPasswordStrength } from "../../utils/validators";
-import useAuth from "../../context/AuthContext";
-import { InputGroup, Divider, Spinner, PageTitle } from "../shared/ui";
-import SocialLogin from "./SocialLogin";
-import authConfig from "../../config/auth.config";
+// frontend/src/components/auth/RegisterForm.jsx
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Link } from 'react-router-dom';
+import { Mail, Lock, User, Phone, Eye, EyeOff, ArrowRight, Check } from 'lucide-react';
+import { registerSchema, getPasswordStrength } from '@/utils/validators';
+import useAuth from '@/context/AuthContext';
+import SocialLogin from './SocialLogin';
+import authConfig from '@/config/auth.config';
 
+// ── Reusable primitives (same as LoginForm) ───────────────────────────────────
+
+const Field = ({ label, error, left, right, children }) => (
+  <div className="flex flex-col gap-1.5">
+    {label && (
+      <div className="flex items-center justify-between">
+        {typeof label === 'string'
+          ? <label className="text-[0.78rem] font-medium text-foreground">{label}</label>
+          : label
+        }
+      </div>
+    )}
+    <div className={[
+      'flex items-center gap-2.5 px-3 h-11 rounded-lg border bg-card transition-colors duration-150',
+      error
+        ? 'border-destructive'
+        : 'border-input focus-within:border-ring hover:border-ring/60',
+    ].join(' ')}>
+      {left  && <span className="flex-shrink-0 text-muted-foreground">{left}</span>}
+      <div className="flex-1 min-w-0 [&_input]:w-full [&_input]:bg-transparent [&_input]:outline-none [&_input]:border-none [&_input]:text-[0.875rem] [&_input]:text-foreground [&_input]:placeholder:text-muted-foreground/50 [&_input]:leading-none">
+        {children}
+      </div>
+      {right && <span className="flex-shrink-0 text-muted-foreground">{right}</span>}
+    </div>
+    {error && <p className="text-[0.72rem] text-destructive leading-none">{error}</p>}
+  </div>
+);
+
+const Divider = ({ label }) => (
+  <div className="flex items-center gap-3 my-5">
+    <div className="flex-1 h-px bg-border" />
+    <span className="text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground whitespace-nowrap">
+      {label}
+    </span>
+    <div className="flex-1 h-px bg-border" />
+  </div>
+);
+
+const Spinner = () => (
+  <>
+    <span
+      className="w-4 h-4 rounded-full border-2 border-black/20 border-t-black inline-block"
+      style={{ animation: 'btnSpin 0.65s linear infinite' }}
+    />
+    <style>{`@keyframes btnSpin { to { transform: rotate(360deg); } }`}</style>
+  </>
+);
+
+// ── Password requirement dot ──────────────────────────────────────────────────
 const Req = ({ met, label }) => (
   <div className="flex items-center gap-1.5">
     <div
-      style={{
-        width: 14,
-        height: 14,
-        borderRadius: "50%",
-        flexShrink: 0,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: met ? "oklch(0.5 0.15 142)" : "var(--border)",
-        transition: "background 0.2s",
-      }}
+      className="w-3.5 h-3.5 rounded-full flex-shrink-0 flex items-center justify-center transition-colors duration-200"
+      style={{ background: met ? 'oklch(0.5 0.15 142)' : 'var(--border)' }}
     >
       {met && <Check size={8} color="white" strokeWidth={3} />}
     </div>
-    <span
-      style={{
-        fontSize: 11,
-        color: met ? "var(--foreground)" : "var(--muted-foreground)",
-        transition: "color 0.2s",
-      }}
-    >
+    <span className={[
+      'text-[0.68rem] transition-colors duration-200',
+      met ? 'text-foreground' : 'text-muted-foreground',
+    ].join(' ')}>
       {label}
     </span>
   </div>
 );
 
+// ── Register Form ─────────────────────────────────────────────────────────────
 const RegisterForm = () => {
   const { register: registerUser, isLoading } = useAuth();
   const [showPw, setShowPw] = useState(false);
@@ -58,195 +87,177 @@ const RegisterForm = () => {
     watch,
     formState: { errors },
   } = useForm({ resolver: zodResolver(registerSchema) });
-  const pw = watch("password", "");
+
+  const pw       = watch('password', '');
   const strength = getPasswordStrength(pw);
 
   const reqs = [
-    { label: "8+ characters", met: pw.length >= 8 },
-    { label: "Uppercase", met: /[A-Z]/.test(pw) },
-    { label: "Number", met: /[0-9]/.test(pw) },
-    { label: "Special char", met: /[@$!%*?&]/.test(pw) },
+    { label: '8+ characters', met: pw.length >= 8 },
+    { label: 'Uppercase',     met: /[A-Z]/.test(pw) },
+    { label: 'Number',        met: /[0-9]/.test(pw) },
+    { label: 'Special char',  met: /[@$!%*?&]/.test(pw) },
   ];
 
   return (
-    <div className="animate-fade-up">
-      <PageTitle
-        title="Create account"
-        sub="Sign up for free — no credit card required."
-      />
+    <div className="w-full">
 
+      {/* Header */}
+      <div className="mb-7">
+        <h2
+          className="font-heading font-extrabold tracking-tight text-foreground leading-tight mb-1.5"
+          style={{ fontSize: 'clamp(1.4rem, 2vw, 1.65rem)' }}
+        >
+          Create account
+        </h2>
+        <p className="text-[0.82rem] text-muted-foreground">
+          Sign up for free — no credit card required.
+        </p>
+      </div>
+
+      {/* Social */}
       <SocialLogin />
+
+      {/* Divider */}
       <Divider label="or register with email" />
 
-      <form onSubmit={handleSubmit(registerUser)} className="space-y-4">
+      {/* Form */}
+      <form onSubmit={handleSubmit(registerUser)} className="flex flex-col gap-4">
+
+        {/* First / Last name */}
         <div className="grid grid-cols-2 gap-3">
-          <InputGroup
-            label="First name"
-            error={errors.firstName?.message}
-            left={<User size={15} />}
-          >
-            <input {...register("firstName")} placeholder="John" />
-          </InputGroup>
-          <InputGroup
-            label="Last name"
-            error={errors.lastName?.message}
-            left={<User size={15} />}
-          >
-            <input {...register("lastName")} placeholder="Doe" />
-          </InputGroup>
+          <Field label="First name" error={errors.firstName?.message} left={<User size={15} />}>
+            <input {...register('firstName')} placeholder="John" />
+          </Field>
+          <Field label="Last name" error={errors.lastName?.message} left={<User size={15} />}>
+            <input {...register('lastName')} placeholder="Doe" />
+          </Field>
         </div>
 
-        <InputGroup
-          label="Email address"
-          error={errors.email?.message}
-          left={<Mail size={15} />}
-        >
+        {/* Email */}
+        <Field label="Email address" error={errors.email?.message} left={<Mail size={15} />}>
           <input
-            {...register("email")}
+            {...register('email')}
             type="email"
             placeholder="you@example.com"
             autoComplete="email"
           />
-        </InputGroup>
+        </Field>
 
-        <InputGroup
+        {/* Phone (optional) */}
+        <Field
           label={
-            <>
-              Phone{" "}
-              <span
-                style={{
-                  color: "var(--muted-foreground)",
-                  fontWeight: 400,
-                  fontSize: 11,
-                }}
-              >
-                (optional)
-              </span>
-            </>
+            <label className="text-[0.78rem] font-medium text-foreground flex items-center gap-1.5">
+              Phone
+              <span className="text-[0.68rem] font-normal text-muted-foreground">(optional)</span>
+            </label>
           }
           left={<Phone size={15} />}
         >
-          <input
-            {...register("phone")}
-            type="tel"
-            placeholder="+1 234 567 8900"
-          />
-        </InputGroup>
+          <input {...register('phone')} type="tel" placeholder="+1 234 567 8900" />
+        </Field>
 
-        <div>
-          <InputGroup
+        {/* Password + strength */}
+        <div className="flex flex-col gap-0">
+          <Field
             label="Password"
             error={errors.password?.message}
             left={<Lock size={15} />}
             right={
               <button
                 type="button"
-                onClick={() => setShowPw((v) => !v)}
-                style={{ color: "var(--muted-foreground)" }}
-                className="hover:opacity-70"
+                tabIndex={-1}
+                onClick={() => setShowPw(v => !v)}
+                className="hover:text-foreground transition-colors duration-150"
               >
                 {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
               </button>
             }
           >
             <input
-              {...register("password")}
-              type={showPw ? "text" : "password"}
+              {...register('password')}
+              type={showPw ? 'text' : 'password'}
               placeholder="••••••••"
               autoComplete="new-password"
             />
-          </InputGroup>
+          </Field>
 
           {pw && (
-            <div className="mt-2.5 space-y-2 animate-fade-in">
+            <div className="mt-2.5 flex flex-col gap-2">
               {/* Strength bar */}
               <div className="flex items-center gap-2">
-                <div className="strength-track flex-1">
+                <div className="flex-1 h-1 rounded-full bg-border overflow-hidden">
                   <div
-                    className="strength-fill"
-                    style={{
-                      width: `${strength.pct}%`,
-                      background: strength.color,
-                    }}
+                    className="h-full rounded-full transition-all duration-300"
+                    style={{ width: `${strength.pct}%`, background: strength.color }}
                   />
                 </div>
                 <span
-                  style={{
-                    fontSize: 11,
-                    color: strength.color,
-                    fontFamily: "var(--font-heading)",
-                    fontWeight: 600,
-                    minWidth: 60,
-                  }}
+                  className="text-[0.68rem] font-semibold font-heading min-w-[52px] text-right transition-colors duration-200"
+                  style={{ color: strength.color }}
                 >
                   {strength.label}
                 </span>
               </div>
-              {/* Requirements grid */}
+              {/* Requirement dots */}
               <div className="grid grid-cols-2 gap-1">
-                {reqs.map((r) => (
-                  <Req key={r.label} {...r} />
-                ))}
+                {reqs.map(r => <Req key={r.label} {...r} />)}
               </div>
             </div>
           )}
         </div>
 
-        <InputGroup
+        {/* Confirm password */}
+        <Field
           label="Confirm password"
           error={errors.confirmPassword?.message}
           left={<Lock size={15} />}
           right={
             <button
               type="button"
-              onClick={() => setShowCp((v) => !v)}
-              style={{ color: "var(--muted-foreground)" }}
-              className="hover:opacity-70"
+              tabIndex={-1}
+              onClick={() => setShowCp(v => !v)}
+              className="hover:text-foreground transition-colors duration-150"
             >
               {showCp ? <EyeOff size={15} /> : <Eye size={15} />}
             </button>
           }
         >
           <input
-            {...register("confirmPassword")}
-            type={showCp ? "text" : "password"}
+            {...register('confirmPassword')}
+            type={showCp ? 'text' : 'password'}
             placeholder="••••••••"
             autoComplete="new-password"
           />
-        </InputGroup>
+        </Field>
 
-        <button type="submit" disabled={isLoading} className="btn-primary mt-1">
-          {isLoading ? (
-            <Spinner />
-          ) : (
-            <>
-              Create account <ArrowRight size={15} />
-            </>
-          )}
+        {/* Submit */}
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="
+            mt-1 w-full h-11 flex items-center justify-center gap-2
+            rounded-lg bg-[#a3e635] text-black text-[0.875rem] font-semibold font-heading
+            hover:brightness-110 active:brightness-95
+            disabled:opacity-50 disabled:cursor-not-allowed
+            transition-all duration-150 cursor-pointer
+          "
+        >
+          {isLoading ? <Spinner /> : <><span>Create account</span><ArrowRight size={15} /></>}
         </button>
+
       </form>
 
-      <p
-        style={{
-          fontSize: 13,
-          color: "var(--muted-foreground)",
-          textAlign: "center",
-          marginTop: 20,
-        }}
-      >
-        Already have an account?{" "}
+      {/* Sign in link */}
+      <p className="text-[0.8rem] text-muted-foreground text-center mt-6">
+        Already have an account?{' '}
         <Link
           to={authConfig.routes.login}
-          style={{
-            color: "var(--foreground)",
-            fontWeight: 600,
-            fontFamily: "var(--font-heading)",
-          }}
-          className="hover:underline"
+          className="font-semibold font-heading text-foreground no-underline hover:text-[#a3e635] transition-colors duration-150"
         >
           Sign in →
         </Link>
       </p>
+
     </div>
   );
 };

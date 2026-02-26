@@ -18,7 +18,7 @@ class EmailService {
   async sendWelcomeEmail({ to, firstName, verificationUrl }) {
     return this._send({
       to,
-      subject: `Welcome to AuthSystem, ${firstName}! Please verify your email`,
+      subject: `Welcome to TicketBro, ${firstName}! Please verify your email`,
       html: welcomeTemplate({ firstName, verificationUrl }),
     });
   }
@@ -29,7 +29,7 @@ class EmailService {
   async sendVerificationEmail({ to, firstName, verificationUrl }) {
     return this._send({
       to,
-      subject: 'Verify your email address — AuthSystem',
+      subject: 'Verify your email address — TicketBro',
       html: verifyEmailTemplate({ firstName, verificationUrl }),
     });
   }
@@ -40,7 +40,7 @@ class EmailService {
   async sendPasswordResetEmail({ to, firstName, resetUrl }) {
     return this._send({
       to,
-      subject: 'Reset your password — AuthSystem',
+      subject: 'Reset your password — TicketBro',
       html: resetPasswordTemplate({ firstName, resetUrl }),
     });
   }
@@ -51,7 +51,7 @@ class EmailService {
   async sendPasswordChangedEmail({ to, firstName }) {
     return this._send({
       to,
-      subject: 'Your password has been changed — AuthSystem',
+      subject: 'Your password has been changed — TicketBro',
       html: passwordChangedTemplate({ firstName }),
     });
   }
@@ -62,7 +62,7 @@ class EmailService {
   async sendOTPEmail({ to, firstName, otp, purpose = 'verification' }) {
     return this._send({
       to,
-      subject: `Your AuthSystem OTP code: ${otp}`,
+      subject: `Your TicketBro OTP code: ${otp}`,
       html: otpTemplate({ firstName, otp, purpose }),
     });
   }
@@ -73,7 +73,7 @@ class EmailService {
   async sendLoginAlertEmail({ to, firstName, ipAddress, device, time }) {
     return this._send({
       to,
-      subject: '⚠️ New login detected — AuthSystem',
+      subject: '⚠️ New login detected — TicketBro',
       html: loginAlertTemplate({ firstName, ipAddress, device, time: time || new Date().toUTCString() }),
     });
   }

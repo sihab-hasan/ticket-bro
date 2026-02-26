@@ -81,7 +81,7 @@ const baseTemplate = (content, previewText = "") => `
       ${content}
     </div>
     <div class="footer">
-      <p>© ${new Date().getFullYear()} AuthSystem. All rights reserved.</p>
+      <p>© ${new Date().getFullYear()} TicketBro. All rights reserved.</p>
       <p style="margin-top:10px;">
         <a href="${env.FRONTEND_URL}/privacy">Privacy</a> &middot;
         <a href="${env.FRONTEND_URL}/terms">Terms</a> &middot;

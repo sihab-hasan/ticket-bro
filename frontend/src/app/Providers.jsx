@@ -48,7 +48,7 @@ export { useSearch } from '@/context/SearchContext';
 export { useNotification } from '@/context/NotificationContext';
 
 // Export constants
-export { UserRole } from '@/context/AuthContext';
+import { UserRole } from '@/types/auth.types';
 export { BookingStatus } from '@/context/BookingContext';
 export { ModalType, MODALS } from '@/context/ModalContext';
 export { SearchType, SortOption, PriceRange, DateRange } from '@/context/SearchContext';

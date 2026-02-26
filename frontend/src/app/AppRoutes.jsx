@@ -59,6 +59,7 @@ import SubCategoryPage   from "@/pages/browse/SubCategory/SubCategoryPage";
 import EventTypePage     from "@/pages/browse/EventType/EventTypePage";
 import EventDetailsPage  from "@/pages/browse/EventDetails/EventDetailsPage";
 import MaintenancePage   from "@/pages/error/MaintenancePage";
+import { ForgotPasswordPage, LoginPage, OTPVerificationPage, RegisterPage, ResetPasswordPage, VerifyEmailPage } from "@/pages/auth/AuthModal";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LAZY LOADED — everything below is code-split automatically by the bundler.
@@ -69,12 +70,6 @@ import MaintenancePage   from "@/pages/error/MaintenancePage";
 const HomePage                    = lazy(() => import("@/pages/home/HomePage"));
 
 // Auth
-const LoginPage                   = lazy(() => import("@/pages/auth/LoginPage"));
-const RegisterPage                = lazy(() => import("@/pages/auth/RegisterPage"));
-const ForgotPasswordPage          = lazy(() => import("@/pages/auth/ForgotPasswordPage"));
-const ResetPasswordPage           = lazy(() => import("@/pages/auth/ResetPasswordPage"));
-const OTPVerificationPage         = lazy(() => import("@/pages/auth/OTPVerificationPage"));
-const VerifyEmailPage             = lazy(() => import("@/pages/auth/VerifyEmailPage"));
 
 // Search
 const SearchPage                  = lazy(() => import("@/pages/search/SearchPage"));
@@ -384,13 +379,13 @@ const AppRoutes = () => {
             Unauthenticated flow only.
             AuthLayout internally redirects logged-in users to /.
         ══════════════════════════════════════════════════════════ */}
-        <Route element={<AuthLayout />}>
-          <Route path="/login"           element={<LoginPage />} />
-          <Route path="/register"        element={<RegisterPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password"  element={<ResetPasswordPage />} />
-          <Route path="/verify-otp"      element={<OTPVerificationPage />} />
-          <Route path="/verify-email"    element={<VerifyEmailPage />} />
+        <Route path="/auth">
+          <Route path="login"           element={<LoginPage />} />
+          <Route path="register"        element={<RegisterPage />} />
+          <Route path="forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="reset-password"  element={<ResetPasswordPage />} />
+          <Route path="verify-otp"      element={<OTPVerificationPage />} />
+          <Route path="verify-email"    element={<VerifyEmailPage />} />
         </Route>
 
 

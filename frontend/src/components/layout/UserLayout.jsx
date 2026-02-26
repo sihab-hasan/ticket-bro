@@ -19,7 +19,7 @@ import {
   ShoppingCart
 } from 'lucide-react';
 
-import { useAuth } from '@/context/AuthContext';
+import useAuth from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';

@@ -1,6 +1,6 @@
 // frontend/src/contexts/BookingContext.jsx
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useAuth } from './AuthContext';
+import useAuth from './AuthContext';
 
 const BookingContext = createContext(null);
 

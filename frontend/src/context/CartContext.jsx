@@ -1,6 +1,6 @@
 // frontend/src/contexts/CartContext.jsx
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useAuth } from './AuthContext';
+import  useAuth from './AuthContext';
 
 const CartContext = createContext(null);
 
