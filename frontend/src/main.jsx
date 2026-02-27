@@ -25,7 +25,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               background: 'var(--card)',
               color: 'var(--foreground)',
               border: '1px solid var(--border)',
-              borderRadius: 'calc(var(--radius) * 3)',
+              borderRadius: 'calc(var(--radius) * 1)',
               fontFamily: 'var(--font-sans)',
               fontSize: '13px',
               boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
