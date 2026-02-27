@@ -1,4 +1,3 @@
-// frontend/src/components/auth/RegisterForm.jsx
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,44 +8,45 @@ import useAuth from '@/context/AuthContext';
 import SocialLogin from './SocialLogin';
 import authConfig from '@/config/auth.config';
 
-// ── Reusable primitives (same as LoginForm) ───────────────────────────────────
-
+// ── Input Field ─────────────────────────────────────────────
 const Field = ({ label, error, left, right, children }) => (
-  <div className="flex flex-col gap-1.5">
+  <div className="flex flex-col gap-1">
     {label && (
       <div className="flex items-center justify-between">
         {typeof label === 'string'
-          ? <label className="text-[0.78rem] font-medium text-foreground">{label}</label>
+          ? <label className="text-[0.75rem] font-medium text-foreground">{label}</label>
           : label
         }
       </div>
     )}
     <div className={[
-      'flex items-center gap-2.5 px-3 h-11 rounded-lg border bg-card transition-colors duration-150',
+      'flex items-center gap-2 px-3 h-10 rounded-lg border bg-card transition-colors duration-150',
       error
         ? 'border-destructive'
         : 'border-input focus-within:border-ring hover:border-ring/60',
     ].join(' ')}>
-      {left  && <span className="flex-shrink-0 text-muted-foreground">{left}</span>}
+      {left && <span className="flex-shrink-0 text-muted-foreground">{left}</span>}
       <div className="flex-1 min-w-0 [&_input]:w-full [&_input]:bg-transparent [&_input]:outline-none [&_input]:border-none [&_input]:text-[0.875rem] [&_input]:text-foreground [&_input]:placeholder:text-muted-foreground/50 [&_input]:leading-none">
         {children}
       </div>
       {right && <span className="flex-shrink-0 text-muted-foreground">{right}</span>}
     </div>
-    {error && <p className="text-[0.72rem] text-destructive leading-none">{error}</p>}
+    {error && <p className="text-[0.7rem] text-destructive leading-none">{error}</p>}
   </div>
 );
 
+// ── Divider ─────────────────────────────────────────────
 const Divider = ({ label }) => (
-  <div className="flex items-center gap-3 my-5">
+  <div className="flex items-center gap-3 my-2">
     <div className="flex-1 h-px bg-border" />
-    <span className="text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground whitespace-nowrap">
+    <span className="text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-muted-foreground whitespace-nowrap">
       {label}
     </span>
     <div className="flex-1 h-px bg-border" />
   </div>
 );
 
+// ── Spinner ─────────────────────────────────────────────
 const Spinner = () => (
   <>
     <span
@@ -57,7 +57,7 @@ const Spinner = () => (
   </>
 );
 
-// ── Password requirement dot ──────────────────────────────────────────────────
+// ── Password requirement dot ─────────────────────────────
 const Req = ({ met, label }) => (
   <div className="flex items-center gap-1.5">
     <div
@@ -67,7 +67,7 @@ const Req = ({ met, label }) => (
       {met && <Check size={8} color="white" strokeWidth={3} />}
     </div>
     <span className={[
-      'text-[0.68rem] transition-colors duration-200',
+      'text-[0.65rem] transition-colors duration-200',
       met ? 'text-foreground' : 'text-muted-foreground',
     ].join(' ')}>
       {label}
@@ -75,7 +75,7 @@ const Req = ({ met, label }) => (
   </div>
 );
 
-// ── Register Form ─────────────────────────────────────────────────────────────
+// ── Register Form ─────────────────────────────────────────
 const RegisterForm = () => {
   const { register: registerUser, isLoading } = useAuth();
   const [showPw, setShowPw] = useState(false);
@@ -88,7 +88,7 @@ const RegisterForm = () => {
     formState: { errors },
   } = useForm({ resolver: zodResolver(registerSchema) });
 
-  const pw       = watch('password', '');
+  const pw = watch('password', '');
   const strength = getPasswordStrength(pw);
 
   const reqs = [
@@ -102,39 +102,39 @@ const RegisterForm = () => {
     <div className="w-full">
 
       {/* Header */}
-      <div className="mb-7">
+      <div className="mb-5">
         <h2
-          className="font-heading font-extrabold tracking-tight text-foreground leading-tight mb-1.5"
-          style={{ fontSize: 'clamp(1.4rem, 2vw, 1.65rem)' }}
+          className="font-heading font-extrabold tracking-tight text-foreground leading-tight mb-1"
+          style={{ fontSize: 'clamp(1.3rem, 2vw, 1.5rem)' }}
         >
           Create account
         </h2>
-        <p className="text-[0.82rem] text-muted-foreground">
+        <p className="text-[0.78rem] text-muted-foreground">
           Sign up for free — no credit card required.
         </p>
       </div>
 
-      {/* Social */}
+      {/* Social Login */}
       <SocialLogin />
 
       {/* Divider */}
       <Divider label="or register with email" />
 
       {/* Form */}
-      <form onSubmit={handleSubmit(registerUser)} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit(registerUser)} className="flex flex-col gap-3">
 
         {/* First / Last name */}
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="First name" error={errors.firstName?.message} left={<User size={15} />}>
+        <div className="grid grid-cols-2 gap-2.5">
+          <Field label="First name" error={errors.firstName?.message} left={<User size={14} />}>
             <input {...register('firstName')} placeholder="John" />
           </Field>
-          <Field label="Last name" error={errors.lastName?.message} left={<User size={15} />}>
+          <Field label="Last name" error={errors.lastName?.message} left={<User size={14} />}>
             <input {...register('lastName')} placeholder="Doe" />
           </Field>
         </div>
 
         {/* Email */}
-        <Field label="Email address" error={errors.email?.message} left={<Mail size={15} />}>
+        <Field label="Email address" error={errors.email?.message} left={<Mail size={14} />}>
           <input
             {...register('email')}
             type="email"
@@ -146,12 +146,11 @@ const RegisterForm = () => {
         {/* Phone (optional) */}
         <Field
           label={
-            <label className="text-[0.78rem] font-medium text-foreground flex items-center gap-1.5">
-              Phone
-              <span className="text-[0.68rem] font-normal text-muted-foreground">(optional)</span>
+            <label className="text-[0.75rem] font-medium text-foreground flex items-center gap-1">
+              Phone <span className="text-[0.65rem] font-normal text-muted-foreground">(optional)</span>
             </label>
           }
-          left={<Phone size={15} />}
+          left={<Phone size={14} />}
         >
           <input {...register('phone')} type="tel" placeholder="+1 234 567 8900" />
         </Field>
@@ -161,7 +160,7 @@ const RegisterForm = () => {
           <Field
             label="Password"
             error={errors.password?.message}
-            left={<Lock size={15} />}
+            left={<Lock size={14} />}
             right={
               <button
                 type="button"
@@ -169,7 +168,7 @@ const RegisterForm = () => {
                 onClick={() => setShowPw(v => !v)}
                 className="hover:text-foreground transition-colors duration-150"
               >
-                {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             }
           >
@@ -182,7 +181,7 @@ const RegisterForm = () => {
           </Field>
 
           {pw && (
-            <div className="mt-2.5 flex flex-col gap-2">
+            <div className="mt-2 flex flex-col gap-1.5">
               {/* Strength bar */}
               <div className="flex items-center gap-2">
                 <div className="flex-1 h-1 rounded-full bg-border overflow-hidden">
@@ -192,7 +191,7 @@ const RegisterForm = () => {
                   />
                 </div>
                 <span
-                  className="text-[0.68rem] font-semibold font-heading min-w-[52px] text-right transition-colors duration-200"
+                  className="text-[0.65rem] font-semibold font-heading min-w-[48px] text-right transition-colors duration-200"
                   style={{ color: strength.color }}
                 >
                   {strength.label}
@@ -210,7 +209,7 @@ const RegisterForm = () => {
         <Field
           label="Confirm password"
           error={errors.confirmPassword?.message}
-          left={<Lock size={15} />}
+          left={<Lock size={14} />}
           right={
             <button
               type="button"
@@ -218,7 +217,7 @@ const RegisterForm = () => {
               onClick={() => setShowCp(v => !v)}
               className="hover:text-foreground transition-colors duration-150"
             >
-              {showCp ? <EyeOff size={15} /> : <Eye size={15} />}
+              {showCp ? <EyeOff size={14} /> : <Eye size={14} />}
             </button>
           }
         >
@@ -235,20 +234,20 @@ const RegisterForm = () => {
           type="submit"
           disabled={isLoading}
           className="
-            mt-1 w-full h-11 flex items-center justify-center gap-2
-            rounded-lg bg-[#a3e635] text-black text-[0.875rem] font-semibold font-heading
+            mt-1 w-full h-10 flex items-center justify-center gap-2
+            rounded-lg bg-[#a3e635] text-black text-[0.85rem] font-semibold font-heading
             hover:brightness-110 active:brightness-95
             disabled:opacity-50 disabled:cursor-not-allowed
             transition-all duration-150 cursor-pointer
           "
         >
-          {isLoading ? <Spinner /> : <><span>Create account</span><ArrowRight size={15} /></>}
+          {isLoading ? <Spinner /> : <><span>Create account</span><ArrowRight size={14} /></>}
         </button>
 
       </form>
 
       {/* Sign in link */}
-      <p className="text-[0.8rem] text-muted-foreground text-center mt-6">
+      <p className="text-[0.75rem] text-muted-foreground text-center mt-5">
         Already have an account?{' '}
         <Link
           to={authConfig.routes.login}

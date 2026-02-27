@@ -329,13 +329,13 @@ const Header = () => {
             ) : (
               <>
                 <Button variant="ghost" size="sm" className="gap-1.5 hidden sm:flex h-9 px-3 text-sm" asChild>
-                  <Link to="/auth/login"><User className="h-3.5 w-3.5" />Sign In</Link>
+                  <Link to="?auth=login"><User className="h-3.5 w-3.5" />Sign In</Link>
                 </Button>
                 <Button size="sm" className="gap-1.5 hidden sm:flex h-9 px-3 text-sm text-black" asChild>
-                  <Link to="/auth/register">Sign Up</Link>
+                  <Link to="?auth=register">Sign Up</Link>
                 </Button>
                 <Button variant="ghost" size="icon" className="sm:hidden h-9 w-9" asChild>
-                  <Link to="/auth/login"><User className="h-4 w-4" /></Link>
+                  <Link to="?auth=login"><User className="h-4 w-4" /></Link>
                 </Button>
               </>
             )}
