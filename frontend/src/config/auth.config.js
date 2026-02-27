@@ -1,14 +1,14 @@
 const authConfig = {
   apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1',
-  appName: import.meta.env.VITE_APP_NAME || 'AuthSystem',
+  appName: import.meta.env.VITE_APP_NAME || 'TicketBro',
   routes: {
-    login:          '/auth/login',
-    register:       '/auth/register',
-    forgotPassword: '/auth/forgot-password',
-    resetPassword:  '/auth/reset-password',
-    verifyEmail:    '/auth/verify-email',
-    otp:            '/auth/otp',
-    dashboard:      '/dashboard',
+    login:          '?auth=login',        // Login modal
+    register:       '?auth=register',     // Register modal
+    forgotPassword: '?auth=forgot',       // Forgot password modal
+    resetPassword:  '?auth=reset',        // Reset password modal
+    verifyEmail:    '?auth=verify',       // Verify email modal
+    otp:            '?auth=otp',          // OTP modal
+    dashboard:      '/dashboard',         // Dashboard stays as normal route
   },
   storage: {
     accessToken:  'auth_access_token',

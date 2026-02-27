@@ -1,91 +1,200 @@
-// ── LoginPage ──────────────────────────────────────────────────────────────────
-import React, { useEffect, useState } from 'react';
-import { useSearchParams, Link, Navigate } from 'react-router-dom';
-import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
-import AuthLayout from '../../components/layout/AuthLayout';
-import LoginForm from '../../components/auth/LoginForm';
-import RegisterForm from '../../components/auth/RegisterForm';
-import ForgotPasswordForm from '../../components/auth/ForgotPasswordForm';
-import ResetPasswordForm from '../../components/auth/ResetPasswordForm';
-import OTPVerification from '../../components/auth/OTPVerification';
-import authService from '../../services/authService';
-import { useSelector } from 'react-redux';
-import { selectRequires2FA } from '../../store/slices/authSlice';
-import authConfig from '../../config/auth.config';
+import React, { useEffect, useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { X, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { useSelector } from "react-redux";
+import { motion, AnimatePresence } from "framer-motion";
 
-export const LoginPage = () => (
-  <AuthLayout heading={"Welcome\nback."} sub="Sign in to continue — your data is safe and secure.">
-    <LoginForm />
-  </AuthLayout>
-);
+import LoginForm from "../../components/auth/LoginForm";
+import RegisterForm from "../../components/auth/RegisterForm";
+import ForgotPasswordForm from "../../components/auth/ForgotPasswordForm";
+import ResetPasswordForm from "../../components/auth/ResetPasswordForm";
+import OTPVerification from "../../components/auth/OTPVerification";
 
-export const RegisterPage = () => (
-  <AuthLayout heading={"Create your\naccount."} sub="Join thousands of users. Free forever, no credit card needed.">
-    <RegisterForm />
-  </AuthLayout>
-);
+import authService from "../../services/authService";
+import { selectRequires2FA } from "../../store/slices/authSlice";
+import authConfig from "../../config/auth.config";
 
-export const ForgotPasswordPage = () => (
-  <AuthLayout heading={"Forgot your\npassword?"} sub="No worries — we'll send a reset link straight to your inbox.">
-    <ForgotPasswordForm />
-  </AuthLayout>
-);
+import { useTheme } from "../../context/ThemeContext";
 
-export const ResetPasswordPage = () => (
-  <AuthLayout heading={"Set a new\npassword."} sub="Choose something strong. We'll log you in right after.">
-    <ResetPasswordForm />
-  </AuthLayout>
-);
+import darkLogo from "@/assets/images/ticket-bro-logo-dark-mode.png";
+import lightLogo from "@/assets/images/ticket-bro-logo-light-mode.png";
 
-export const OTPVerificationPage = () => {
+const AuthModal = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const authType = searchParams.get("auth");
   const requires2FA = useSelector(selectRequires2FA);
-  if (!requires2FA) return <Navigate to={authConfig.routes.login} replace />;
-  return (
-    <AuthLayout heading={"Verify\nyour identity."} sub="Enter the 6-digit code we just sent to your email.">
-      <OTPVerification />
-    </AuthLayout>
-  );
-};
+  const { isDark } = useTheme();
 
-export const VerifyEmailPage = () => {
-  const [params] = useSearchParams();
-  const token = params.get('token');
-  const [status, setStatus] = useState('loading');
-  const [message, setMessage] = useState('');
+  const [status, setStatus] = useState("");
+  const [message, setMessage] = useState("");
 
+  const closeModal = () => {
+    searchParams.delete("auth");
+    searchParams.delete("token");
+    setSearchParams(searchParams);
+  };
+
+  // --- SCROLL LOCK ---
   useEffect(() => {
-    if (!token) { setStatus('error'); setMessage('No token provided.'); return; }
-    authService.verifyEmail(token)
-      .then((r) => { setStatus('success'); setMessage(r.data.message); })
-      .catch((e) => { setStatus('error'); setMessage(e.response?.data?.message || 'Verification failed.'); });
-  }, [token]);
+    if (authType) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [authType]);
+
+  // --- EMAIL VERIFICATION ---
+  useEffect(() => {
+    if (authType === "verify") {
+      const token = searchParams.get("token");
+      if (!token) {
+        setStatus("error");
+        setMessage("Invalid or missing verification token.");
+        return;
+      }
+
+      const verify = async () => {
+        setStatus("loading");
+        try {
+          const res = await authService.verifyEmail(token);
+          setStatus("success");
+          setMessage(res.data?.message || "Email verified successfully.");
+        } catch (err) {
+          setStatus("error");
+          setMessage(err.response?.data?.message || "Verification failed.");
+        }
+      };
+
+      verify();
+    }
+  }, [authType, searchParams]);
+
+  // --- REDIRECT IF 2FA NOT REQUIRED ---
+  useEffect(() => {
+    if (authType === "otp" && !requires2FA) {
+      navigate(authConfig.routes.login, { replace: true });
+    }
+  }, [authType, requires2FA, navigate]);
+
+  if (!authType) return null;
+
+  const renderContent = () => {
+    switch (authType) {
+      case "login":
+        return <LoginForm />;
+      case "register":
+        return <RegisterForm />;
+      case "forgot":
+        return <ForgotPasswordForm />;
+      case "reset":
+        return <ResetPasswordForm />;
+      case "otp":
+        return <OTPVerification />;
+      case "verify":
+        return renderVerifyState();
+      default:
+        return null;
+    }
+  };
+
+  const renderVerifyState = () => {
+    if (status === "loading") {
+      return (
+        <div className="text-center space-y-1 py-3">
+          <Loader2
+            className="animate-spin mx-auto text-muted-foreground"
+            size={24}
+          />
+          <p className="text-xs text-muted-foreground">
+            Verifying your email...
+          </p>
+        </div>
+      );
+    }
+
+    if (status === "success") {
+      return (
+        <div className="text-center space-y-1 py-3">
+          <CheckCircle2 size={28} className="mx-auto text-green-500" />
+          <h2 className="text-base font-semibold">Email verified!</h2>
+          <p className="text-xs text-muted-foreground">{message}</p>
+          <button
+            onClick={() => navigate(authConfig.routes.login)}
+            className="mt-2 w-full rounded-md bg-primary text-primary-foreground py-1.5 text-sm font-medium transition hover:opacity-90"
+          >
+            Continue
+          </button>
+        </div>
+      );
+    }
+
+    if (status === "error") {
+      return (
+        <div className="text-center space-y-1 py-3">
+          <XCircle size={28} className="mx-auto text-destructive" />
+          <h2 className="text-base font-semibold">Verification Failed</h2>
+          <p className="text-xs text-muted-foreground">{message}</p>
+        </div>
+      );
+    }
+
+    return null;
+  };
 
   return (
-    <AuthLayout heading={"Verifying\nyour email."} sub="Hang tight — we're confirming your address.">
-      <div className="animate-fade-up text-center">
-        {status === 'loading' && (
-          <>
-            <Loader2 size={36} style={{ color: 'var(--foreground)', margin: '0 auto 16px', animation: 'spin 0.8s linear infinite' }} />
-            <p style={{ color: 'var(--muted-foreground)', fontSize: 14 }}>Verifying your email…</p>
-          </>
-        )}
-        {status === 'success' && (
-          <>
-            <CheckCircle2 size={40} style={{ color: 'oklch(0.5 0.15 142)', margin: '0 auto 16px' }} />
-            <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 20, fontWeight: 800, color: 'var(--foreground)', marginBottom: 8 }}>Email verified!</h2>
-            <p style={{ fontSize: 13, color: 'var(--muted-foreground)', marginBottom: 24 }}>{message}</p>
-            <Link to={authConfig.routes.login} className="btn-primary !w-auto px-8">Continue to sign in</Link>
-          </>
-        )}
-        {status === 'error' && (
-          <>
-            <XCircle size={40} style={{ color: 'var(--destructive)', margin: '0 auto 16px' }} />
-            <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: 20, fontWeight: 800, color: 'var(--foreground)', marginBottom: 8 }}>Verification failed</h2>
-            <p style={{ fontSize: 13, color: 'var(--muted-foreground)', marginBottom: 24 }}>{message}</p>
-            <Link to="/auth/resend-verification" className="btn-outline !w-auto px-8">Resend email</Link>
-          </>
-        )}
-      </div>
-    </AuthLayout>
+    <AnimatePresence>
+      {authType && (
+        <motion.div
+          key="auth-overlay"
+          className="fixed inset-0 z-50 flex items-start justify-center pt-24 bg-black/50 backdrop-blur-xs"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeModal();
+          }}
+        >
+          <motion.div
+            key="auth-modal"
+            initial={{ y: "-100vh", opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: "-100vh", opacity: 0 }}
+            transition={{ duration: 0.35 }}
+            className="relative w-full max-w-[460px] mx-2 rounded-xl bg-card shadow-md max-h-[90vh] overflow-auto"
+          >
+            {/* Close Button */}
+            <button
+              onClick={closeModal}
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition"
+            >
+              <X size={16} />
+            </button>
+
+            {/* Header */}
+            <div className="px-4 pt-4 pb-2 text-center border-b border-border flex flex-col items-center space-y-1">
+              <img
+                src={isDark ? darkLogo : lightLogo}
+                alt="TicketBro Logo"
+                className="h-8"
+              />
+              <h1 className="text-xl font-bold font-brand tracking-tight">
+                Ticket Bro
+              </h1>
+            </div>
+
+            {/* Body */}
+            <div className="px-8 py-4">{renderContent()}</div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
+
+export default AuthModal;
