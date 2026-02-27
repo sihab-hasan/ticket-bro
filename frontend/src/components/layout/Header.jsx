@@ -407,8 +407,8 @@ const MobileMenuContent = ({ onClose, isAuthenticated, user, onLogout, canCreate
       </div>
     ) : (
       <div className="p-4 border-b border-border space-y-2">
-        <Button asChild className="w-full h-9 text-sm" onClick={onClose}><Link to="/login">Sign In</Link></Button>
-        <Button asChild variant="outline" className="w-full h-9 text-sm" onClick={onClose}><Link to="/register">Create Account</Link></Button>
+        <Button asChild className="w-full h-9 text-sm" onClick={onClose}><Link to="?auth=login">Sign In</Link></Button>
+        <Button asChild variant="outline" className="w-full h-9 text-sm" onClick={onClose}><Link to="?auth=register">Create Account</Link></Button>
       </div>
     )}
 
