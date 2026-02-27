@@ -43,7 +43,6 @@ import { UserRole }     from "@/types/auth.types";
 
 // Layouts
 import MainLayout       from "@/components/layout/MainLayout";
-import AuthLayout       from "@/components/layout/AuthLayout";
 import UserLayout       from "@/components/layout/UserLayout";
 import OrganizerLayout  from "@/components/layout/OrganizerLayout";
 import AdminLayout      from "@/components/layout/AdminLayout";
@@ -59,7 +58,12 @@ import SubCategoryPage   from "@/pages/browse/SubCategory/SubCategoryPage";
 import EventTypePage     from "@/pages/browse/EventType/EventTypePage";
 import EventDetailsPage  from "@/pages/browse/EventDetails/EventDetailsPage";
 import MaintenancePage   from "@/pages/error/MaintenancePage";
-import { ForgotPasswordPage, LoginPage, OTPVerificationPage, RegisterPage, ResetPasswordPage, VerifyEmailPage } from "@/pages/auth/AuthModal";
+import LoginPage from "@/pages/auth/LoginPage";
+import RegisterPage from "@/pages/auth/RegisterPage";
+import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
+import ResetPasswordPage from "@/pages/auth/ResetPasswordPage";
+import OTPVerificationPage from "@/pages/auth/OTPVerificationPage";
+import VerifyEmailPage from "@/pages/auth/VerifyEmailPage";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LAZY LOADED — everything below is code-split automatically by the bundler.
@@ -373,12 +377,7 @@ const AppRoutes = () => {
 
         </Route>
 
-
-        {/* ══════════════════════════════════════════════════════════
-            AUTH — AuthLayout (no Navbar/Footer)
-            Unauthenticated flow only.
-            AuthLayout internally redirects logged-in users to /.
-        ══════════════════════════════════════════════════════════ */}
+          {/*Fallback Routes if modal routes not working */}
         <Route path="/auth">
           <Route path="login"           element={<LoginPage />} />
           <Route path="register"        element={<RegisterPage />} />

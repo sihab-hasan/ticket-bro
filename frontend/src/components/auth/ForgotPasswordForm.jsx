@@ -114,12 +114,12 @@ const ForgotPasswordForm = () => {
 
   // ── Default state ─────────────────────────────────────────────────────────
   return (
-    <div className="w-full">
+    <div className="w-full ">
 
       {/* Header */}
-      <div className="mb-7">
+      <div className="mb-4">
         <h2
-          className="font-heading font-extrabold tracking-tight text-foreground leading-tight mb-1.5"
+          className=" font-heading font-extrabold tracking-tight text-foreground leading-tight mb-1.5"
           style={{ fontSize: 'clamp(1.4rem, 2vw, 1.65rem)' }}
         >
           Reset password
