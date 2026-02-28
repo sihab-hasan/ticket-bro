@@ -18,6 +18,7 @@ import { useTheme } from "../../context/ThemeContext";
 
 import darkLogo from "@/assets/images/ticket-bro-logo-dark-mode.png";
 import lightLogo from "@/assets/images/ticket-bro-logo-light-mode.png";
+import Container from "@/components/layout/Container";
 
 const AuthModal = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -147,53 +148,57 @@ const AuthModal = () => {
   };
 
   return (
-    <AnimatePresence>
-      {authType && (
-        <motion.div
-          key="auth-overlay"
-          className="fixed inset-0 z-50 flex items-start justify-center pt-24 bg-black/50 backdrop-blur-xs"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) closeModal();
-          }}
-        >
-          <motion.div
-            key="auth-modal"
-            initial={{ y: "-100vh", opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: "-100vh", opacity: 0 }}
-            transition={{ duration: 0.35 }}
-            className="relative w-full max-w-[460px] mx-2 rounded-xl bg-card shadow-md max-h-[90vh] overflow-auto"
-          >
-            {/* Close Button */}
-            <button
-              onClick={closeModal}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition"
+    <div>
+      <Container>
+        <AnimatePresence>
+          {authType && (
+            <motion.div
+              key="auth-overlay"
+              className="fixed inset-0 z-50 flex items-start justify-center pt-24 bg-black/50 backdrop-blur-xs"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={(e) => {
+                if (e.target === e.currentTarget) closeModal();
+              }}
             >
-              <X size={16} />
-            </button>
+              <motion.div
+                key="auth-modal"
+                initial={{ y: "-100vh", opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: "-100vh", opacity: 0 }}
+                transition={{ duration: 0.35 }}
+                className="relative w-full max-w-[460px] mx-2 rounded-xl bg-card shadow-md max-h-[90vh] overflow-auto"
+              >
+                {/* Close Button */}
+                <button
+                  onClick={closeModal}
+                  className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition"
+                >
+                  <X size={16} />
+                </button>
 
-            {/* Header */}
-            <div className="px-4 pt-4 pb-2 text-center border-b border-border flex flex-col items-center space-y-1">
-              <img
-                src={isDark ? darkLogo : lightLogo}
-                alt="Ticket Bro Logo"
-                className="h-8"
-              />
-              <h1 className="text-xl font-bold font-brand tracking-tight">
-                Ticket Bro
-              </h1>
-            </div>
+                {/* Header */}
+                <div className="px-4 pt-4 pb-2 text-center border-b border-border flex flex-col items-center space-y-1">
+                  <img
+                    src={isDark ? darkLogo : lightLogo}
+                    alt="Ticket Bro Logo"
+                    className="h-8"
+                  />
+                  <h1 className="text-xl font-bold font-brand tracking-tight">
+                    Ticket Bro
+                  </h1>
+                </div>
 
-            {/* Body */}
-            <div className="px-8 py-4">{renderContent()}</div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+                {/* Body */}
+                <div className="px-8 py-4">{renderContent()}</div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </Container>
+    </div>
   );
 };
 
