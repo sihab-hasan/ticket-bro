@@ -180,7 +180,7 @@ const AuthModal = () => {
             <div className="px-4 pt-4 pb-2 text-center border-b border-border flex flex-col items-center space-y-1">
               <img
                 src={isDark ? darkLogo : lightLogo}
-                alt="TicketBro Logo"
+                alt="Ticket Bro Logo"
                 className="h-8"
               />
               <h1 className="text-xl font-bold font-brand tracking-tight">

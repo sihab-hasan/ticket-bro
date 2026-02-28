@@ -1,6 +1,6 @@
-'use strict';
+"use strict";
 
-const { sendMail } = require('./mailClient');
+const { sendMail } = require("./mailClient");
 const {
   welcomeTemplate,
   verifyEmailTemplate,
@@ -8,8 +8,8 @@ const {
   passwordChangedTemplate,
   otpTemplate,
   loginAlertTemplate,
-} = require('./templates/emailTemplates');
-const logger = require('../../infrastructure/logger/logger');
+} = require("./templates/emailTemplates");
+const logger = require("../../infrastructure/logger/logger");
 
 class EmailService {
   /**
@@ -18,7 +18,7 @@ class EmailService {
   async sendWelcomeEmail({ to, firstName, verificationUrl }) {
     return this._send({
       to,
-      subject: `Welcome to TicketBro, ${firstName}! Please verify your email`,
+      subject: `Welcome to Ticket Bro, ${firstName}! Please verify your email`,
       html: welcomeTemplate({ firstName, verificationUrl }),
     });
   }
@@ -29,7 +29,7 @@ class EmailService {
   async sendVerificationEmail({ to, firstName, verificationUrl }) {
     return this._send({
       to,
-      subject: 'Verify your email address — TicketBro',
+      subject: "Verify your email address — Ticket Bro",
       html: verifyEmailTemplate({ firstName, verificationUrl }),
     });
   }
@@ -40,7 +40,7 @@ class EmailService {
   async sendPasswordResetEmail({ to, firstName, resetUrl }) {
     return this._send({
       to,
-      subject: 'Reset your password — TicketBro',
+      subject: "Reset your password — Ticket Bro",
       html: resetPasswordTemplate({ firstName, resetUrl }),
     });
   }
@@ -51,7 +51,7 @@ class EmailService {
   async sendPasswordChangedEmail({ to, firstName }) {
     return this._send({
       to,
-      subject: 'Your password has been changed — TicketBro',
+      subject: "Your password has been changed — Ticket Bro",
       html: passwordChangedTemplate({ firstName }),
     });
   }
@@ -59,10 +59,10 @@ class EmailService {
   /**
    * Send OTP for 2FA / phone verification
    */
-  async sendOTPEmail({ to, firstName, otp, purpose = 'verification' }) {
+  async sendOTPEmail({ to, firstName, otp, purpose = "verification" }) {
     return this._send({
       to,
-      subject: `Your TicketBro OTP code: ${otp}`,
+      subject: `Your Ticket Bro OTP code: ${otp}`,
       html: otpTemplate({ firstName, otp, purpose }),
     });
   }
@@ -73,8 +73,13 @@ class EmailService {
   async sendLoginAlertEmail({ to, firstName, ipAddress, device, time }) {
     return this._send({
       to,
-      subject: '⚠️ New login detected — TicketBro',
-      html: loginAlertTemplate({ firstName, ipAddress, device, time: time || new Date().toUTCString() }),
+      subject: "⚠️ New login detected — Ticket Bro",
+      html: loginAlertTemplate({
+        firstName,
+        ipAddress,
+        device,
+        time: time || new Date().toUTCString(),
+      }),
     });
   }
 
@@ -86,7 +91,9 @@ class EmailService {
       return await sendMail({ to, subject, html, text, attachments });
     } catch (error) {
       // Log but don't throw — email failure should not crash auth flow
-      logger.error(`EmailService._send failed [to: ${to}, subject: ${subject}]: ${error.message}`);
+      logger.error(
+        `EmailService._send failed [to: ${to}, subject: ${subject}]: ${error.message}`,
+      );
       return { success: false, error: error.message };
     }
   }

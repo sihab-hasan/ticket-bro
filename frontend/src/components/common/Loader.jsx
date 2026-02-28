@@ -31,9 +31,13 @@ const SIZE_CONFIG = {
 };
 
 // Base Spinner Component
-const Spinner = ({ size = "md", showBrand = true, brandText = "TicketBro" }) => {
+const Spinner = ({
+  size = "md",
+  showBrand = true,
+  brandText = "Ticket Bro",
+}) => {
   const config = SIZE_CONFIG[size] || SIZE_CONFIG.md;
-  
+
   return (
     <div className="relative">
       <div
@@ -54,67 +58,67 @@ export const Loader = ({
   text = "Loading...",
   subtitle,
   city,
-  
+
   // Appearance
   size = "md",
-  brandText = "TicketBro",
-  
+  brandText = "Ticket Bro",
+
   // Behavior
   fullScreen = false,
   showSpinner = true,
   showBrand = true,
   showText = true,
   showSubtitle = true,
-  
+
   // Custom styling
   className = "",
   spinnerClassName = "",
   textClassName = "",
   subtitleClassName = "",
-  
+
   // Container options
   withContainer = false,
   containerClassName = "",
   minHeight = "min-h-[200px]",
-  
+
   // Actions
   actionButton = false,
   actionText = "Retry",
   onAction,
-  
 }) => {
-  
   const config = SIZE_CONFIG[size] || SIZE_CONFIG.md;
-  
+
   // Build loader content
   const loaderContent = (
     <div className={`flex flex-col items-center justify-center ${className}`}>
       {showSpinner && (
-        <Spinner 
-          size={size} 
-          showBrand={showBrand} 
-          brandText={brandText}
-        />
+        <Spinner size={size} showBrand={showBrand} brandText={brandText} />
       )}
-      
+
       {showText && text && (
-        <p className={`text-muted-foreground ${config.text} font-medium tracking-widest uppercase ${config.spacing} ${textClassName}`}>
+        <p
+          className={`text-muted-foreground ${config.text} font-medium tracking-widest uppercase ${config.spacing} ${textClassName}`}
+        >
           {text}
         </p>
       )}
-      
+
       {showSubtitle && subtitle && (
-        <p className={`text-muted-foreground/50 ${size === "sm" ? "text-xs" : "text-sm"} mt-2 ${subtitleClassName}`}>
+        <p
+          className={`text-muted-foreground/50 ${size === "sm" ? "text-xs" : "text-sm"} mt-2 ${subtitleClassName}`}
+        >
           {subtitle}
         </p>
       )}
-      
+
       {showSubtitle && city && !subtitle && (
-        <p className={`text-muted-foreground/50 ${size === "sm" ? "text-xs" : "text-sm"} mt-2 ${subtitleClassName}`}>
+        <p
+          className={`text-muted-foreground/50 ${size === "sm" ? "text-xs" : "text-sm"} mt-2 ${subtitleClassName}`}
+        >
           in {city}
         </p>
       )}
-      
+
       {actionButton && onAction && (
         <button
           onClick={onAction}
@@ -125,7 +129,7 @@ export const Loader = ({
       )}
     </div>
   );
-  
+
   // Handle full screen mode
   if (fullScreen) {
     return (
@@ -134,29 +138,31 @@ export const Loader = ({
       </div>
     );
   }
-  
+
   // Handle with container
   if (withContainer) {
     return (
       <section className="w-full">
         <Container>
-          <div className={`w-full ${minHeight} flex items-center justify-center rounded-sm ${containerClassName}`}>
+          <div
+            className={`w-full ${minHeight} flex items-center justify-center rounded-sm ${containerClassName}`}
+          >
             {loaderContent}
           </div>
         </Container>
       </section>
     );
   }
-  
+
   return loaderContent;
 };
 
 // Page Loader - Full page loader
-export const PageLoader = ({ 
-  text = "Loading...", 
+export const PageLoader = ({
+  text = "Loading...",
   subtitle = "Please wait",
   city,
-  ...props 
+  ...props
 }) => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -173,83 +179,64 @@ export const PageLoader = ({
 };
 
 // Section Loader - For loading specific sections
-export const SectionLoader = ({ 
-  text = "Loading...", 
+export const SectionLoader = ({
+  text = "Loading...",
   city,
   height = "h-64",
   withContainer = false,
-  ...props 
+  ...props
 }) => {
   return (
     <div className={`w-full ${height} flex items-center justify-center`}>
-      <Loader
-        size="md"
-        text={text}
-        city={city}
-        {...props}
-      />
+      <Loader size="md" text={text} city={city} {...props} />
     </div>
   );
 };
 
 // Inline Loader - For buttons or small areas
-export const InlineLoader = ({ 
-  text, 
+export const InlineLoader = ({
+  text,
   size = "sm",
   showBrand = false,
-  ...props 
+  ...props
 }) => {
   return (
     <div className="flex items-center gap-2">
-      <Loader
-        size={size}
-        showBrand={showBrand}
-        showText={false}
-        {...props}
-      />
+      <Loader size={size} showBrand={showBrand} showText={false} {...props} />
       {text && <span className="text-sm text-muted-foreground">{text}</span>}
     </div>
   );
 };
 
 // FullScreen Loader - Modal style loader
-export const FullScreenLoader = ({ 
-  text = "Loading...", 
+export const FullScreenLoader = ({
+  text = "Loading...",
   subtitle,
-  ...props 
+  ...props
 }) => {
   return (
-    <Loader
-      fullScreen
-      size="lg"
-      text={text}
-      subtitle={subtitle}
-      {...props}
-    />
+    <Loader fullScreen size="lg" text={text} subtitle={subtitle} {...props} />
   );
 };
 
 // Content Loader - For loading states inside content areas
-export const ContentLoader = ({ 
+export const ContentLoader = ({
   text = "Loading content...",
   city,
   height = "h-96",
-  ...props 
+  ...props
 }) => {
   return (
-    <div className={`w-full ${height} flex items-center justify-center border border-border rounded-sm bg-card`}>
-      <Loader
-        size="lg"
-        text={text}
-        city={city}
-        {...props}
-      />
+    <div
+      className={`w-full ${height} flex items-center justify-center border border-border rounded-sm bg-card`}
+    >
+      <Loader size="lg" text={text} city={city} {...props} />
     </div>
   );
 };
 
 // Empty State Component
-export const EmptyState = ({ 
+export const EmptyState = ({
   icon: Icon,
   title = "No items found",
   message = "Check back soon for updates",
@@ -257,7 +244,7 @@ export const EmptyState = ({
   onAction,
   city,
   size = "md",
-  ...props 
+  ...props
 }) => {
   const iconSizes = {
     sm: 32,
@@ -268,9 +255,9 @@ export const EmptyState = ({
   return (
     <div className="flex flex-col items-center justify-center py-12 px-4">
       {Icon && (
-        <Icon 
-          size={iconSizes[size] || 48} 
-          className="text-brand-primary opacity-30 mb-4" 
+        <Icon
+          size={iconSizes[size] || 48}
+          className="text-brand-primary opacity-30 mb-4"
         />
       )}
       <p className="text-muted-foreground text-sm font-medium tracking-widest uppercase text-center">

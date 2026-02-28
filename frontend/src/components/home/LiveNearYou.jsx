@@ -44,7 +44,7 @@ const LiveNearYou = () => {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">
-                TicketBro Proximity
+                Ticket Bro Proximity
               </span>
             </div>
             <h2 className="text-2xl font-bold text-foreground tracking-tight">

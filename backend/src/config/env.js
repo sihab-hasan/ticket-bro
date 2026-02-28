@@ -48,7 +48,7 @@ const env = {
   EMAIL_SECURE: process.env.EMAIL_SECURE === 'true',
   EMAIL_USER: process.env.EMAIL_USER || '',
   EMAIL_PASS: process.env.EMAIL_PASS || '',
-  EMAIL_FROM_NAME: process.env.EMAIL_FROM_NAME || 'Auth System',
+  EMAIL_FROM_NAME: process.env.EMAIL_FROM_NAME || 'Ticket Bro',
   EMAIL_FROM_ADDRESS: process.env.EMAIL_FROM_ADDRESS || 'noreply@yourdomain.com',
 
   // OAuth
@@ -82,7 +82,7 @@ const env = {
   LOG_FILE_PATH: process.env.LOG_FILE_PATH || 'logs',
 
   // 2FA
-  TWO_FACTOR_APP_NAME: process.env.TWO_FACTOR_APP_NAME || 'AuthSystem',
+  TWO_FACTOR_APP_NAME: process.env.TWO_FACTOR_APP_NAME || 'Ticket Bro',
 
   // Cookie
   COOKIE_SECRET: process.env.COOKIE_SECRET || 'cookie-secret',
