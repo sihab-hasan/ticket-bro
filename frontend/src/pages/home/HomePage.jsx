@@ -10,6 +10,13 @@ import ExploreByDate from "@/components/home/ExploreByDate";
 import LastChance from "@/components/home/LastChance";
 import ArtistSection from "@/components/home/ArtistSection";
 import TrustRibbon from "@/components/home/TrustRibbon";
+import EventsYouMayLike from "@/components/home/EventsYouMayLike";
+import OnlineEventsSection from "@/components/home/OnlineEventsSection";
+import ImpactSection from "@/components/home/ImpactSection";
+import VolunteerHeroMonth from "@/components/home/VolunteerHeroMonth";
+import EventPhotos from "@/components/home/EventPhotos";
+import RateFeedback from "@/components/home/FeedbackSection";
+import TopDonorListSimple from "@/components/home/DonorList";
 
 const HomePage = () => {
   return (
@@ -21,10 +28,18 @@ const HomePage = () => {
       <Scenes/>
       <LiveNearYou/>
       <TopRatedSection/>
+      <EventsYouMayLike />
       <ExploreByDate/>
       <LastChance/>
       <ArtistSection/>
       <TrustRibbon/>
+      <OnlineEventsSection />
+      <ImpactSection />
+      <VolunteerHeroMonth />
+      <EventPhotos />
+      <RateFeedback />
+      <TopDonorListSimple />
+
      
     </>
   );
