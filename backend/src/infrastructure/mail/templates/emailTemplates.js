@@ -74,14 +74,14 @@ const baseTemplate = (content, previewText = "") => `
 <body>
   <div class="wrapper">
     <div class="header">
-      <h1>🔐 TicketBro </h1>
+      <h1>🔐 Ticket Bro </h1>
       <p>${previewText}</p>
     </div>
     <div class="body">
       ${content}
     </div>
     <div class="footer">
-      <p>© ${new Date().getFullYear()} TicketBro. All rights reserved.</p>
+      <p>© ${new Date().getFullYear()} Ticket Bro. All rights reserved.</p>
       <p style="margin-top:10px;">
         <a href="${env.FRONTEND_URL}/privacy">Privacy</a> &middot;
         <a href="${env.FRONTEND_URL}/terms">Terms</a> &middot;

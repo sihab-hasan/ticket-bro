@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 
 /**
- * TICKETBRO - CENTRALIZED BRAND CONFIGURATION (V3.0.0)
+ * Ticket Bro - CENTRALIZED BRAND CONFIGURATION (V3.0.0)
  * The definitive single source of truth for all brand-related data.
  */
 
@@ -32,7 +32,7 @@ export const CONTACT_DETAILS = {
   brand: {
     name: "Ticket",
     suffix: "Bro.",
-    legalName: "TICKETBRO GLOBAL ENTERTAINMENT INC.",
+    legalName: "Ticket Bro GLOBAL ENTERTAINMENT INC.",
     tagline: "The premier digital gateway for global entertainment.",
     description:
       "Empowering fans to secure their place at the world's most sought-after festivals, concerts, and exclusive experiences.",
@@ -67,19 +67,19 @@ export const CONTACT_DETAILS = {
         icon: Mail,
       },
       support: {
-        address: "support@ticketbro.com",
+        address: "support@Ticket Bro.com",
         label: "Help & Support",
         cta: "Get Help",
         icon: ShieldCheck,
       },
       partnership: {
-        address: "partners@ticketbro.com",
+        address: "partners@Ticket Bro.com",
         label: "Business Relations",
         cta: "Partner With Us",
         icon: HeartHandshake,
       },
       careers: {
-        address: "talent@ticketbro.com",
+        address: "talent@Ticket Bro.com",
         label: "Careers",
         cta: "Join the Team",
         icon: Briefcase,
@@ -108,7 +108,7 @@ export const CONTACT_DETAILS = {
     {
       id: "twitter",
       platform: "Twitter",
-      href: "https://twitter.com/ticketbro",
+      href: "https://twitter.com/Ticket Bro",
       icon: Twitter,
       color: "#1DA1F2",
       group: "main",
@@ -116,7 +116,7 @@ export const CONTACT_DETAILS = {
     {
       id: "instagram",
       platform: "Instagram",
-      href: "https://instagram.com/ticketbro",
+      href: "https://instagram.com/Ticket Bro",
       icon: Instagram,
       color: "#E4405F",
       group: "main",
@@ -124,7 +124,7 @@ export const CONTACT_DETAILS = {
     {
       id: "facebook",
       platform: "Facebook",
-      href: "https://facebook.com/ticketbro",
+      href: "https://facebook.com/Ticket Bro",
       icon: Facebook,
       color: "#1877F2",
       group: "main",
@@ -132,7 +132,7 @@ export const CONTACT_DETAILS = {
     {
       id: "linkedin",
       platform: "LinkedIn",
-      href: "https://linkedin.com/company/ticketbro",
+      href: "https://linkedin.com/company/Ticket Bro",
       icon: Linkedin,
       color: "#0A66C2",
       group: "professional",
@@ -140,7 +140,7 @@ export const CONTACT_DETAILS = {
     {
       id: "github",
       platform: "Github",
-      href: "https://github.com/ticketbro",
+      href: "https://github.com/Ticket Bro",
       icon: Github,
       color: "#181717",
       group: "dev",
@@ -148,7 +148,7 @@ export const CONTACT_DETAILS = {
     {
       id: "youtube",
       platform: "YouTube",
-      href: "https://youtube.com/ticketbro",
+      href: "https://youtube.com/Ticket Bro",
       icon: Youtube,
       color: "#FF0000",
       group: "content",
@@ -156,7 +156,7 @@ export const CONTACT_DETAILS = {
     {
       id: "discord",
       platform: "Discord",
-      href: "https://discord.gg/ticketbro",
+      href: "https://discord.gg/Ticket Bro",
       icon: MessageSquare,
       color: "#5865F2",
       group: "community",
@@ -164,7 +164,7 @@ export const CONTACT_DETAILS = {
     {
       id: "tiktok",
       platform: "TikTok",
-      href: "https://tiktok.com/@ticketbro",
+      href: "https://tiktok.com/@Ticket Bro",
       icon: Music2,
       color: "#000000",
       group: "content",
@@ -172,7 +172,7 @@ export const CONTACT_DETAILS = {
     {
       id: "telegram",
       platform: "Telegram",
-      href: "https://t.me/ticketbro",
+      href: "https://t.me/Ticket Bro",
       icon: Send,
       color: "#26A5E4",
       group: "community",
