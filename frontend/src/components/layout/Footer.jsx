@@ -151,7 +151,7 @@ const Footer = () => {
               >
                 <Ticket className="h-8 w-8 text-primary animate-bounce-slow" />
                 <span className="bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
-                  TicketBro
+                  Ticket Bro
                 </span>
               </Link>
 
@@ -341,7 +341,7 @@ const Footer = () => {
         {/* --- Bottom Bar --- */}
         <div className="pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-xs text-muted-foreground">
-            © {currentYear} TicketBro Technologies Inc. All rights reserved.
+            © {currentYear} Ticket Bro Technologies Inc. All rights reserved.
             <span className="hidden md:inline mx-2">•</span>
             <span className="block md:inline text-xs hover:text-primary  cursor-pointer">
               Listed on NYSE: TICK

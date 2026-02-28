@@ -6,9 +6,17 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
-  ChevronRight, Calendar, Users, Ticket,
-  Star, MapPin, TrendingUp, BadgeCheck,
-  Music, Building2, Globe,
+  ChevronRight,
+  Calendar,
+  Users,
+  Ticket,
+  Star,
+  MapPin,
+  TrendingUp,
+  BadgeCheck,
+  Music,
+  Building2,
+  Globe,
 } from "lucide-react";
 import Container from "@/components/layout/Container";
 import { useLocation } from "@/context/LocationContext";
@@ -17,7 +25,12 @@ import { useLocation } from "@/context/LocationContext";
    HELPERS
 ═══════════════════════════════════════════════════════════════ */
 const unslugify = (slug) =>
-  slug ? slug.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") : "";
+  slug
+    ? slug
+        .split("-")
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ")
+    : "";
 
 const getLevel = (categorySlug, subCategorySlug, eventTypeSlug) => {
   if (eventTypeSlug) return "eventType";
@@ -31,14 +44,16 @@ const getLevel = (categorySlug, subCategorySlug, eventTypeSlug) => {
    Counts up from 0 to target when the element enters the viewport.
 ═══════════════════════════════════════════════════════════════ */
 const useCountUp = (target, duration = 1600, decimals = 0) => {
-  const [value, setValue]   = useState(0);
+  const [value, setValue] = useState(0);
   const [started, setStarted] = useState(false);
   const ref = useRef(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) setStarted(true); },
-      { threshold: 0.3 }
+      ([entry]) => {
+        if (entry.isIntersecting) setStarted(true);
+      },
+      { threshold: 0.3 },
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
@@ -67,7 +82,8 @@ const useCountUp = (target, duration = 1600, decimals = 0) => {
 ═══════════════════════════════════════════════════════════════ */
 const formatNum = (n, decimals = 0) => {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000)     return `${(n / 1_000).toFixed(decimals === 0 ? 1 : decimals)}k`;
+  if (n >= 1_000)
+    return `${(n / 1_000).toFixed(decimals === 0 ? 1 : decimals)}k`;
   return n.toLocaleString();
 };
 
@@ -79,144 +95,171 @@ const formatNum = (n, decimals = 0) => {
 const STATS_DATA = {
   root: {
     dhaka: {
-      totalEvents:    1240,
+      totalEvents: 1240,
       totalAttendees: 284000,
       totalOrganizers: 318,
-      avgRating:      4.7,
-      citiesCovered:  7,
-      ticketsSold:    96000,
-      topCategory:    "Music",
-      upcomingToday:  23,
+      avgRating: 4.7,
+      citiesCovered: 7,
+      ticketsSold: 96000,
+      topCategory: "Music",
+      upcomingToday: 23,
     },
     chittagong: {
-      totalEvents:    410,
+      totalEvents: 410,
       totalAttendees: 87000,
       totalOrganizers: 94,
-      avgRating:      4.6,
-      citiesCovered:  1,
-      ticketsSold:    31000,
-      topCategory:    "Music",
-      upcomingToday:  8,
+      avgRating: 4.6,
+      citiesCovered: 1,
+      ticketsSold: 31000,
+      topCategory: "Music",
+      upcomingToday: 8,
     },
     sylhet: {
-      totalEvents:    190,
+      totalEvents: 190,
       totalAttendees: 41000,
       totalOrganizers: 47,
-      avgRating:      4.5,
-      citiesCovered:  1,
-      ticketsSold:    14000,
-      topCategory:    "Arts & Culture",
-      upcomingToday:  4,
+      avgRating: 4.5,
+      citiesCovered: 1,
+      ticketsSold: 14000,
+      topCategory: "Arts & Culture",
+      upcomingToday: 4,
     },
     _default: {
-      totalEvents:    280,
+      totalEvents: 280,
       totalAttendees: 58000,
       totalOrganizers: 62,
-      avgRating:      4.5,
-      citiesCovered:  1,
-      ticketsSold:    19000,
-      topCategory:    "Music",
-      upcomingToday:  6,
+      avgRating: 4.5,
+      citiesCovered: 1,
+      ticketsSold: 19000,
+      topCategory: "Music",
+      upcomingToday: 6,
     },
   },
   music: {
     dhaka: {
-      totalEvents:    540,
+      totalEvents: 540,
       totalAttendees: 128000,
       totalOrganizers: 142,
-      avgRating:      4.8,
-      citiesCovered:  7,
-      ticketsSold:    46000,
-      topCategory:    "Concerts",
-      upcomingToday:  11,
+      avgRating: 4.8,
+      citiesCovered: 7,
+      ticketsSold: 46000,
+      topCategory: "Concerts",
+      upcomingToday: 11,
     },
     _default: {
-      totalEvents:    120,
+      totalEvents: 120,
       totalAttendees: 29000,
       totalOrganizers: 34,
-      avgRating:      4.7,
-      citiesCovered:  1,
-      ticketsSold:    10000,
-      topCategory:    "Concerts",
-      upcomingToday:  3,
+      avgRating: 4.7,
+      citiesCovered: 1,
+      ticketsSold: 10000,
+      topCategory: "Concerts",
+      upcomingToday: 3,
     },
   },
   concerts: {
     dhaka: {
-      totalEvents:    210,
+      totalEvents: 210,
       totalAttendees: 54000,
       totalOrganizers: 76,
-      avgRating:      4.8,
-      citiesCovered:  7,
-      ticketsSold:    20000,
-      topCategory:    "Live Bands",
-      upcomingToday:  5,
+      avgRating: 4.8,
+      citiesCovered: 7,
+      ticketsSold: 20000,
+      topCategory: "Live Bands",
+      upcomingToday: 5,
     },
     _default: {
-      totalEvents:    48,
+      totalEvents: 48,
       totalAttendees: 11000,
       totalOrganizers: 18,
-      avgRating:      4.7,
-      citiesCovered:  1,
-      ticketsSold:    4000,
-      topCategory:    "Live Bands",
-      upcomingToday:  2,
+      avgRating: 4.7,
+      citiesCovered: 1,
+      ticketsSold: 4000,
+      topCategory: "Live Bands",
+      upcomingToday: 2,
     },
   },
   "live-bands": {
     dhaka: {
-      totalEvents:    84,
+      totalEvents: 84,
       totalAttendees: 21000,
       totalOrganizers: 31,
-      avgRating:      4.9,
-      citiesCovered:  7,
-      ticketsSold:    8000,
-      topCategory:    "Live Bands",
-      upcomingToday:  2,
+      avgRating: 4.9,
+      citiesCovered: 7,
+      ticketsSold: 8000,
+      topCategory: "Live Bands",
+      upcomingToday: 2,
     },
     _default: {
-      totalEvents:    18,
+      totalEvents: 18,
       totalAttendees: 4200,
       totalOrganizers: 9,
-      avgRating:      4.8,
-      citiesCovered:  1,
-      ticketsSold:    1500,
-      topCategory:    "Live Bands",
-      upcomingToday:  1,
+      avgRating: 4.8,
+      citiesCovered: 1,
+      ticketsSold: 1500,
+      topCategory: "Live Bands",
+      upcomingToday: 1,
     },
   },
 };
 
-const getStats = (level, categorySlug, subCategorySlug, eventTypeSlug, locationId) => {
+const getStats = (
+  level,
+  categorySlug,
+  subCategorySlug,
+  eventTypeSlug,
+  locationId,
+) => {
   const levelKey =
-    level === "root"          ? "root"
-    : level === "category"    ? categorySlug
-    : level === "subCategory" ? subCategorySlug
-    : eventTypeSlug;
+    level === "root"
+      ? "root"
+      : level === "category"
+        ? categorySlug
+        : level === "subCategory"
+          ? subCategorySlug
+          : eventTypeSlug;
 
   const bucket = STATS_DATA[levelKey] || STATS_DATA["root"];
-  return bucket[locationId] || bucket["_default"] || STATS_DATA["root"]["_default"];
+  return (
+    bucket[locationId] || bucket["_default"] || STATS_DATA["root"]["_default"]
+  );
 };
 
-const getSectionTitle = (level, categorySlug, subCategorySlug, eventTypeSlug) => {
-  if (level === "root")        return "TicketBro by the Numbers";
-  if (level === "category")    return `${unslugify(categorySlug)} in Numbers`;
-  if (level === "subCategory") return `${unslugify(subCategorySlug)} in Numbers`;
-  if (level === "eventType")   return `${unslugify(eventTypeSlug)} in Numbers`;
-  return "TicketBro by the Numbers";
+const getSectionTitle = (
+  level,
+  categorySlug,
+  subCategorySlug,
+  eventTypeSlug,
+) => {
+  if (level === "root") return "Ticket Bro by the Numbers";
+  if (level === "category") return `${unslugify(categorySlug)} in Numbers`;
+  if (level === "subCategory")
+    return `${unslugify(subCategorySlug)} in Numbers`;
+  if (level === "eventType") return `${unslugify(eventTypeSlug)} in Numbers`;
+  return "Ticket Bro by the Numbers";
 };
 
 /* ═══════════════════════════════════════════════════════════════
    ANIMATED STAT CARD
 ═══════════════════════════════════════════════════════════════ */
-const StatCard = ({ icon: Icon, label, rawValue, suffix = "", prefix = "", decimals = 0, highlight = false, sublabel }) => {
+const StatCard = ({
+  icon: Icon,
+  label,
+  rawValue,
+  suffix = "",
+  prefix = "",
+  decimals = 0,
+  highlight = false,
+  sublabel,
+}) => {
   const { value, ref } = useCountUp(rawValue, 1600, decimals);
 
-  const displayValue = rawValue >= 1000
-    ? formatNum(value, decimals)
-    : decimals > 0
-      ? value.toFixed(decimals)
-      : Math.floor(value).toLocaleString();
+  const displayValue =
+    rawValue >= 1000
+      ? formatNum(value, decimals)
+      : decimals > 0
+        ? value.toFixed(decimals)
+        : Math.floor(value).toLocaleString();
 
   return (
     <div
@@ -233,7 +276,9 @@ const StatCard = ({ icon: Icon, label, rawValue, suffix = "", prefix = "", decim
       >
         <Icon
           size={17}
-          style={{ color: highlight ? "var(--background)" : "var(--foreground)" }}
+          style={{
+            color: highlight ? "var(--background)" : "var(--foreground)",
+          }}
         />
       </div>
 
@@ -246,14 +291,18 @@ const StatCard = ({ icon: Icon, label, rawValue, suffix = "", prefix = "", decim
             color: highlight ? "var(--background)" : "var(--foreground)",
           }}
         >
-          {prefix}{displayValue}{suffix}
+          {prefix}
+          {displayValue}
+          {suffix}
         </p>
         {sublabel && (
           <p
             className="text-xs mt-0.5"
             style={{
               fontFamily: "var(--font-sans)",
-              color: highlight ? "rgba(255,255,255,0.6)" : "var(--muted-foreground)",
+              color: highlight
+                ? "rgba(255,255,255,0.6)"
+                : "var(--muted-foreground)",
             }}
           >
             {sublabel}
@@ -266,7 +315,9 @@ const StatCard = ({ icon: Icon, label, rawValue, suffix = "", prefix = "", decim
         className="text-sm font-medium mt-auto"
         style={{
           fontFamily: "var(--font-sans)",
-          color: highlight ? "rgba(255,255,255,0.8)" : "var(--muted-foreground)",
+          color: highlight
+            ? "rgba(255,255,255,0.8)"
+            : "var(--muted-foreground)",
         }}
       >
         {label}
@@ -296,11 +347,17 @@ const TopCategoryCard = ({ label, value, locationLabel }) => (
       >
         {value}
       </p>
-      <p className="text-xs text-muted-foreground mt-0.5" style={{ fontFamily: "var(--font-sans)" }}>
+      <p
+        className="text-xs text-muted-foreground mt-0.5"
+        style={{ fontFamily: "var(--font-sans)" }}
+      >
         in {locationLabel}
       </p>
     </div>
-    <p className="text-sm font-medium text-muted-foreground mt-auto" style={{ fontFamily: "var(--font-sans)" }}>
+    <p
+      className="text-sm font-medium text-muted-foreground mt-auto"
+      style={{ fontFamily: "var(--font-sans)" }}
+    >
       {label}
     </p>
   </div>
@@ -313,24 +370,37 @@ const StatsSection = () => {
   const { categorySlug, subCategorySlug, eventTypeSlug } = useParams();
   const { selectedLocation } = useLocation();
 
-  const level         = getLevel(categorySlug, subCategorySlug, eventTypeSlug);
-  const locationId    = selectedLocation?.id;
+  const level = getLevel(categorySlug, subCategorySlug, eventTypeSlug);
+  const locationId = selectedLocation?.id;
   const locationLabel = selectedLocation?.label || "your city";
 
-  const stats        = getStats(level, categorySlug, subCategorySlug, eventTypeSlug, locationId);
-  const sectionTitle = getSectionTitle(level, categorySlug, subCategorySlug, eventTypeSlug);
+  const stats = getStats(
+    level,
+    categorySlug,
+    subCategorySlug,
+    eventTypeSlug,
+    locationId,
+  );
+  const sectionTitle = getSectionTitle(
+    level,
+    categorySlug,
+    subCategorySlug,
+    eventTypeSlug,
+  );
 
   const viewAllTo =
-    level === "root"          ? "/browse"
-    : level === "category"    ? `/browse/${categorySlug}`
-    : level === "subCategory" ? `/browse/${categorySlug}/${subCategorySlug}`
-    : `/browse/${categorySlug}/${subCategorySlug}/${eventTypeSlug}`;
+    level === "root"
+      ? "/browse"
+      : level === "category"
+        ? `/browse/${categorySlug}`
+        : level === "subCategory"
+          ? `/browse/${categorySlug}/${subCategorySlug}`
+          : `/browse/${categorySlug}/${subCategorySlug}/${eventTypeSlug}`;
 
   return (
     <section className="w-full bg-background" aria-label="Platform statistics">
       <Container>
         <div className="py-8">
-
           {/* Header */}
           <div className="flex items-end justify-between mb-6">
             <div>
@@ -343,7 +413,10 @@ const StatsSection = () => {
                   {sectionTitle}
                 </h2>
               </div>
-              <p className="text-sm text-muted-foreground" style={{ fontFamily: "var(--font-sans)" }}>
+              <p
+                className="text-sm text-muted-foreground"
+                style={{ fontFamily: "var(--font-sans)" }}
+              >
                 Live platform stats for {locationLabel}
               </p>
             </div>
@@ -358,7 +431,6 @@ const StatsSection = () => {
 
           {/* Stat cards grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-
             {/* Total events — highlighted */}
             <StatCard
               icon={Calendar}
@@ -413,9 +485,7 @@ const StatsSection = () => {
               value={stats.topCategory}
               locationLabel={locationLabel}
             />
-
           </div>
-
         </div>
       </Container>
     </section>

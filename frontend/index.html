@@ -8,21 +8,24 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/ticket-bro-logo.png" /> -->
     <link rel="icon" type="image/svg+xml" href="/test.svg" />
     <!-- <link rel="icon" type="image/png" href="/test.png" /> -->
-    
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TicketBro</title>
+    <title>Ticket Bro</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     <script>
-  // Prevents the white flash on page refresh
-  (function() {
-    const t = localStorage.getItem('theme') || 'system';
-    const dark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    document.documentElement.classList.add(dark ? 'dark' : 'light');
-    document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
-  })();
-</script>
+      // Prevents the white flash on page refresh
+      (function () {
+        const t = localStorage.getItem("theme") || "system";
+        const dark =
+          t === "dark" ||
+          (t === "system" &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.classList.add(dark ? "dark" : "light");
+        document.documentElement.style.colorScheme = dark ? "dark" : "light";
+      })();
+    </script>
   </body>
 </html>

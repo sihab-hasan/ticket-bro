@@ -16,7 +16,6 @@ const AuthLayout = ({ children }) => {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-background text-foreground font-sans px-6 py-12 overflow-hidden">
-      
       {/* Background Glow */}
       <div className="absolute inset-0 pointer-events-none">
         <div
@@ -29,14 +28,13 @@ const AuthLayout = ({ children }) => {
       </div>
 
       <div className="w-full max-w-md relative z-10">
-
         {/* 🔹 STATIC Brand (No motion) */}
         <div className="flex items-center justify-center gap-2 mb-10 select-none">
           <div className="bg-brand-primary p-2 rounded-lg shadow-lg shadow-brand-primary/20">
             <Ticket size={20} className="text-black" />
           </div>
           <span className="font-brand text-2xl font-black tracking-tight uppercase">
-            {authConfig.appName ?? "TicketBro"}
+            {authConfig.appName ?? "Ticket Bro"}
           </span>
         </div>
 
@@ -62,7 +60,7 @@ const AuthLayout = ({ children }) => {
 
         {/* Footer */}
         <div className="text-center mt-8 text-[11px] tracking-[0.25em] uppercase opacity-30 font-semibold">
-          Powered by TicketBro Core
+          Powered by Ticket Bro Core
         </div>
       </div>
     </div>
