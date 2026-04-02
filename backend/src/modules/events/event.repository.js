@@ -1,0 +1,78 @@
+'use strict';
+const Event = require('./event.model');
+
+class EventRepository {
+  async create(data) { return new Event(data).save(); }
+
+  async findById(id) {
+    return Event.findOne({ _id: id, deletedAt: null })
+      .populate('organizer', 'firstName lastName email avatar organizationName')
+      .populate('category', 'name slug icon color')
+      .exec();
+  }
+
+  async findBySlug(slug) {
+    return Event.findOne({ slug, deletedAt: null })
+      .populate('organizer', 'firstName lastName email avatar organizationName')
+      .populate('category', 'name slug icon color')
+      .exec();
+  }
+
+  async findAll({ status, category, organizer, page = 1, limit = 20, sort = '-createdAt', search } = {}) {
+    const filter = { deletedAt: null };
+    if (status)    filter.status   = status;
+    if (category)  filter.category = category;
+    if (organizer) filter.organizer = organizer;
+    if (search) {
+      const re = new RegExp(search, 'i');
+      filter.$or = [{ title: re }, { description: re }];
+    }
+    const skip = (Number(page) - 1) * Number(limit);
+    const [events, total] = await Promise.all([
+      Event.find(filter)
+        .populate('organizer', 'firstName lastName email')
+        .populate('category', 'name slug')
+        .sort(sort).skip(skip).limit(Number(limit)).lean(),
+      Event.countDocuments(filter),
+    ]);
+    return { events, pagination: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / Number(limit)) } };
+  }
+
+  async findPublished({ category, page = 1, limit = 20, sort = '-createdAt', search, startDate, endDate } = {}) {
+    const filter = { status: 'published', visibility: 'public', deletedAt: null };
+    if (category) filter.category = category;
+    if (search) { const re = new RegExp(search, 'i'); filter.$or = [{ title: re }, { description: re }]; }
+    if (startDate) filter.startDate = { $gte: new Date(startDate) };
+    if (endDate)   filter.endDate   = { $lte: new Date(endDate) };
+    const skip = (Number(page) - 1) * Number(limit);
+    const [events, total] = await Promise.all([
+      Event.find(filter).populate('category', 'name slug').sort(sort).skip(skip).limit(Number(limit)).lean(),
+      Event.countDocuments(filter),
+    ]);
+    return { events, pagination: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / Number(limit)) } };
+  }
+
+  async findByOrganizer(organizerId, query = {}) {
+    return this.findAll({ ...query, organizer: organizerId });
+  }
+
+  async updateById(id, data) {
+    return Event.findByIdAndUpdate(id, { $set: data }, { new: true, runValidators: true }).exec();
+  }
+
+  async softDeleteById(id) {
+    return Event.findByIdAndUpdate(id, { $set: { deletedAt: new Date(), status: 'cancelled' } }, { new: true }).exec();
+  }
+
+  async getStats() {
+    const [total, published, draft, cancelled] = await Promise.all([
+      Event.countDocuments({ deletedAt: null }),
+      Event.countDocuments({ deletedAt: null, status: 'published' }),
+      Event.countDocuments({ deletedAt: null, status: 'draft' }),
+      Event.countDocuments({ deletedAt: null, status: 'cancelled' }),
+    ]);
+    return { total, published, draft, cancelled };
+  }
+}
+
+module.exports = new EventRepository();

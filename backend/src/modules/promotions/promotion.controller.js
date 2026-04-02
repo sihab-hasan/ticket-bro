@@ -1,15 +1,13 @@
 'use strict';
-const asyncHandler = require('../../common/utils/asyncHandler');
+const asyncHandler       = require('../../common/utils/asyncHandler');
 const { sendSuccess, sendCreated } = require('../../common/utils/apiResponse');
+const promotionService   = require('./promotion.service');
+
 class PromotionController {
-  validateCode    = asyncHandler(async (req, res) => {
-    const { code } = req.body;
-    if (code === 'SAVE10') return sendSuccess(res, 'Valid promo code.', { code, discount: 10, type: 'percent', valid: true });
-    return res.status(400).json({ success: false, message: 'Invalid or expired promo code.' });
-  });
-  create          = asyncHandler(async (req, res) => { sendCreated(res, 'Promotion created.', { id: `promo_${Date.now()}`, ...req.body }); });
-  getMyPromotions = asyncHandler(async (req, res) => { sendSuccess(res, 'Promotions fetched.', { promotions: [] }); });
-  update          = asyncHandler(async (req, res) => { sendSuccess(res, 'Promotion updated.', { id: req.params.id, ...req.body }); });
-  remove          = asyncHandler(async (req, res) => { sendSuccess(res, 'Promotion deleted.'); });
+  validateCode    = asyncHandler(async (req, res) => { sendSuccess(res, 'Code validated.', await promotionService.validateCode(req.body.code, req.body)); });
+  create          = asyncHandler(async (req, res) => { sendCreated(res, 'Promotion created.', { promotion: await promotionService.create(req.body, req.user) }); });
+  getMyPromotions = asyncHandler(async (req, res) => { sendSuccess(res, 'Promotions fetched.', await promotionService.getMyPromotions(req.user, req.query)); });
+  update          = asyncHandler(async (req, res) => { sendSuccess(res, 'Updated.', { promotion: await promotionService.update(req.params.id, req.body, req.user) }); });
+  remove          = asyncHandler(async (req, res) => { sendSuccess(res, 'Deleted.', await promotionService.remove(req.params.id, req.user)); });
 }
 module.exports = new PromotionController();

@@ -1,13 +1,34 @@
 'use strict';
-const asyncHandler = require('../../common/utils/asyncHandler');
+const asyncHandler   = require('../../common/utils/asyncHandler');
 const { sendSuccess } = require('../../common/utils/apiResponse');
+const ticketService  = require('./ticket.service');
+
+const getId = (u) => u?._id || u?.id || u?.userId;
 
 class TicketController {
-  getMyTickets    = asyncHandler(async (req, res) => { sendSuccess(res, 'Tickets fetched.', { tickets: [] }); });
-  getTicketByCode = asyncHandler(async (req, res) => { sendSuccess(res, 'Ticket fetched.', { code: req.params.code }); });
-  downloadTicket  = asyncHandler(async (req, res) => { sendSuccess(res, 'Download ready.', { url: `/tickets/${req.params.code}.pdf` }); });
-  validateTicket  = asyncHandler(async (req, res) => { sendSuccess(res, 'Ticket validated.', { code: req.params.code, valid: true }); });
-  transferTicket  = asyncHandler(async (req, res) => { sendSuccess(res, 'Ticket transferred.', { code: req.params.code }); });
-  cancelTicket    = asyncHandler(async (req, res) => { sendSuccess(res, 'Ticket cancelled.', { code: req.params.code }); });
+  getMyTickets   = asyncHandler(async (req, res) => {
+    const r = await ticketService.getMyTickets(getId(req.user), req.query);
+    sendSuccess(res, 'Tickets fetched.', r);
+  });
+  getTicketByCode = asyncHandler(async (req, res) => {
+    const ticket = await ticketService.getTicketByCode(req.params.code, getId(req.user));
+    sendSuccess(res, 'Ticket fetched.', { ticket });
+  });
+  downloadTicket = asyncHandler(async (req, res) => {
+    const ticket = await ticketService.downloadTicket(req.params.code, getId(req.user));
+    sendSuccess(res, 'Ticket fetched.', { ticket });
+  });
+  validateTicket = asyncHandler(async (req, res) => {
+    const ticket = await ticketService.validateTicket(req.params.code, req.user);
+    sendSuccess(res, 'Ticket validated.', { ticket });
+  });
+  transferTicket = asyncHandler(async (req, res) => {
+    const ticket = await ticketService.transferTicket(req.params.code, getId(req.user), req.body.toEmail);
+    sendSuccess(res, 'Ticket transferred.', { ticket });
+  });
+  cancelTicket   = asyncHandler(async (req, res) => {
+    const ticket = await ticketService.cancelTicket(req.params.code, getId(req.user));
+    sendSuccess(res, 'Ticket cancelled.', { ticket });
+  });
 }
 module.exports = new TicketController();
