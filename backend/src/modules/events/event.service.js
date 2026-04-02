@@ -1,63 +1,74 @@
 'use strict';
-
-// event.service.js — stub implementation
-// Wire up to event.repository.js and your DB model as you build.
-
-const { NotFoundError, ForbiddenError } = require('../../common/errors/AppError');
+const eventRepository = require('./event.repository');
+const { NotFoundError, ForbiddenError, BadRequestError } = require('../../common/errors/AppError');
 const { ROLES } = require('../../common/constants/roles');
-
-const getId = (user) => user?.id || user?._id?.toString() || user?.userId;
+const logger = require('../../infrastructure/logger/logger');
+const getId = (u) => u?._id?.toString() || u?.id || u?.userId;
 
 class EventService {
-  async getEvents(query = {}, user = null) {
-    // TODO: implement with event.repository
-    return { events: [], total: 0, page: 1, limit: 20 };
+  async createEvent(data, user) {
+    const event = await eventRepository.create({ ...data, organizer: getId(user) });
+    logger.info(`Event created: ${event._id} by ${getId(user)}`);
+    return event;
   }
 
-  async getFeaturedEvents(query = {}) { return { events: [] }; }
-  async getTrendingEvents(query = {}) { return { events: [] }; }
-  async getUpcomingEvents(query = {}) { return { events: [] }; }
+  async getEvents(query = {}) { return eventRepository.findPublished(query); }
 
-  async getEventBySlug(slug, user = null) {
-    // TODO: return event or null
-    return null;
+  async getEventById(id) {
+    const event = await eventRepository.findById(id);
+    if (!event) throw new NotFoundError('Event not found.');
+    return event;
   }
 
-  async getEventDetails(slug, user = null) { return null; }
-  async getEventTickets(slug) { return { tickets: [] }; }
-  async getEventReviews(slug, query = {}) { return { reviews: [] }; }
-  async getRelatedEvents(slug, query = {}) { return { events: [] }; }
-  async getTicketTypes(slug) { return { ticketTypes: [] }; }
-  async getSeatSections(slug) { return { sections: [] }; }
-  async getSeatMap(slug) { return { seats: [] }; }
-
-  async createEvent(data, organizerId) {
-    // TODO: validate data, create in DB
-    return { id: 'placeholder', ...data, organizerId };
+  async getEventBySlug(slug) {
+    const event = await eventRepository.findBySlug(slug);
+    if (!event) throw new NotFoundError('Event not found.');
+    return event;
   }
 
-  async updateEvent(slug, data, user) {
-    // TODO: check ownership, update
-    return { slug, ...data };
+  async updateEvent(id, data, user) {
+    const event = await eventRepository.findById(id);
+    if (!event) throw new NotFoundError('Event not found.');
+    const isAdmin = [ROLES.ADMIN, ROLES.SUPER_ADMIN].includes(user.role);
+    if (!isAdmin && event.organizer._id.toString() !== getId(user)) throw new ForbiddenError('Access denied.');
+    return eventRepository.updateById(id, data);
   }
 
-  async deleteEvent(slug, user) {
-    // TODO: check ownership, soft-delete
+  async deleteEvent(id, user) {
+    const event = await eventRepository.findById(id);
+    if (!event) throw new NotFoundError('Event not found.');
+    const isAdmin = [ROLES.ADMIN, ROLES.SUPER_ADMIN].includes(user.role);
+    if (!isAdmin && event.organizer._id.toString() !== getId(user)) throw new ForbiddenError('Access denied.');
+    await eventRepository.softDeleteById(id);
+    return { message: 'Event deleted.' };
   }
 
-  async publishEvent(slug, user) { return { slug, status: 'published' }; }
-  async cancelEvent(slug, user)  { return { slug, status: 'cancelled' }; }
+  async publishEvent(id, user) {
+    const event = await eventRepository.findById(id);
+    if (!event) throw new NotFoundError('Event not found.');
+    if (event.organizer._id.toString() !== getId(user) && ![ROLES.ADMIN, ROLES.SUPER_ADMIN].includes(user.role)) throw new ForbiddenError('Access denied.');
+    if (event.status === 'published') throw new BadRequestError('Event already published.');
+    return eventRepository.updateById(id, { status: 'published', publishedAt: new Date() });
+  }
 
-  async createTicketType(slug, data, user) { return { id: 'placeholder', ...data }; }
-  async updateTicketType(slug, id, data, user) { return { id, ...data }; }
-  async deleteTicketType(slug, id, user) {}
+  async cancelEvent(id, user) {
+    const event = await eventRepository.findById(id);
+    if (!event) throw new NotFoundError('Event not found.');
+    if (event.organizer._id.toString() !== getId(user) && ![ROLES.ADMIN, ROLES.SUPER_ADMIN].includes(user.role)) throw new ForbiddenError('Access denied.');
+    return eventRepository.updateById(id, { status: 'cancelled' });
+  }
 
-  async createSeatSection(slug, data, user) { return { id: 'placeholder', ...data }; }
-  async updateSeatSection(slug, id, data, user) { return { id, ...data }; }
+  async getOrganizerEvents(organizerId, query = {}) { return eventRepository.findByOrganizer(organizerId, query); }
 
-  async adminGetAllEvents(query = {}) { return { events: [], total: 0 }; }
-  async approveEvent(slug, user) { return { slug, status: 'approved' }; }
-  async rejectEvent(slug, reason, user) { return { slug, status: 'rejected', reason }; }
+  async getAllEventsAdmin(query = {}) { return eventRepository.findAll(query); }
+
+  async approveEvent(id) { return eventRepository.updateById(id, { status: 'published', approvedAt: new Date() }); }
+
+  async rejectEvent(id, reason = '') { return eventRepository.updateById(id, { status: 'rejected', rejectedReason: reason }); }
+
+  async featureEvent(id, featured = true) { return eventRepository.updateById(id, { isFeatured: featured }); }
+
+  async getStats() { return eventRepository.getStats(); }
 }
 
 module.exports = new EventService();
