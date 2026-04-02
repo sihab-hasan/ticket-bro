@@ -1,35 +1,55 @@
 'use strict';
 const asyncHandler = require('../../common/utils/asyncHandler');
 const { sendSuccess, sendCreated } = require('../../common/utils/apiResponse');
-const getId = u => u?.id || u?._id?.toString() || u?.userId;
+const bookingService = require('./booking.service');
 
 class BookingController {
   createBooking = asyncHandler(async (req, res) => {
-    sendCreated(res, 'Booking created.', { bookingRef: `BK-${Date.now()}`, ...req.body, userId: getId(req.user) });
+    const booking = await bookingService.createBooking(req.body, req.user);
+    sendCreated(res, 'Booking created.', { booking });
   });
+
   getMyBookings = asyncHandler(async (req, res) => {
-    sendSuccess(res, 'Bookings fetched.', { bookings: [], pagination: { total: 0, page: 1, limit: 20, totalPages: 0 } });
+    const userId = req.user._id || req.user.id;
+    const result = await bookingService.getMyBookings(userId, req.query);
+    sendSuccess(res, 'Bookings fetched.', result);
   });
+
   getBookingByRef = asyncHandler(async (req, res) => {
-    sendSuccess(res, 'Booking fetched.', { ref: req.params.ref });
+    const booking = await bookingService.getBookingByRef(req.params.ref, req.user);
+    sendSuccess(res, 'Booking fetched.', { booking });
   });
+
   cancelBooking = asyncHandler(async (req, res) => {
-    sendSuccess(res, 'Booking cancelled.', { ref: req.params.ref, status: 'cancelled' });
+    const booking = await bookingService.cancelBooking(req.params.ref, req.user, req.body.reason);
+    sendSuccess(res, 'Booking cancelled.', { booking });
   });
+
   requestRefund = asyncHandler(async (req, res) => {
-    sendSuccess(res, 'Refund requested.', { ref: req.params.ref });
+    const booking = await bookingService.requestRefund(req.params.ref, req.user, req.body.reason);
+    sendSuccess(res, 'Refund requested.', { booking });
   });
+
   getBookingTickets = asyncHandler(async (req, res) => {
-    sendSuccess(res, 'Tickets fetched.', { tickets: [] });
+    const result = await bookingService.getBookingTickets(req.params.ref, req.user);
+    sendSuccess(res, 'Tickets fetched.', result);
   });
+
   getInvoice = asyncHandler(async (req, res) => {
-    sendSuccess(res, 'Invoice fetched.', { ref: req.params.ref });
+    const invoice = await bookingService.getInvoice(req.params.ref, req.user);
+    sendSuccess(res, 'Invoice fetched.', { invoice });
   });
+
   getOrganizerBookings = asyncHandler(async (req, res) => {
-    sendSuccess(res, 'Organizer bookings fetched.', { bookings: [] });
+    const organizerId = req.user._id || req.user.id;
+    const result = await bookingService.getOrganizerBookings(organizerId, req.query);
+    sendSuccess(res, 'Organizer bookings fetched.', result);
   });
+
   checkIn = asyncHandler(async (req, res) => {
-    sendSuccess(res, 'Checked in.', { ref: req.params.ref, checkedIn: true });
+    const booking = await bookingService.checkIn(req.params.ref, req.user);
+    sendSuccess(res, 'Checked in successfully.', { booking });
   });
 }
+
 module.exports = new BookingController();

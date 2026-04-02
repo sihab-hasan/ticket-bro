@@ -1,15 +1,17 @@
 'use strict';
-const asyncHandler = require('../../common/utils/asyncHandler');
-const { sendSuccess, sendCreated } = require('../../common/utils/apiResponse');
+const asyncHandler  = require('../../common/utils/asyncHandler');
+const { sendSuccess } = require('../../common/utils/apiResponse');
+const cartService   = require('./cart.service');
+const getId = (u) => u?._id || u?.id || u?.userId;
 
 class CartController {
-  getCart        = asyncHandler(async (req, res) => { sendSuccess(res, 'Cart fetched.', { items: [], total: 0, discount: 0 }); });
-  addItem        = asyncHandler(async (req, res) => { sendSuccess(res, 'Item added.', { items: [req.body], total: req.body.price || 0 }); });
-  updateItem     = asyncHandler(async (req, res) => { sendSuccess(res, 'Item updated.', { itemId: req.params.itemId }); });
-  removeItem     = asyncHandler(async (req, res) => { sendSuccess(res, 'Item removed.'); });
-  clearCart      = asyncHandler(async (req, res) => { sendSuccess(res, 'Cart cleared.'); });
-  applyPromo     = asyncHandler(async (req, res) => { sendSuccess(res, 'Promo applied.', { discount: 10, code: req.body.code }); });
-  removePromo    = asyncHandler(async (req, res) => { sendSuccess(res, 'Promo removed.'); });
-  checkout       = asyncHandler(async (req, res) => { sendCreated(res, 'Checkout initiated.', { orderId: `ORD-${Date.now()}` }); });
+  getCart    = asyncHandler(async (req, res) => { sendSuccess(res, 'Cart fetched.', { cart: await cartService.getCart(getId(req.user)) }); });
+  addItem    = asyncHandler(async (req, res) => { sendSuccess(res, 'Item added.', { cart: await cartService.addItem(getId(req.user), req.body) }); });
+  updateItem = asyncHandler(async (req, res) => { sendSuccess(res, 'Item updated.', { cart: await cartService.updateItem(getId(req.user), req.params.itemId, req.body) }); });
+  removeItem = asyncHandler(async (req, res) => { sendSuccess(res, 'Item removed.', { cart: await cartService.removeItem(getId(req.user), req.params.itemId) }); });
+  clearCart  = asyncHandler(async (req, res) => { sendSuccess(res, 'Cart cleared.', await cartService.clearCart(getId(req.user))); });
+  applyPromo = asyncHandler(async (req, res) => { sendSuccess(res, 'Promo applied.', { cart: await cartService.applyPromo(getId(req.user), req.body.code) }); });
+  removePromo= asyncHandler(async (req, res) => { sendSuccess(res, 'Promo removed.', { cart: await cartService.removePromo(getId(req.user)) }); });
+  checkout   = asyncHandler(async (req, res) => { sendSuccess(res, 'Ready for checkout.', await cartService.checkout(getId(req.user))); });
 }
 module.exports = new CartController();

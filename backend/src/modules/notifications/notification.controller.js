@@ -1,17 +1,19 @@
 'use strict';
-const asyncHandler = require('../../common/utils/asyncHandler');
-const { sendSuccess } = require('../../common/utils/apiResponse');
+const asyncHandler          = require('../../common/utils/asyncHandler');
+const { sendSuccess }       = require('../../common/utils/apiResponse');
+const notificationService   = require('./notification.service');
+const getId = (u) => u?._id || u?.id || u?.userId;
 
 class NotificationController {
-  getNotifications  = asyncHandler(async (req, res) => { sendSuccess(res, 'Notifications fetched.', { notifications: [], unreadCount: 0 }); });
-  getUnreadCount    = asyncHandler(async (req, res) => { sendSuccess(res, 'Unread count.', { count: 0 }); });
-  markRead          = asyncHandler(async (req, res) => { sendSuccess(res, 'Marked as read.', { id: req.params.id }); });
-  markAllRead       = asyncHandler(async (req, res) => { sendSuccess(res, 'All marked as read.'); });
-  deleteNotification= asyncHandler(async (req, res) => { sendSuccess(res, 'Notification deleted.'); });
-  clearAll          = asyncHandler(async (req, res) => { sendSuccess(res, 'All notifications cleared.'); });
-  getPreferences    = asyncHandler(async (req, res) => { sendSuccess(res, 'Preferences fetched.', { email: true, push: true, sms: false }); });
-  updatePreferences = asyncHandler(async (req, res) => { sendSuccess(res, 'Preferences updated.', req.body); });
-  subscribePush     = asyncHandler(async (req, res) => { sendSuccess(res, 'Push subscribed.'); });
-  unsubscribePush   = asyncHandler(async (req, res) => { sendSuccess(res, 'Push unsubscribed.'); });
+  getNotifications = asyncHandler(async (req, res) => { sendSuccess(res, 'Notifications fetched.', await notificationService.getNotifications(getId(req.user), req.query)); });
+  getUnreadCount   = asyncHandler(async (req, res) => { sendSuccess(res, 'Unread count.', await notificationService.getUnreadCount(getId(req.user))); });
+  getPreferences   = asyncHandler(async (req, res) => { sendSuccess(res, 'Preferences fetched.', await notificationService.getPreferences(getId(req.user))); });
+  updatePreferences= asyncHandler(async (req, res) => { sendSuccess(res, 'Preferences updated.', await notificationService.updatePreferences(getId(req.user), req.body)); });
+  markAllRead      = asyncHandler(async (req, res) => { sendSuccess(res, 'Marked all read.', await notificationService.markAllRead(getId(req.user))); });
+  markRead         = asyncHandler(async (req, res) => { sendSuccess(res, 'Marked as read.', { notification: await notificationService.markRead(req.params.id, req.user) }); });
+  deleteNotification= asyncHandler(async (req, res) => { sendSuccess(res, 'Deleted.', await notificationService.deleteNotification(req.params.id, getId(req.user))); });
+  clearAll         = asyncHandler(async (req, res) => { sendSuccess(res, 'Cleared.', await notificationService.clearAll(getId(req.user))); });
+  subscribePush    = asyncHandler(async (req, res) => { sendSuccess(res, 'Subscribed.', await notificationService.subscribePush(getId(req.user), req.body)); });
+  unsubscribePush  = asyncHandler(async (req, res) => { sendSuccess(res, 'Unsubscribed.', await notificationService.unsubscribePush(getId(req.user))); });
 }
 module.exports = new NotificationController();
