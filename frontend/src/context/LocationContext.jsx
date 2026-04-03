@@ -1,46 +1,83 @@
 // frontend/src/context/LocationContext.jsx
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import locationsService from "@/api/locations.api";
+import { normalizeLocationOption } from "@/utils/browse.utils";
 
-/* ═══════════════════════════════════════════════════════════════
-   LOCATION DATA
-   Replace with API call to get available cities
-═══════════════════════════════════════════════════════════════ */
-export const LOCATIONS = [
-  { id: "dhaka", label: "Dhaka", country: "Bangladesh", flag: "🇧🇩" },
-  { id: "chittagong", label: "Chittagong", country: "Bangladesh", flag: "🇧🇩" },
-  { id: "jashore", label: "Jashore", country: "Bangladesh", flag: "🇧🇩" },
-  { id: "sylhet", label: "Sylhet", country: "Bangladesh", flag: "🇧🇩" },
-  { id: "rajshahi", label: "Rajshahi", country: "Bangladesh", flag: "🇧🇩" },
-  { id: "khulna", label: "Khulna", country: "Bangladesh", flag: "🇧🇩" },
-  { id: "barisal", label: "Barisal", country: "Bangladesh", flag: "🇧🇩" },
-  { id: "mymensingh", label: "Mymensingh", country: "Bangladesh", flag: "🇧🇩" },
-  { id: "london", label: "London", country: "UK", flag: "🇬🇧" },
-  { id: "dubai", label: "Dubai", country: "UAE", flag: "🇦🇪" },
-  { id: "toronto", label: "Toronto", country: "Canada", flag: "🇨🇦" },
-  { id: "singapore", label: "Singapore", country: "Singapore", flag: "🇸🇬" },
-  { id: "sydney", label: "Sydney", country: "Australia", flag: "🇦🇺" },
-];
+export const LOCATIONS = [];
 
-const DEFAULT_LOCATION = LOCATIONS[0]; // Dhaka
+const DEFAULT_LOCATION = {
+  id: "all",
+  slug: "all",
+  label: "All Cities",
+  country: "",
+  flag: "Location",
+  count: 0,
+};
 
 const LocationContext = createContext(null);
 
 export const LocationProvider = ({ children }) => {
+  const [locations, setLocations] = useState([]);
+  const [isLoadingLocations, setIsLoadingLocations] = useState(true);
   const [selectedLocation, setSelectedLocation] = useState(() => {
-    // Persist last selected location in localStorage
     try {
       const saved = localStorage.getItem("selectedLocation");
       if (saved) {
-        const parsed = JSON.parse(saved);
-        // Validate it still exists in our list
-        const exists = LOCATIONS.find((l) => l.id === parsed.id);
-        return exists || DEFAULT_LOCATION;
+        return JSON.parse(saved);
       }
     } catch (_) {}
     return DEFAULT_LOCATION;
   });
 
-  // Persist on change
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadLocations = async () => {
+      setIsLoadingLocations(true);
+      try {
+        const cities = await locationsService.getCities();
+        if (cancelled) return;
+
+        const normalized = (cities || []).map(normalizeLocationOption);
+        setLocations(normalized);
+
+        setSelectedLocation((current) => {
+          if (!normalized.length) {
+            return current || DEFAULT_LOCATION;
+          }
+
+          const matched =
+            normalized.find((location) => location.id === current?.id) ||
+            normalized.find((location) => location.slug === current?.slug);
+
+          if (matched) {
+            return matched;
+          }
+
+          if (current?.id === "current") {
+            return current;
+          }
+
+          return normalized[0];
+        });
+      } catch (_) {
+        if (!cancelled) {
+          setLocations([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingLocations(false);
+        }
+      }
+    };
+
+    loadLocations();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useEffect(() => {
     try {
       localStorage.setItem("selectedLocation", JSON.stringify(selectedLocation));
@@ -48,13 +85,21 @@ export const LocationProvider = ({ children }) => {
   }, [selectedLocation]);
 
   const changeLocation = (loc) => {
-    setSelectedLocation(loc);
-    // In production: trigger global refetch / query invalidation here
-    // e.g. queryClient.invalidateQueries({ queryKey: ["events"] })
+    setSelectedLocation(loc || DEFAULT_LOCATION);
   };
 
+  const value = useMemo(
+    () => ({
+      selectedLocation,
+      changeLocation,
+      locations,
+      isLoadingLocations,
+    }),
+    [isLoadingLocations, locations, selectedLocation],
+  );
+
   return (
-    <LocationContext.Provider value={{ selectedLocation, changeLocation, locations: LOCATIONS }}>
+    <LocationContext.Provider value={value}>
       {children}
     </LocationContext.Provider>
   );

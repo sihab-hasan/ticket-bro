@@ -4,10 +4,9 @@ import { Link, useLocation as useRRLocation } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Container from "@/components/layout/Container";
 import { useBrowse } from "@/hooks";
-import { CATEGORY_MAP } from "@/data/browseData";
 
 const CategoryNavSection = () => {
-  const { categorySlug, buildCategoryUrl } = useBrowse();
+  const { categorySlug, buildCategoryUrl, categoryItems } = useBrowse();
   const { pathname } = useRRLocation();
   const scrollRef = useRef(null);
   const [canLeft, setCanLeft] = useState(false);
@@ -20,7 +19,7 @@ const CategoryNavSection = () => {
     setCanRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 1);
   };
 
-  useEffect(() => { updateArrows(); }, []);
+  useEffect(() => { updateArrows(); }, [categoryItems.length]);
 
   const scroll = (dir) => {
     scrollRef.current?.scrollBy({ left: dir * 200, behavior: "smooth" });
@@ -29,7 +28,12 @@ const CategoryNavSection = () => {
 
   const categories = [
     { slug: "browse", label: "All Events", icon: "🎭" },
-    ...Object.entries(CATEGORY_MAP).map(([slug, cat]) => ({ slug, label: cat.label, icon: null, catData: cat })),
+    ...categoryItems.map((category) => ({
+      slug: category.slug,
+      label: category.label,
+      icon: null,
+      catData: category,
+    })),
   ];
 
   return (

@@ -6,24 +6,14 @@
  */
 import React, { useState } from "react";
 import {
-  Check,
   ChevronDown,
   ChevronUp,
-  Shield,
   Accessibility,
   Shirt,
   AlertCircle,
   RotateCcw,
 } from "lucide-react";
-import { SectionHeading, EDivider, TagPill } from "./shared/EventShared.jsx";
-
-const HIGHLIGHTS = [
-  "5 headline bands performing back to back",
-  "State-of-the-art light and sound production",
-  "Bangladesh's largest rock audience in a single venue",
-  "Live streaming for remote audiences",
-  "Exclusive merchandise available on site",
-];
+import { SectionHeading, TagPill } from "./shared/EventShared.jsx";
 
 const EventAboutSection = ({ event }) => {
   const [expanded, setExpanded] = useState(false);
@@ -66,26 +56,6 @@ const EventAboutSection = ({ event }) => {
             )}
           </button>
         )}
-      </div>
-
-      {/* Highlights */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        {HIGHLIGHTS.map((h, i) => (
-          <div key={i} className="flex items-start gap-2.5">
-            <span
-              className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5"
-              style={{ background: "var(--foreground)" }}
-            >
-              <Check size={10} className="text-background" />
-            </span>
-            <p
-              className="text-sm text-foreground"
-              style={{ fontFamily: "var(--font-sans)" }}
-            >
-              {h}
-            </p>
-          </div>
-        ))}
       </div>
 
       {/* Tags */}

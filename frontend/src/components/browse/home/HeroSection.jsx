@@ -82,7 +82,7 @@ const HeroSection = () => {
       if (!merged.find((x) => x._id === e._id)) merged.push(e);
     });
     return merged.slice(0, 12);
-  }, []); // static mock data — no deps needed
+  }, [getFeatured, getTrending]);
 
   const [index, setIndex] = useState(0);
 

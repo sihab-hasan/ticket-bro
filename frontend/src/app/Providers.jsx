@@ -8,6 +8,7 @@ import { LocationProvider } from '@/context/LocationContext';
 import { ModalProvider } from '@/context/ModalContext';
 import { SearchProvider } from '@/context/SearchContext';
 import { NotificationProvider } from '@/context/NotificationContext';
+import { BrowseProvider } from '@/context/BrowseContext';
 
 // Order matters! Providers that depend on others should be nested inside
 export const Providers = ({ children }) => {
@@ -16,17 +17,19 @@ export const Providers = ({ children }) => {
       <ThemeProvider>
         <AuthProvider>
           <LocationProvider>
-            <ModalProvider>
-              <NotificationProvider>
-                <SearchProvider>
-                  <BookingProvider>
-                    <CartProvider>
-                      {children}
-                    </CartProvider>
-                  </BookingProvider>
-                </SearchProvider>
-              </NotificationProvider>
-            </ModalProvider>
+            <BrowseProvider>
+              <ModalProvider>
+                <NotificationProvider>
+                  <SearchProvider>
+                    <BookingProvider>
+                      <CartProvider>
+                        {children}
+                      </CartProvider>
+                    </BookingProvider>
+                  </SearchProvider>
+                </NotificationProvider>
+              </ModalProvider>
+            </BrowseProvider>
           </LocationProvider>
         </AuthProvider>
       </ThemeProvider>
@@ -46,6 +49,7 @@ export { useLocation } from '@/context/LocationContext';
 export { useModal } from '@/context/ModalContext';
 export { useSearch } from '@/context/SearchContext';
 export { useNotification } from '@/context/NotificationContext';
+export { useBrowseContext } from '@/context/BrowseContext';
 
 // Export constants
 import { UserRole } from '@/types/auth.types';
