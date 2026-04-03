@@ -324,16 +324,15 @@ userSchema.pre(/^find/, function () {
   }
 });
 
-userSchema.pre('save', function (next) {
+userSchema.pre('save', function () {
   if (!this.isModified('status')) {
-    return next();
+    return;
   }
 
   this.isActive = this.status === 'active';
   if (!this.statusUpdatedAt) {
     this.statusUpdatedAt = new Date();
   }
-  next();
 });
 
 const User = mongoose.model('User', userSchema);
