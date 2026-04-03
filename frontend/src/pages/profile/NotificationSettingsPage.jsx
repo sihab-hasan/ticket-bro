@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import PageHeader from '@/components/shared/PageHeader';
 import { toast } from '@/components/shared/common';
-import api from '@/lib/axios';
+import { notificationsService } from '@/api';
 
 const PREFS = [
   { group: 'Bookings', items: [
@@ -38,9 +38,8 @@ const NotificationSettingsPage = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await api.get('/notifications/preferences');
-        const d = res.data?.data || res.data;
-        setPrefs(d || {});
+        const data = await notificationsService.getPreferences();
+        setPrefs(data || {});
       } catch {} finally { setLoading(false); }
     })();
   }, []);
@@ -50,7 +49,7 @@ const NotificationSettingsPage = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.put('/notifications/preferences', prefs);
+      await notificationsService.updatePreferences(prefs);
       toast.success('Preferences saved');
     } catch { toast.error('Failed to save'); }
     finally { setSaving(false); }

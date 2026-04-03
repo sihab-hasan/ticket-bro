@@ -12,7 +12,7 @@ import PageHeader from '@/components/shared/PageHeader';
 import { formatDate } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
-import api from '@/lib/axios';
+import { messagingService } from '@/api';
 
 const InboxPage = () => {
   const [conversations, setConversations] = useState([]);
@@ -22,9 +22,8 @@ const InboxPage = () => {
   const fetch = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get('/messaging/conversations');
-      const d = res.data?.data || res.data;
-      setConversations(d?.conversations || d || []);
+      const data = await messagingService.getConversations();
+      setConversations(data.conversations || []);
     } catch { toast.error('Failed to load messages'); }
     finally { setLoading(false); }
   }, []);

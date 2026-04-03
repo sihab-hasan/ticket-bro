@@ -12,10 +12,10 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { formatDate, formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
-import api from '@/lib/axios';
+import { bookingService } from '@/api';
 
 const BookingCard = ({ booking }) => (
-  <Link to={ROUTES.BOOKINGS.DETAIL(booking._id)} className="block no-underline">
+  <Link to={ROUTES.BOOKINGS.DETAIL(booking.bookingRef || booking._id)} className="block no-underline">
     <Card className="hover:shadow-md transition-all duration-200 cursor-pointer group">
       <CardContent className="p-4 flex gap-4">
         <div className="w-20 h-20 rounded-xl overflow-hidden bg-muted shrink-0">
@@ -63,10 +63,9 @@ const BookingHistoryPage = () => {
   const fetch = useCallback(async () => {
     setLoading(true);
     try {
-      const params = { type: tab, ...filters };
-      const res = await api.get('/bookings', { params });
-      const d = res.data?.data || res.data;
-      setBookings(d?.bookings || d || []);
+      const status = tab === 'cancelled' ? 'cancelled' : tab === 'past' ? 'confirmed' : undefined;
+      const data = await bookingService.getMyBookings({ ...filters, status });
+      setBookings(data.bookings || []);
     } catch { toast.error('Failed to load bookings'); }
     finally { setLoading(false); }
   }, [tab, filters]);

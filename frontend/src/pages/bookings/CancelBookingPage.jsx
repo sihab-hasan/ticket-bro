@@ -13,7 +13,8 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { formatDate, formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
-import api from '@/lib/axios';
+import { bookingService } from '@/api';
+import { getApiErrorMessage } from '@/api/client';
 
 const CANCEL_REASONS = [
   "I can no longer attend", "Change of plans", "Found better alternative",
@@ -33,12 +34,11 @@ const CancelBookingPage = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await api.get(`/bookings/${bookingId}`);
-        setBooking(res.data?.data || res.data);
+        setBooking(await bookingService.getByRef(bookingId));
       } catch { toast.error('Booking not found'); navigate(ROUTES.BOOKINGS.ROOT); }
       finally { setLoading(false); }
     })();
-  }, [bookingId]);
+  }, [bookingId, navigate]);
 
   // Calculate refund amount based on event date
   const getRefundInfo = () => {
@@ -58,10 +58,10 @@ const CancelBookingPage = () => {
     if (!reason) return toast.error('Please select a reason');
     setCancelling(true);
     try {
-      await api.post(`/bookings/${bookingId}/cancel`, { reason, note });
+      await bookingService.cancel(bookingId, { reason, note });
       setCancelled(true);
     } catch (e) {
-      toast.error(e.response?.data?.message || 'Cancellation failed');
+      toast.error(getApiErrorMessage(e, 'Cancellation failed'));
     } finally {
       setCancelling(false);
     }

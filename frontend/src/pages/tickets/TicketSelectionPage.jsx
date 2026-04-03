@@ -10,7 +10,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatDate, formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
-import api from '@/lib/axios';
+import { cartService, eventsService } from '@/api';
+import { getApiErrorMessage } from '@/api/client';
 
 const TicketSelectionPage = () => {
   const { eventId } = useParams();
@@ -25,15 +26,13 @@ const TicketSelectionPage = () => {
     (async () => {
       try {
         const [eventRes, ticketsRes] = await Promise.allSettled([
-          api.get(`/events/${eventId}`),
-          api.get(`/events/${eventId}/ticket-types`),
+          eventsService.getEventBySlug(eventId),
+          eventsService.getTicketTypes(eventId),
         ]);
-        if (eventRes.status === 'fulfilled') setEvent(eventRes.value.data?.data || eventRes.value.data);
+        if (eventRes.status === 'fulfilled') setEvent(eventRes.value);
         if (ticketsRes.status === 'fulfilled') {
-          const d = ticketsRes.value.data?.data || ticketsRes.value.data;
-          const types = d?.ticketTypes || d || [];
-          setTicketTypes(types);
-          setQuantities(Object.fromEntries(types.map((t) => [t._id, 0])));
+          setTicketTypes(ticketsRes.value);
+          setQuantities(Object.fromEntries(ticketsRes.value.map((t) => [t._id, 0])));
         }
       } catch { toast.error('Failed to load event'); }
       finally { setLoading(false); }
@@ -55,12 +54,18 @@ const TicketSelectionPage = () => {
     setAdding(true);
     try {
       for (const t of selected) {
-        await api.post('/cart/items', { eventId, ticketTypeId: t._id, quantity: quantities[t._id] });
+        await cartService.addItem({
+          eventId: event?._id || eventId,
+          ticketTypeId: t._id,
+          ticketTypeName: t.name,
+          quantity: quantities[t._id],
+          unitPrice: t.price,
+        });
       }
       toast.success('Added to cart!');
       navigate(ROUTES.CART.ROOT);
     } catch (e) {
-      toast.error(e.response?.data?.message || 'Failed to add to cart');
+      toast.error(getApiErrorMessage(e, 'Failed to add to cart'));
     } finally {
       setAdding(false);
     }

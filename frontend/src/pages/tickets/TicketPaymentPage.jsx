@@ -12,7 +12,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
-import api from '@/lib/axios';
+import { cartService, paymentsService } from '@/api';
+import { getApiErrorMessage } from '@/api/client';
 
 const TicketPaymentPage = () => {
   const { bookingId } = useParams();
@@ -29,12 +30,11 @@ const TicketPaymentPage = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await api.get('/cart');
-        setCart(res.data?.data || res.data);
+        setCart(await cartService.getCart());
       } catch { toast.error('Cart not found'); navigate(ROUTES.CART.ROOT); }
       finally { setLoading(false); }
     })();
-  }, []);
+  }, [navigate]);
 
   const setCard = (key, val) => setCardForm((f) => ({ ...f, [key]: val }));
 
@@ -45,13 +45,12 @@ const TicketPaymentPage = () => {
     if (!promoCode.trim()) return;
     setApplyingPromo(true);
     try {
-      const res = await api.post('/cart/promo', { code: promoCode });
-      const d = res.data?.data || res.data;
+      const d = await cartService.applyPromo(promoCode);
       setPromoApplied(d);
       setCart((c) => ({ ...c, discount: d.discount, promoCode }));
       toast.success(`Promo applied! You save ${formatPrice(d.discount)}`);
     } catch (e) {
-      toast.error(e.response?.data?.message || 'Invalid promo code');
+      toast.error(getApiErrorMessage(e, 'Invalid promo code'));
     } finally {
       setApplyingPromo(false);
     }
@@ -59,7 +58,7 @@ const TicketPaymentPage = () => {
 
   const handleRemovePromo = async () => {
     try {
-      await api.delete('/cart/promo');
+      await cartService.removePromo();
       setPromoApplied(null); setPromoCode('');
       setCart((c) => ({ ...c, discount: 0, promoCode: null }));
     } catch { toast.error('Failed to remove promo'); }
@@ -69,21 +68,20 @@ const TicketPaymentPage = () => {
     setProcessing(true);
     try {
       const contact = JSON.parse(sessionStorage.getItem('booking_contact') || '{}');
-      const intentRes = await api.post('/payments/intent', { cartId: cart._id, paymentMethod, contact });
-      const intent = intentRes.data?.data || intentRes.data;
+      const intent = await paymentsService.createIntent({ cartId: cart._id, paymentMethod, contact });
 
       if (paymentMethod === 'card') {
         // In production, this would integrate with Stripe/similar
-        await api.post('/payments/verify', { intentId: intent._id || intent.id, paymentMethod: 'card' });
+        await paymentsService.verifyPayment({ intentId: intent._id || intent.id, paymentMethod: 'card' });
       } else {
-        await api.post('/payments/verify', { intentId: intent._id || intent.id, paymentMethod });
+        await paymentsService.verifyPayment({ intentId: intent._id || intent.id, paymentMethod });
       }
 
       const bookingRef = intent.bookingRef || intent._id;
       sessionStorage.removeItem('booking_contact');
       navigate(ROUTES.TICKETS.CONFIRM(bookingRef));
     } catch (e) {
-      toast.error(e.response?.data?.message || 'Payment failed. Please try again.');
+      toast.error(getApiErrorMessage(e, 'Payment failed. Please try again.'));
     } finally {
       setProcessing(false);
     }

@@ -1,36 +1,39 @@
-// frontend/src/services/userService.js
+import { ENDPOINTS } from "@/config/api.config";
+import {
+  del,
+  get,
+  patch,
+  upload,
+  pickEntity,
+  pickList,
+} from "@/api/client";
 
-import api from "@/lib/axios";
+const pickUser = pickEntity("user");
+const pickSessions = pickList("sessions");
 
 const userService = {
-  // ── Current user ─────────────────────────────────────────────────────────
-  getMe: () => api.get("/users/me"),
-  updateMe: (data) => api.patch("/users/me", data),
-  deleteMe: () => api.delete("/users/me"),
-
-  // ── Avatar ────────────────────────────────────────────────────────────────
+  getMe: () => get(ENDPOINTS.USERS.ME, { select: pickUser }),
+  updateMe: (data) => patch(ENDPOINTS.USERS.ME, data, { select: pickUser }),
+  deleteMe: () => del(ENDPOINTS.USERS.ME),
   uploadAvatar: (file) => {
     const form = new FormData();
     form.append("avatar", file);
-    return api.post("/users/me/avatar", form, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    return upload(ENDPOINTS.USERS.AVATAR, form, { select: pickUser });
   },
-  removeAvatar: () => api.delete("/users/me/avatar"),
-
-  // ── Sessions ──────────────────────────────────────────────────────────────
-  getSessions: () => api.get("/users/me/sessions"),
-  revokeSession: (id) => api.delete(`/users/me/sessions/${id}`),
-
-  // ── Admin ─────────────────────────────────────────────────────────────────
-  getAllUsers: (params) => api.get("/users", { params }),
-  getUserById: (id) => api.get(`/users/${id}`),
-  updateUserById: (id, data) => api.patch(`/users/${id}`, data),
-  deleteUserById: (id) => api.delete(`/users/${id}`),
-  activateUser: (id) => api.patch(`/users/${id}/activate`),
-  deactivateUser: (id) => api.patch(`/users/${id}/deactivate`),
-  changeUserRole: (id, role) => api.patch(`/users/${id}/role`, { role }),
-  getUserStats: () => api.get("/users/stats"),
+  removeAvatar: () => del(ENDPOINTS.USERS.AVATAR, { select: pickUser }),
+  getSessions: () => get(ENDPOINTS.USERS.SESSIONS, { select: pickSessions }),
+  revokeSession: (id) => del(ENDPOINTS.USERS.SESSION(id)),
+  getAllUsers: (params) => get(ENDPOINTS.USERS.LIST, { params }),
+  getUserById: (id) => get(ENDPOINTS.USERS.DETAIL(id), { select: pickUser }),
+  updateUserById: (id, data) =>
+    patch(ENDPOINTS.USERS.DETAIL(id), data, { select: pickUser }),
+  deleteUserById: (id) => del(ENDPOINTS.USERS.DETAIL(id)),
+  activateUser: (id) => patch(ENDPOINTS.USERS.ACTIVATE(id), {}, { select: pickUser }),
+  deactivateUser: (id) =>
+    patch(ENDPOINTS.USERS.DEACTIVATE(id), {}, { select: pickUser }),
+  changeUserRole: (id, role) =>
+    patch(ENDPOINTS.USERS.ROLE(id), { role }, { select: pickUser }),
+  getUserStats: () => get(ENDPOINTS.USERS.STATS),
 };
 
 export default userService;

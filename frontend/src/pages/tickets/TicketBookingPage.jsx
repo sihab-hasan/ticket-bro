@@ -12,7 +12,7 @@ import { useAuth } from '@/context/AuthContext';
 import { formatDate, formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
-import api from '@/lib/axios';
+import { cartService } from '@/api';
 
 const Field = ({ label, required, children }) => (
   <div className="space-y-1.5">
@@ -42,8 +42,7 @@ const TicketBookingPage = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await api.get('/cart');
-        const d = res.data?.data || res.data;
+        const d = await cartService.getCart();
         setCart(d);
         // Prefill attendee forms for each ticket
         const totalTickets = (d?.items || []).reduce((sum, item) => sum + item.quantity, 0);
@@ -51,7 +50,7 @@ const TicketBookingPage = () => {
       } catch { toast.error('Failed to load cart'); navigate(ROUTES.CART.ROOT); }
       finally { setLoading(false); }
     })();
-  }, []);
+  }, [navigate]);
 
   const setField = (key, val) => setForm((f) => ({ ...f, [key]: val }));
   const setAttendee = (i, key, val) => setForm((f) => { const a = [...f.attendees]; a[i] = { ...a[i], [key]: val }; return { ...f, attendees: a }; });

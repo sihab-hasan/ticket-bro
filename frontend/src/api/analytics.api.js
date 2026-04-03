@@ -1,11 +1,19 @@
-import api from "@/lib/axios";
+import { ENDPOINTS } from "@/config/api.config";
+import { get } from "@/api/client";
 
 const analyticsService = {
-  getOverview: (params) => api.get("/analytics/overview", { params }),
-  getRevenue: (params) => api.get("/analytics/revenue", { params }),
-  getTicketStats: (params) => api.get("/analytics/tickets", { params }),
-  getEventStats: (params) => api.get("/analytics/events", { params }),
-  getEventAnalytics: (id) => api.get(`/analytics/events/${id}`),
-  getAudience: (params) => api.get("/analytics/audience", { params }),
+  getOverview: (params) => get(ENDPOINTS.ANALYTICS.OVERVIEW, { params }),
+  getRevenue: (params) => get(ENDPOINTS.ANALYTICS.REVENUE, { params }),
+  getTicketStats: (params) => get(ENDPOINTS.ANALYTICS.TICKETS, { params }),
+  getEventStats: (params) => get(ENDPOINTS.ANALYTICS.EVENTS, { params }),
+  getEventAnalytics: (id) => get(ENDPOINTS.ANALYTICS.EVENT(id)),
+  getAudience: (params) => get(ENDPOINTS.ANALYTICS.AUDIENCE, { params }),
+  getAdminOverview: (params) => get(ENDPOINTS.ANALYTICS.ADMIN_OVERVIEW, { params }),
+  getAdminRevenue: (params) => get(ENDPOINTS.ANALYTICS.ADMIN_REVENUE, { params }),
+  getAdminUsers: (params) => get(ENDPOINTS.ANALYTICS.ADMIN_USERS, { params }),
+  getAdminEvents: (params) => get(ENDPOINTS.ANALYTICS.ADMIN_EVENTS, { params }),
+  getAdminOrganizers: (params) =>
+    get(ENDPOINTS.ANALYTICS.ADMIN_ORGANIZERS, { params }),
 };
+
 export default analyticsService;

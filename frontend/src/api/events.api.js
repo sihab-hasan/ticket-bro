@@ -1,277 +1,288 @@
-/**
- * events.api.js
- * ─────────────────────────────────────────────────────────────────────────────
- * All API calls for the Event resource.
- * Query param names EXACTLY match event.model.js field names & indexes.
- *
- * Response shapes (from the real API):
- *   GET /api/events              → { data: { events: Event[], pagination } }
- *   GET /api/events/:slug        → { data: { event: Event } }
- *   GET /api/events/featured     → { data: { events: Event[] } }
- *   GET /api/events/trending     → { data: { events: Event[] } }
- *   GET /api/events/upcoming     → { data: { events: Event[] } }
- *   GET /api/events/:slug/related → { data: { events: Event[] } }
- *   GET /api/events/:slug/reviews → { data: { reviews: [], pagination } }
- *   GET /api/events/:slug/tickets → { data: { ticketTypes: [] } }
- *   GET /api/events/facets        → { data: { facets: {} } }
- * ─────────────────────────────────────────────────────────────────────────────
- */
-import api from "@/lib/axios";
+import { ENDPOINTS } from "@/config/api.config";
+import {
+  del,
+  get,
+  post,
+  put,
+  pickEntity,
+  pickList,
+  pickPaginated,
+} from "@/api/client";
 
-// ── Public reads ──────────────────────────────────────────────────────────
+const pickEvents = (payload) => {
+  const result = pickPaginated("events")(payload);
+  return {
+    events: result.items,
+    pagination: result.pagination,
+    total: result.total,
+  };
+};
 
-/**
- * GET /api/events
- * Supports all event.model.js query fields via params:
- *   status, visibility, isFeatured, isTrending, isFree
- *   "location.city", category, subcategory, eventType
- *   startDate[gte], startDate[lte], minPrice, maxPrice
- *   sort, page, limit, q (full-text search)
- */
+const pickReviews = (payload) => {
+  const result = pickPaginated("reviews")(payload);
+  return {
+    reviews: result.items,
+    pagination: result.pagination,
+    total: result.total,
+  };
+};
+
 export const getAllEvents = (params) =>
-  api.get("/events", { params }).then((r) => r.data.data || []);
+  get(ENDPOINTS.EVENTS.LIST, { params, select: pickEvents });
 
-/** GET /api/events/featured — returns events where isFeatured=true */
 export const getFeaturedEvents = (limit = 6) =>
-  api.get("/events/featured", { params: { limit } })
-     .then((r) => r.data.data?.events || []);
+  get(ENDPOINTS.EVENTS.FEATURED, {
+    params: { limit },
+    select: pickList("events"),
+  });
 
-/**
- * GET /api/events/trending
- * Sorted by trendScore desc (mirrors Event.trending() static)
- */
 export const getTrendingEvents = (limit = 8) =>
-  api.get("/events/trending", { params: { limit } })
-     .then((r) => r.data.data?.events || []);
+  get(ENDPOINTS.EVENTS.TRENDING, {
+    params: { limit },
+    select: pickList("events"),
+  });
 
-/**
- * GET /api/events/upcoming
- * startDate >= now, sorted soonest-first (mirrors Event.upcoming() static)
- */
 export const getUpcomingEvents = (limit = 8) =>
-  api.get("/events/upcoming", { params: { limit } })
-     .then((r) => r.data.data?.events || []);
+  get(ENDPOINTS.EVENTS.UPCOMING, {
+    params: { limit },
+    select: pickList("events"),
+  });
 
-/** GET /api/events/:slug — full event document */
+export const getAdminEvents = (params) =>
+  get(ENDPOINTS.EVENTS.ADMIN_LIST, { params, select: pickEvents });
+
 export const getEventBySlug = (slug) =>
-  api.get(`/events/${slug}`).then((r) => r.data.data?.event || null);
+  get(ENDPOINTS.EVENTS.DETAIL(slug), {
+    select: pickEntity("event"),
+  });
 
-/** GET /api/events/:slug — alias for detail pages */
 export const getEventDetails = (slug) =>
-  api.get(`/events/${slug}/details`).then((r) => r.data.data || null);
+  get(ENDPOINTS.EVENTS.DETAILS(slug), {
+    select: pickEntity("event", "details"),
+  });
 
-/**
- * GET /api/events/:slug/tickets
- * Returns Ticket[] refs (event.model.js tickets field)
- */
 export const getEventTickets = (slug) =>
-  api.get(`/events/${slug}/tickets`)
-     .then((r) => r.data.data?.ticketTypes || []);
+  get(ENDPOINTS.EVENTS.TICKETS(slug), {
+    select: pickList("ticketTypes"),
+  });
 
-/**
- * GET /api/events/:slug/reviews
- * Params: page, limit, sort (-date, -helpful)
- * Returns reviews for this event + reviewCount / averageRating summary
- */
 export const getEventReviews = (slug, params) =>
-  api.get(`/events/${slug}/reviews`, { params }).then((r) => r.data.data || {});
+  get(ENDPOINTS.EVENTS.REVIEWS(slug), { params, select: pickReviews });
 
-/**
- * GET /api/events/:slug/related
- * Backend selects events with same category + similar tags
- */
 export const getRelatedEvents = (slug) =>
-  api.get(`/events/${slug}/related`).then((r) => r.data.data?.events || []);
+  get(ENDPOINTS.EVENTS.RELATED(slug), {
+    select: pickList("events"),
+  });
 
-/**
- * GET /api/events/:slug/ticket-types
- * Returns Ticket type documents linked to this event
- */
 export const getTicketTypes = (slug) =>
-  api.get(`/events/${slug}/ticket-types`)
-     .then((r) => r.data.data?.ticketTypes || []);
+  get(ENDPOINTS.EVENTS.TICKET_TYPES(slug), {
+    select: pickList("ticketTypes"),
+  });
 
-/**
- * GET /api/events/:slug/seat-sections
- * Returns Seat sections for events with seating (event.model.js seats field)
- */
 export const getSeatSections = (slug) =>
-  api.get(`/events/${slug}/seat-sections`)
-     .then((r) => r.data.data?.sections || []);
+  get(ENDPOINTS.EVENTS.SEAT_SECTIONS(slug), {
+    select: pickList("sections"),
+  });
 
-/** GET /api/events/:slug/seat-map — full seat map for seating picker */
-export const getSeatMap = (slug) =>
-  api.get(`/events/${slug}/seat-map`).then((r) => r.data.data || null);
+export const getSeatMap = (slug) => get(ENDPOINTS.EVENTS.SEAT_MAP(slug));
 
-/**
- * GET /api/events/facets
- * Returns aggregated counts per filter facet for current query scope.
- * Params: category, subcategory, "location.city", status
- */
 export const getEventFacets = (params) =>
-  api.get("/events/facets", { params }).then((r) => r.data.data?.facets || {});
+  get(ENDPOINTS.EVENTS.FACETS, {
+    params,
+    select: (payload) => payload?.facets || payload || {},
+  });
 
-/**
- * GET /api/events/near?lng=&lat=&radius=
- * Wraps Event.nearLocation() — returns events sorted by geo proximity.
- * Requires location.coordinates 2dsphere index.
- */
 export const getNearbyEvents = (lng, lat, radiusKm = 30) =>
-  api.get("/events/near", { params: { lng, lat, radius: radiusKm } })
-     .then((r) => r.data.data?.events || []);
+  get(ENDPOINTS.EVENTS.NEARBY, {
+    params: { lng, lat, radius: radiusKm },
+    select: pickList("events"),
+  });
 
-// ── Category helpers ───────────────────────────────────────────────────────
-
-/** GET /api/categories */
 export const getAllCategories = () =>
-  api.get("/categories").then((r) => r.data.data?.categories || []);
+  get(ENDPOINTS.CATEGORIES.LIST, {
+    select: pickList("categories"),
+  });
 
-/** GET /api/categories/:slug */
 export const getCategoryBySlug = (slug) =>
-  api.get(`/categories/${slug}`).then((r) => r.data.data?.category || null);
+  get(ENDPOINTS.CATEGORIES.DETAIL(slug), {
+    select: pickEntity("category"),
+  });
 
-/** GET /api/categories/:slug/subcategories */
 export const getSubcategoriesByCategory = (slug) =>
-  api.get(`/categories/${slug}/subcategories`)
-     .then((r) => r.data.data?.subcategories || []);
+  get(ENDPOINTS.CATEGORIES.SUBS(slug), {
+    select: pickList("subcategories"),
+  });
 
-/**
- * Composite: category detail + subcategories + events in one call.
- * Uses event.model.js query fields for the events fetch.
- */
 export const getCategoryData = async (slug) => {
   const [category, subcategories, result] = await Promise.all([
     getCategoryBySlug(slug),
     getSubcategoriesByCategory(slug),
     getAllEvents({
-      category:   slug,
-      status:     "published",
+      category: slug,
+      status: "published",
       visibility: "public",
-      limit:      50,
+      limit: 50,
     }),
   ]);
-  if (!category) return null;
-  const events = Array.isArray(result) ? result : (result?.events || []);
-  const now    = new Date();
+
+  if (!category) {
+    return null;
+  }
+
+  const events = result?.events || [];
+  const now = new Date();
+
   return {
     ...category,
     subcategories,
-    featuredEvents:  events.filter((e) => e.isFeatured).slice(0, 6),
-    trendingEvents:  [...events].sort((a, b) => (b.trendScore || 0) - (a.trendScore || 0)).slice(0, 6),
-    upcomingEvents:  events.filter((e) => new Date(e.startDate) > now).slice(0, 8),
+    featuredEvents: events.filter((event) => event.isFeatured).slice(0, 6),
+    trendingEvents: [...events]
+      .sort((a, b) => (b.trendScore || 0) - (a.trendScore || 0))
+      .slice(0, 6),
+    upcomingEvents: events
+      .filter((event) => new Date(event.startDate) > now)
+      .slice(0, 8),
     stats: {
-      totalEvents:      events.length,
-      totalTicketsSold: events.reduce((s, e) => s + (e.totalSold || 0), 0),
-      averageRating:    events.reduce((s, e) => s + (e.averageRating || 0), 0) / (events.length || 1),
+      totalEvents: events.length,
+      totalTicketsSold: events.reduce(
+        (sum, event) => sum + (event.totalSold || 0),
+        0,
+      ),
+      averageRating:
+        events.reduce((sum, event) => sum + (event.averageRating || 0), 0) /
+        (events.length || 1),
     },
   };
 };
 
-/**
- * Composite: subcategory detail + sibling subcategories + events.
- * Uses event.model.js field names: subcategory (slug), startDate
- */
-export const getSubcategoryData = async (cat, sub) => {
+export const getSubcategoryData = async (categorySlug, subcategorySlug) => {
   const [category, subcategories, result] = await Promise.all([
-    getCategoryBySlug(cat),
-    getSubcategoriesByCategory(cat),
+    getCategoryBySlug(categorySlug),
+    getSubcategoriesByCategory(categorySlug),
     getAllEvents({
-      category:   cat,
-      subcategory: sub,
-      status:     "published",
+      category: categorySlug,
+      subcategory: subcategorySlug,
+      status: "published",
       visibility: "public",
-      limit:      50,
+      limit: 50,
     }),
   ]);
-  const subcategory = subcategories.find((s) => s.slug === sub);
-  if (!category || !subcategory) return null;
-  const events = Array.isArray(result) ? result : (result?.events || []);
-  const now    = new Date();
+
+  const subcategory = subcategories.find(
+    (item) => item.slug === subcategorySlug,
+  );
+
+  if (!category || !subcategory) {
+    return null;
+  }
+
+  const events = result?.events || [];
+  const now = new Date();
+
   return {
     ...subcategory,
     category,
     events,
     upcomingEvents: events
-      .filter((e) => new Date(e.startDate) > now)
+      .filter((event) => new Date(event.startDate) > now)
       .sort((a, b) => new Date(a.startDate) - new Date(b.startDate)),
     pastEvents: events
-      .filter((e) => new Date(e.endDate) < now)
+      .filter((event) => new Date(event.endDate) < now)
       .sort((a, b) => new Date(b.endDate) - new Date(a.endDate)),
-    featuredEvents: events.filter((e) => e.isFeatured).slice(0, 4),
-    totalEvents:    events.length,
+    featuredEvents: events.filter((event) => event.isFeatured).slice(0, 4),
+    totalEvents: events.length,
   };
 };
 
-// ── Search ────────────────────────────────────────────────────────────────
-
-/**
- * GET /api/search
- * Full-text search uses event.model.js text index:
- *   title (weight 10), shortDescription (5), description (1), seo.keywords (3)
- */
 export const searchEvents = (query, filters = {}) =>
-  api.get("/search", { params: { q: query, ...filters } })
-     .then((r) => r.data.data?.results || []);
+  get(ENDPOINTS.SEARCH.ROOT, {
+    params: { q: query, ...filters },
+    select: (payload) => payload?.results || [],
+  });
 
-/** GET /api/locations/cities — city list for LocationPicker */
 export const getPopularCities = () =>
-  api.get("/locations/cities").then((r) => r.data.data?.cities || []);
+  get(ENDPOINTS.LOCATIONS.CITIES, {
+    select: pickList("cities"),
+  });
 
-/** GET /api/events/:id — ObjectId lookup (for redirect from old /events/:id URLs) */
-export const getEventById = (id) =>
-  api.get(`/events/${id}`).then((r) => r.data.data?.event || null).catch(() => null);
+export const getEventById = async (id) => {
+  try {
+    return await getEventBySlug(id);
+  } catch {
+    return null;
+  }
+};
 
-// ── Organizer / admin writes ───────────────────────────────────────────────
+export const createEvent = (data) =>
+  post(ENDPOINTS.EVENTS.CREATE, data, { select: pickEntity("event") });
 
-/** POST /api/events — create new event (status=draft by default) */
-export const createEvent = (data) => api.post("/events", data);
+export const updateEvent = (slug, data) =>
+  put(ENDPOINTS.EVENTS.UPDATE(slug), data, { select: pickEntity("event") });
 
-/** PUT /api/events/:slug — update any mutable field */
-export const updateEvent = (slug, data) => api.put(`/events/${slug}`, data);
+export const deleteEvent = (slug) => del(ENDPOINTS.EVENTS.DELETE(slug));
 
-/** DELETE /api/events/:slug — soft-delete (sets deletedAt) */
-export const deleteEvent = (slug) => api.delete(`/events/${slug}`);
+export const publishEvent = (slug) =>
+  post(ENDPOINTS.EVENTS.PUBLISH(slug), {}, { select: pickEntity("event") });
 
-/** POST /api/events/:slug/publish — status: draft → pending or published */
-export const publishEvent = (slug) => api.post(`/events/${slug}/publish`);
+export const cancelEvent = (slug, data) =>
+  post(ENDPOINTS.EVENTS.CANCEL(slug), data || {}, {
+    select: pickEntity("event"),
+  });
 
-/** POST /api/events/:slug/cancel — status: published → cancelled */
-export const cancelEvent = (slug, data) => api.post(`/events/${slug}/cancel`, data);
+export const approveEvent = (slug) =>
+  put(ENDPOINTS.EVENTS.APPROVE(slug), {}, { select: pickEntity("event") });
 
-/** POST /api/events/:slug/postpone — status: published → postponed */
-export const postponeEvent = (slug, data) => api.post(`/events/${slug}/postpone`, data);
+export const rejectEvent = (slug, data) =>
+  put(ENDPOINTS.EVENTS.REJECT(slug), data || {}, {
+    select: pickEntity("event"),
+  });
 
-// ── Ticket type CRUD (event.model.js tickets[] ref) ───────────────────────
-export const createTicketType = (slug, data) => api.post(`/events/${slug}/ticket-types`, data);
-export const updateTicketType = (slug, id, d) => api.put(`/events/${slug}/ticket-types/${id}`, d);
-export const deleteTicketType = (slug, id)    => api.delete(`/events/${slug}/ticket-types/${id}`);
+export const postponeEvent = (slug, data) =>
+  post(`/events/${slug}/postpone`, data);
 
-// ── Seat section CRUD (event.model.js seats[] ref) ────────────────────────
-export const createSeatSection = (slug, data) => api.post(`/events/${slug}/seat-sections`, data);
-export const updateSeatSection = (slug, id, d) => api.put(`/events/${slug}/seat-sections/${id}`, d);
+export const createTicketType = (slug, data) =>
+  post(ENDPOINTS.EVENTS.TICKET_TYPES(slug), data, {
+    select: pickEntity("ticketType", "ticket"),
+  });
 
-// ── Social actions ────────────────────────────────────────────────────────
-/** POST /api/events/:slug/like — increments likeCount */
-export const likeEvent = (slug) => api.post(`/events/${slug}/like`);
+export const updateTicketType = (slug, id, data) =>
+  put(ENDPOINTS.EVENTS.TICKET_TYPE(slug, id), data, {
+    select: pickEntity("ticketType", "ticket"),
+  });
 
-/** POST /api/events/:slug/bookmark — increments bookmarkCount */
-export const bookmarkEvent = (slug) => api.post(`/events/${slug}/bookmark`);
+export const deleteTicketType = (slug, id) =>
+  del(ENDPOINTS.EVENTS.TICKET_TYPE(slug, id));
 
-/** DELETE /api/events/:slug/bookmark */
-export const unbookmarkEvent = (slug) => api.delete(`/events/${slug}/bookmark`);
+export const createSeatSection = (slug, data) =>
+  post(ENDPOINTS.EVENTS.SEAT_SECTIONS(slug), data);
 
-/** POST /api/events/:slug/share — increments shareCount */
-export const shareEvent = (slug) => api.post(`/events/${slug}/share`);
+export const updateSeatSection = (slug, id, data) =>
+  put(ENDPOINTS.EVENTS.SEAT_SECTION(slug, id), data);
 
-/** POST /api/events/:slug/view — increments viewCount / uniqueViewCount */
-export const trackEventView = (slug) => api.post(`/events/${slug}/view`).catch(() => null);
+export const likeEvent = (slug) => post(ENDPOINTS.EVENTS.LIKE(slug), {});
 
-// ── Default export ─────────────────────────────────────────────────────────
+export const bookmarkEvent = (slug) =>
+  post(ENDPOINTS.EVENTS.BOOKMARK(slug), {});
+
+export const unbookmarkEvent = (slug) =>
+  del(ENDPOINTS.EVENTS.BOOKMARK(slug));
+
+export const shareEvent = (slug) => post(ENDPOINTS.EVENTS.SHARE(slug), {});
+
+export const trackEventView = async (slug) => {
+  try {
+    return await post(ENDPOINTS.EVENTS.VIEW(slug), {});
+  } catch {
+    return null;
+  }
+};
+
 export default {
   getAllEvents,
   getFeaturedEvents,
   getTrendingEvents,
   getUpcomingEvents,
+  getAdminEvents,
   getEventBySlug,
   getEventById,
   getEventDetails,
@@ -290,7 +301,14 @@ export default {
   deleteEvent,
   publishEvent,
   cancelEvent,
+  approveEvent,
+  rejectEvent,
   postponeEvent,
+  createTicketType,
+  updateTicketType,
+  deleteTicketType,
+  createSeatSection,
+  updateSeatSection,
   likeEvent,
   bookmarkEvent,
   unbookmarkEvent,

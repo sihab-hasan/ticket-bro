@@ -12,7 +12,8 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { formatDate, formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
-import api from '@/lib/axios';
+import { bookingService } from '@/api';
+import { downloadBlob } from '@/utils/downloadFile';
 
 const InfoRow = ({ label, value, icon: Icon }) => (
   <div className="flex items-start gap-3 py-3 border-b border-border last:border-0">
@@ -33,18 +34,16 @@ const BookingDetailsPage = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await api.get(`/bookings/${bookingId}`);
-        setBooking(res.data?.data || res.data);
+        setBooking(await bookingService.getByRef(bookingId));
       } catch { toast.error('Booking not found'); navigate(ROUTES.BOOKINGS.ROOT); }
       finally { setLoading(false); }
     })();
-  }, [bookingId]);
+  }, [bookingId, navigate]);
 
   const handleDownload = async () => {
     try {
-      const res = await api.get(`/bookings/${bookingId}/invoice`, { responseType: 'blob' });
-      const url = URL.createObjectURL(res.data);
-      const a = document.createElement('a'); a.href = url; a.download = `booking-${bookingId}.pdf`; a.click();
+      const blob = await bookingService.getInvoice(bookingId);
+      downloadBlob(blob, `booking-${bookingId}.pdf`);
     } catch { toast.error('Download failed'); }
   };
 
@@ -122,7 +121,7 @@ const BookingDetailsPage = () => {
           </Link>
         )}
         {canReview && (
-          <Link to={ROUTES.REVIEWS.WRITE(booking?.event?._id)} className="flex-1">
+          <Link to={ROUTES.REVIEWS.WRITE(booking?.event?.slug || booking?.event?._id)} className="flex-1">
             <Button className="w-full font-bold">
               <Star className="h-4 w-4 mr-2" /> Write Review
             </Button>

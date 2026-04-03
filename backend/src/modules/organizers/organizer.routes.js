@@ -11,25 +11,20 @@
 
 const express = require('express');
 const router = express.Router();
-const { optionalAuth, authenticate, authorize } = require('../../common/middleware/auth.middleware');
+const { authenticate, authorize } = require('../../common/middleware/auth.middleware');
 const { cache } = require('../../common/middleware/cache.middleware');
+const { validateRequest } = require('../../common/middleware/validation.middleware');
 const { ROLES } = require('../../common/constants/roles');
+const {
+  updateOrganizerProfileSchema,
+  submitVerificationSchema,
+  organizerSlugParamsSchema,
+  organizerEventsQuerySchema,
+  organizerDashboardQuerySchema,
+} = require('./organizer.validation');
 
 let _ctrl;
 const ctrl = () => { if (!_ctrl) _ctrl = require('./organizer.controller'); return _ctrl; };
-
-// ════════════════════════════════════════════════════════════════════════════════
-// PUBLIC PROFILE ROUTES  (accessible at /api/v1/organizers/*)
-// ════════════════════════════════════════════════════════════════════════════════
-
-// GET /organizers/:slug  — public organizer profile
-router.get('/:slug',
-  cache('5m'),
-  (req, res, next) => ctrl().getPublicProfile(req, res, next));
-
-// GET /organizers/:slug/events  — public list of organizer events
-router.get('/:slug/events',
-  (req, res, next) => ctrl().getPublicEvents(req, res, next));
 
 // ════════════════════════════════════════════════════════════════════════════════
 // ORGANIZER-PRIVATE ROUTES  (accessible at /api/v1/organizer/*)
@@ -46,12 +41,14 @@ router.get('/profile',
 router.put('/profile',
   authenticate,
   authorize(ROLES.ORGANIZER, ROLES.ADMIN, ROLES.SUPER_ADMIN),
+  validateRequest(updateOrganizerProfileSchema),
   (req, res, next) => ctrl().updateProfile(req, res, next));
 
 // POST   /organizer/verification
 router.post('/verification',
   authenticate,
   authorize(ROLES.ORGANIZER, ROLES.ADMIN, ROLES.SUPER_ADMIN),
+  validateRequest(submitVerificationSchema),
   (req, res, next) => ctrl().submitVerification(req, res, next));
 
 // GET    /organizer/verification
@@ -70,24 +67,43 @@ router.get('/dashboard',
 router.get('/events',
   authenticate,
   authorize(ROLES.ORGANIZER, ROLES.ADMIN, ROLES.SUPER_ADMIN),
+  validateRequest(organizerDashboardQuerySchema, 'query'),
   (req, res, next) => ctrl().getMyEvents(req, res, next));
 
 // GET    /organizer/bookings
 router.get('/bookings',
   authenticate,
   authorize(ROLES.ORGANIZER, ROLES.ADMIN, ROLES.SUPER_ADMIN),
+  validateRequest(organizerDashboardQuerySchema, 'query'),
   (req, res, next) => ctrl().getMyBookings(req, res, next));
 
 // GET    /organizer/revenue
 router.get('/revenue',
   authenticate,
   authorize(ROLES.ORGANIZER, ROLES.ADMIN, ROLES.SUPER_ADMIN),
+  validateRequest(organizerDashboardQuerySchema, 'query'),
   (req, res, next) => ctrl().getRevenue(req, res, next));
 
 // GET    /organizer/payouts
 router.get('/payouts',
   authenticate,
   authorize(ROLES.ORGANIZER, ROLES.ADMIN, ROLES.SUPER_ADMIN),
+  validateRequest(organizerDashboardQuerySchema, 'query'),
   (req, res, next) => ctrl().getPayouts(req, res, next));
+
+// ════════════════════════════════════════════════════════════════════════════════
+// PUBLIC PROFILE ROUTES  (accessible at /api/v1/organizers/*)
+// Kept LAST so /organizer/profile does not get swallowed by /:slug.
+// ════════════════════════════════════════════════════════════════════════════════
+
+router.get('/:slug/events',
+  validateRequest(organizerSlugParamsSchema, 'params'),
+  validateRequest(organizerEventsQuerySchema, 'query'),
+  (req, res, next) => ctrl().getPublicEvents(req, res, next));
+
+router.get('/:slug',
+  validateRequest(organizerSlugParamsSchema, 'params'),
+  cache('5m'),
+  (req, res, next) => ctrl().getPublicProfile(req, res, next));
 
 module.exports = router;
