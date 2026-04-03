@@ -37,7 +37,7 @@ const VerifyEmailPage = () => {
         if (!cancelled) {
           setStatus(STATUS.SUCCESS);
           setMessage(
-            res.data?.message || "Your email has been verified successfully.",
+            res.message || "Your email has been verified successfully.",
           );
         }
       })

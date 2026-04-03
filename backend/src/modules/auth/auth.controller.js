@@ -11,6 +11,7 @@ const {
   validateResendVerification,
   validateVerifyOTP,
   validateTwoFactorVerify,
+  validateDisableTwoFactor,
 } = require('./auth.validation');
 const { RegisterDTO, LoginDTO, ForgotPasswordDTO, ResetPasswordDTO, ChangePasswordDTO } = require('./dtos/index');
 const { sendSuccess, sendCreated } = require('../../common/utils/apiResponse');
@@ -86,7 +87,9 @@ const register = async (req, res) => {
 
   const result = await authService.register(registerDTO);
 
-  setRefreshTokenCookie(res, result.tokens.refreshToken);
+  if (result.tokens?.refreshToken) {
+    setRefreshTokenCookie(res, result.tokens.refreshToken);
+  }
 
   return sendCreated(
     res,
@@ -165,10 +168,11 @@ const getMe = async (req, res) => {
  * @route   POST /api/v1/auth/verify-email
  */
 const verifyEmail = async (req, res) => {
-  const token = req.params.token || req.body.token || req.query.token;
-  if (!token) throw new BadRequestError('Verification token is required.');
+  const validatedData = validateOrThrow(validateVerifyEmail, {
+    token: req.params.token || req.body.token || req.query.token,
+  });
 
-  const result = await authService.verifyEmail(token);
+  const result = await authService.verifyEmail(validatedData.token);
   return sendSuccess(res, result.message, result.user || null);
 };
 
@@ -256,9 +260,11 @@ const enable2FA = async (req, res) => {
  * @route   POST /api/v1/auth/2fa/disable
  */
 const disable2FA = async (req, res) => {
-  const { password } = req.body;
-  if (!password) throw new BadRequestError('Password is required to disable 2FA.');
-  const result = await authService.disableTwoFactor(req.user._id.toString(), password);
+  const validatedData = validateOrThrow(validateDisableTwoFactor, req.body);
+  const result = await authService.disableTwoFactor(
+    req.user._id.toString(),
+    validatedData.password,
+  );
   return sendSuccess(res, result.message);
 };
 
@@ -288,26 +294,34 @@ const verifyTwoFactor = async (req, res) => {
  * @route   GET /api/v1/auth/oauth/google/callback
  */
 const googleOAuthCallback = async (req, res) => {
-  const meta = getRequestMeta(req);
-  const result = await authService.handleOAuthLogin(req.user, 'google', meta);
+  try {
+    const meta = getRequestMeta(req);
+    const result = await authService.handleOAuthLogin(req.user, 'google', meta);
 
-  setRefreshTokenCookie(res, result.tokens.refreshToken);
+    setRefreshTokenCookie(res, result.tokens.refreshToken);
 
-  const redirectUrl = `${env.FRONTEND_URL}/auth/oauth-success?token=${result.tokens.accessToken}`;
-  return res.redirect(redirectUrl);
+    return res.redirect(`${env.FRONTEND_URL}/auth/oauth-success`);
+  } catch (error) {
+    clearRefreshTokenCookie(res);
+    return res.redirect(`${env.FRONTEND_URL}/auth/login?error=oauth_failed`);
+  }
 };
 
 /**
  * @route   GET /api/v1/auth/oauth/facebook/callback
  */
 const facebookOAuthCallback = async (req, res) => {
-  const meta = getRequestMeta(req);
-  const result = await authService.handleOAuthLogin(req.user, 'facebook', meta);
+  try {
+    const meta = getRequestMeta(req);
+    const result = await authService.handleOAuthLogin(req.user, 'facebook', meta);
 
-  setRefreshTokenCookie(res, result.tokens.refreshToken);
+    setRefreshTokenCookie(res, result.tokens.refreshToken);
 
-  const redirectUrl = `${env.FRONTEND_URL}/auth/oauth-success?token=${result.tokens.accessToken}`;
-  return res.redirect(redirectUrl);
+    return res.redirect(`${env.FRONTEND_URL}/auth/oauth-success`);
+  } catch (error) {
+    clearRefreshTokenCookie(res);
+    return res.redirect(`${env.FRONTEND_URL}/auth/login?error=oauth_failed`);
+  }
 };
 
 module.exports = {

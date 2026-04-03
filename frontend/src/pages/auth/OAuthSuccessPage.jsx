@@ -20,11 +20,6 @@ const OAuthSuccessPage = () => {
   useEffect(() => {
     const token = searchParams.get("token");
 
-    if (!token) {
-      setError("OAuth login failed — no token received. Please try again.");
-      return;
-    }
-
     let cancelled = false;
 
     const hydrate = async () => {
@@ -38,8 +33,17 @@ const OAuthSuccessPage = () => {
           window.location.pathname,
         );
 
+        const accessToken =
+          token || (await authService.refreshToken())?.accessToken;
+
+        if (!accessToken) {
+          throw new Error(
+            "OAuth login could not be completed. Please try signing in again.",
+          );
+        }
+
         // Store in-memory access token
-        storageUtils.setAccessToken(token);
+        storageUtils.setAccessToken(accessToken);
 
         // Fetch full user profile using the new access token
         const user = await authService.getMe();
@@ -50,8 +54,7 @@ const OAuthSuccessPage = () => {
         dispatch(
           setAuthFromOAuth({
             user,
-            accessToken: token,
-            // FIX: don't pass refreshToken — it's in the httpOnly cookie, not JS-accessible
+            accessToken,
           }),
         );
 
