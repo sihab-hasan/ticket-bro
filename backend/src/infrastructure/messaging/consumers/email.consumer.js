@@ -1,3 +1,11 @@
 'use strict';
-// email.consumer — placeholder stub
-module.exports = {};
+
+const emailService = require('../../mail/emailService');
+
+const processTemplateEmail = async (payload) => {
+  return emailService.sendTemplateEmail(payload);
+};
+
+module.exports = {
+  processTemplateEmail,
+};

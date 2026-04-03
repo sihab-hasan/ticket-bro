@@ -1,7 +1,7 @@
 // pages/messaging/ConversationPage.jsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Send, Paperclip } from 'lucide-react';
+import { ArrowLeft, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -21,6 +21,7 @@ const ConversationPage = () => {
   const [newMsg, setNewMsg] = useState('');
   const [sending, setSending] = useState(false);
   const bottomRef = useRef(null);
+  const currentUserId = user?._id || user?.id;
 
   const fetch = useCallback(async () => {
     try {
@@ -41,7 +42,7 @@ const ConversationPage = () => {
   const handleSend = async () => {
     if (!newMsg.trim()) return;
     setSending(true);
-    const optimistic = { _id: Date.now(), content: newMsg, sender: { _id: user?._id }, createdAt: new Date().toISOString(), pending: true };
+    const optimistic = { _id: Date.now(), content: newMsg, sender: { _id: currentUserId }, senderId: currentUserId, createdAt: new Date().toISOString(), pending: true };
     setMessages((m) => [...m, optimistic]);
     setNewMsg('');
     try {
@@ -55,7 +56,7 @@ const ConversationPage = () => {
     }
   };
 
-  const other = conversation?.participants?.find((p) => p._id !== user?._id) || conversation?.otherParticipant;
+  const other = conversation?.participants?.find((p) => p._id !== currentUserId) || conversation?.otherParticipant;
 
   return (
     <div className="flex flex-col h-screen font-sans">
@@ -75,11 +76,11 @@ const ConversationPage = () => {
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {loading ? Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 w-3/4 rounded-2xl" style={{ marginLeft: i % 2 ? 'auto' : undefined }} />)
         : messages.map((msg) => {
-          const isMe = msg.sender?._id === user?._id || msg.senderId === user?._id;
+          const isMe = msg.sender?._id === currentUserId || msg.senderId === currentUserId;
           return (
             <div key={msg._id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${isMe ? 'bg-primary text-black rounded-tr-sm' : 'bg-muted text-foreground rounded-tl-sm'} ${msg.pending ? 'opacity-60' : ''}`}>
-                <p>{msg.content}</p>
+                <p>{msg.content || msg.body}</p>
                 <p className={`text-[10px] mt-1 ${isMe ? 'text-black/50' : 'text-muted-foreground'}`}>{formatDate(msg.createdAt, { dateStyle: undefined, timeStyle: 'short' })}</p>
               </div>
             </div>

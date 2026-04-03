@@ -3,6 +3,13 @@ const bookingRepository = require('./booking.repository');
 const { NotFoundError, ForbiddenError, BadRequestError } = require('../../common/errors/AppError');
 const { ROLES } = require('../../common/constants/roles');
 const logger = require('../../infrastructure/logger/logger');
+const emailService = require('../../infrastructure/mail/emailService');
+const {
+  formatDateTime,
+  formatLocation,
+  buildFrontendUrl,
+  getUserFirstName,
+} = require('../../infrastructure/mail/templateData');
 
 const getId = (user) => user?.id || user?._id?.toString() || user?.userId;
 
@@ -59,6 +66,8 @@ class BookingService {
       cancelledBy: getId(user),
     });
     logger.info(`Booking cancelled: ${bookingRef} by user ${getId(user)}`);
+
+    await this._sendTicketCancelledEmail(booking, updated);
     return updated;
   }
 
@@ -117,12 +126,66 @@ class BookingService {
       update.payment = paymentId;
     }
 
-    return bookingRepository.updateByRef(bookingRef, update);
+    const updated = await bookingRepository.updateByRef(bookingRef, update);
+    const booking = await bookingRepository.findByRef(bookingRef);
+
+    await this._sendBookingConfirmationEmail(booking || updated);
+
+    return updated;
   }
 
   async getStats() {
     return bookingRepository.getStats();
   }
+
+  async _sendBookingConfirmationEmail(booking) {
+    if (!booking?.contactEmail && !booking?.user?.email) {
+      return;
+    }
+
+    await emailService.sendBookingConfirmationEmail({
+      to: booking.contactEmail || booking.user.email,
+      firstName: booking.user?.firstName || booking.contactName || 'there',
+      eventName: booking.event?.title,
+      bookingRef: booking.bookingRef,
+      eventDate: formatDateTime(booking.event?.startDate),
+      location: formatLocation(booking.event?.location),
+      ticketCount: booking.items?.reduce((sum, item) => sum + Number(item.quantity || 0), 0) || 0,
+      totalAmount: booking.totalAmount,
+      currency: booking.currency,
+      bookingUrl: buildFrontendUrl(`/bookings/${booking.bookingRef}`),
+    });
+  }
+
+  async _sendTicketCancelledEmail(originalBooking, updatedBooking) {
+    if (!originalBooking?.contactEmail && !originalBooking?.user?.email) {
+      return;
+    }
+
+    const firstTicketCode = originalBooking.items?.[0]?.ticketCode || originalBooking.items?.[0]?.code || originalBooking.bookingRef;
+
+    await emailService.sendTicketCancelledEmail({
+      to: originalBooking.contactEmail || originalBooking.user.email,
+      firstName: getUserFirstName(originalBooking.user, originalBooking.contactName || 'there'),
+      eventName: originalBooking.event?.title,
+      ticketCode: firstTicketCode,
+      cancelledAt: formatDateTime(updatedBooking?.cancelledAt || new Date()),
+      refundSummary: reasonSummary(originalBooking, updatedBooking),
+      bookingUrl: buildFrontendUrl(`/bookings/${originalBooking.bookingRef}`),
+    });
+  }
 }
+
+const reasonSummary = (booking, updatedBooking) => {
+  if (updatedBooking?.paymentStatus === 'refunded' || booking?.paymentStatus === 'refunded') {
+    return 'Your refund has already been processed.';
+  }
+
+  if (booking?.refundRequested) {
+    return 'Your refund request is being reviewed.';
+  }
+
+  return 'If your booking qualifies for a refund, you can request it from your booking details page.';
+};
 
 module.exports = new BookingService();
