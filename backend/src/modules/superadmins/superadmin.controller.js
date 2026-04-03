@@ -1,65 +1,52 @@
-// ============================================================
-//  SUPERADMIN CONTROLLER — Full Complete
-//  src/modules/superadmins/superadmin.controller.js
-// ============================================================
+'use strict';
 
-const superAdminService = require("./superadmin.service");
-const asyncHandler = require("../../common/utils/asyncHandler");
-const ApiResponse = require("../../common/utils/apiResponse");
+const asyncHandler = require('../../common/utils/asyncHandler');
+const { sendSuccess } = require('../../common/utils/apiResponse');
+const superAdminService = require('./superadmin.service');
 
 class SuperAdminController {
-  assignAdminRole = asyncHandler(async (req, res) => {
-    const meta = { ip: req.ip };
-    const result = await superAdminService.assignAdminRole(
-      req.user._id,
-      req.params.userId,
-      meta,
-    );
-    return res.status(200).json(ApiResponse.success(result.message));
-  });
-
-  revokeAdminRole = asyncHandler(async (req, res) => {
-    const meta = { ip: req.ip };
-    const result = await superAdminService.revokeAdminRole(
-      req.user._id,
-      req.params.userId,
-      meta,
-    );
-    return res.status(200).json(ApiResponse.success(result.message));
+  getDashboard = asyncHandler(async (_req, res) => {
+    sendSuccess(res, 'Super admin dashboard fetched.', await superAdminService.getDashboard());
   });
 
   getAllAdmins = asyncHandler(async (req, res) => {
-    const { page, limit } = req.query;
-    const result = await superAdminService.getAllAdmins({
-      page: Number(page) || 1,
-      limit: Number(limit) || 20,
-    });
-    return res.status(200).json(ApiResponse.success("All admins", result));
+    sendSuccess(res, 'All admins fetched.', await superAdminService.getAllAdmins(req.query));
   });
 
-  getPlatformSettings = asyncHandler(async (req, res) => {
-    const data = await superAdminService.getPlatformSettings();
-    return res.status(200).json(ApiResponse.success("Platform settings", data));
+  getAllUsers = asyncHandler(async (req, res) => {
+    sendSuccess(res, 'Users fetched.', await superAdminService.getAllUsers(req.query));
+  });
+
+  assignAdminRole = asyncHandler(async (req, res) => {
+    sendSuccess(res, 'Admin role assigned.', await superAdminService.assignAdminRole(req.user, req.params.userId));
+  });
+
+  revokeAdminRole = asyncHandler(async (req, res) => {
+    sendSuccess(res, 'Admin role revoked.', await superAdminService.revokeAdminRole(req.user, req.params.userId));
+  });
+
+  updateUserRole = asyncHandler(async (req, res) => {
+    sendSuccess(res, 'User role updated.', await superAdminService.updateUserRole(req.user, req.params.userId, req.body.role));
+  });
+
+  getPlatformSettings = asyncHandler(async (_req, res) => {
+    sendSuccess(res, 'Platform settings fetched.', await superAdminService.getPlatformSettings());
+  });
+
+  updatePlatformSettings = asyncHandler(async (req, res) => {
+    sendSuccess(res, 'Platform settings updated.', await superAdminService.updatePlatformSettings(req.body, req.user));
   });
 
   getFullAuditLog = asyncHandler(async (req, res) => {
-    const { action, from, to, page, limit } = req.query;
-    const result = await superAdminService.getFullAuditLog(
-      { action, from, to },
-      { page: Number(page) || 1, limit: Number(limit) || 100 },
-    );
-    return res.status(200).json(ApiResponse.success("Audit logs", result));
+    sendSuccess(res, 'Audit logs fetched.', await superAdminService.getFullAuditLog(req.query));
   });
 
   forceLogoutAll = asyncHandler(async (req, res) => {
-    const meta = { ip: req.ip };
-    const result = await superAdminService.forceLogoutAll(req.user._id, meta);
-    return res.status(200).json(ApiResponse.success(result.message));
+    sendSuccess(res, 'All sessions terminated.', await superAdminService.forceLogoutAll(req.user));
   });
 
-  getSystemHealth = asyncHandler(async (req, res) => {
-    const data = await superAdminService.getSystemHealth();
-    return res.status(200).json(ApiResponse.success("System health", data));
+  getSystemHealth = asyncHandler(async (_req, res) => {
+    sendSuccess(res, 'System health fetched.', await superAdminService.getSystemHealth());
   });
 }
 

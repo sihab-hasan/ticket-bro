@@ -30,6 +30,12 @@ import {
   select2FAEmail,
 } from "../store/slices/authSlice";
 import { storageUtils } from "../utils/storageUtils";
+import {
+  canUserAccessPanel,
+  getUserAllowedPanels,
+  getUserAvailablePanels,
+  hasUserPermission,
+} from "../utils/access.utils";
 import authConfig from "../config/auth.config";
 import authService from "../api/auth.api";
 
@@ -161,25 +167,13 @@ export const useAuth = () => {
   );
 
   // ── hasPermission ───────────────────────────────────────────────────────────
-  // Lightweight client-side permission check (server always re-verifies).
-  const ORGANIZER_ROLES = ["organizer", "admin", "super_admin"];
-  const ADMIN_ROLES = ["admin", "super_admin"];
-
   const hasPermission = useCallback(
-    (permission) => {
-      if (!user) return false;
-      switch (permission) {
-        case "create:events":
-        case "view:organizer_dashboard":
-          return ORGANIZER_ROLES.includes(user.role);
-        case "manage:users":
-        case "view:admin_dashboard":
-        case "manage:roles":
-          return ADMIN_ROLES.includes(user.role);
-        default:
-          return user.role === "super_admin";
-      }
-    },
+    (permission) => hasUserPermission(user, permission),
+    [user],
+  );
+
+  const canAccessPanel = useCallback(
+    (panel) => canUserAccessPanel(user, panel),
     [user],
   );
 
@@ -202,6 +196,9 @@ export const useAuth = () => {
     resend2FA,
     hasRole,
     hasPermission,
+    canAccessPanel,
+    allowedPanels: getUserAllowedPanels(user),
+    availablePanels: getUserAvailablePanels(user),
     refreshProfile: () => dispatch(fetchMe()),
     clearError: () => dispatch(clearError()),
     clearTwoFactor: () => dispatch(clearTwoFactor()),

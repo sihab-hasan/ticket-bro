@@ -12,7 +12,7 @@ import PageHeader from '@/components/shared/PageHeader';
 import StatCard from '@/components/shared/StatCard';
 import { formatPrice } from '@/utils/formatters';
 import { ROUTES } from '@/app/AppRoutes';
-import api from '@/lib/axios';
+import { analyticsService } from '@/api';
 
 // ── Simple bar chart visualization ───────────────────────────────────────────
 const BarChart = ({ data = [], label, color = 'bg-primary' }) => {
@@ -47,18 +47,18 @@ const AnalyticsDashboard = () => {
       setLoading(true);
       try {
         const [overviewRes, revenueRes, ticketRes, eventRes, audienceRes] = await Promise.allSettled([
-          api.get('/analytics/overview', { params: { period } }),
-          api.get('/analytics/revenue', { params: { period } }),
-          api.get('/analytics/tickets', { params: { period } }),
-          api.get('/analytics/events', { params: { period } }),
-          api.get('/analytics/audience', { params: { period } }),
+          analyticsService.getOverview({ period }),
+          analyticsService.getRevenue({ period }),
+          analyticsService.getTicketStats({ period }),
+          analyticsService.getEventStats({ period }),
+          analyticsService.getAudience({ period }),
         ]);
         setData({
-          overview: overviewRes.status === 'fulfilled' ? overviewRes.value.data?.data : null,
-          revenue: revenueRes.status === 'fulfilled' ? revenueRes.value.data?.data : null,
-          tickets: ticketRes.status === 'fulfilled' ? ticketRes.value.data?.data : null,
-          events: eventRes.status === 'fulfilled' ? eventRes.value.data?.data : null,
-          audience: audienceRes.status === 'fulfilled' ? audienceRes.value.data?.data : null,
+          overview: overviewRes.status === 'fulfilled' ? overviewRes.value : null,
+          revenue: revenueRes.status === 'fulfilled' ? revenueRes.value : null,
+          tickets: ticketRes.status === 'fulfilled' ? ticketRes.value : null,
+          events: eventRes.status === 'fulfilled' ? eventRes.value : null,
+          audience: audienceRes.status === 'fulfilled' ? audienceRes.value : null,
         });
       } catch (e) { console.error(e); }
       finally { setLoading(false); }

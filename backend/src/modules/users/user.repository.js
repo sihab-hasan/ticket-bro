@@ -22,10 +22,11 @@ class UserRepository {
 
   // ── List with pagination + filters ──────────────────────────────────────────
 
-  async findAll({ page = 1, limit = 20, role, search, isActive, sort = '-createdAt' } = {}) {
+  async findAll({ page = 1, limit = 20, role, status, search, isActive, sort = '-createdAt' } = {}) {
     const filter = { deletedAt: null };
 
     if (role)               filter.role     = role;
+    if (status)             filter.status   = status;
     if (isActive !== undefined) filter.isActive = isActive === 'true' || isActive === true;
     if (search) {
       const re = new RegExp(search, 'i');
@@ -69,7 +70,7 @@ class UserRepository {
   async softDeleteById(id) {
     return User.findByIdAndUpdate(
       id,
-      { $set: { deletedAt: new Date(), isActive: false } },
+      { $set: { deletedAt: new Date(), isActive: false, status: 'inactive' } },
       { new: true },
     );
   }

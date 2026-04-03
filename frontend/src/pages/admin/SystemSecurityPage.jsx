@@ -11,7 +11,7 @@ import PageHeader from '@/components/shared/PageHeader';
 import { RoleBadge, ConfirmDialog } from '@/components/shared/StatusBadge';
 import { formatDate } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
-import api from '@/lib/axios';
+import { adminService } from '@/api';
 
 const SystemSecurityPage = () => {
   const [sessions, setSessions] = useState([]);
@@ -25,13 +25,13 @@ const SystemSecurityPage = () => {
     setLoading(true);
     try {
       const [sessRes, alertRes, auditRes] = await Promise.allSettled([
-        api.get('/admin/system/sessions'),
-        api.get('/admin/system/security-alerts'),
-        api.get('/admin/system/audit-logs', { params: { limit: 20 } }),
+        adminService.getSystemSessions(),
+        adminService.getSecurityAlerts(),
+        adminService.getAuditLogs({ limit: 20 }),
       ]);
-      if (sessRes.status === 'fulfilled') { const d = sessRes.value.data?.data || sessRes.value.data; setSessions(d?.sessions || d || []); }
-      if (alertRes.status === 'fulfilled') { const d = alertRes.value.data?.data || alertRes.value.data; setAlerts(d?.alerts || d || []); }
-      if (auditRes.status === 'fulfilled') { const d = auditRes.value.data?.data || auditRes.value.data; setAuditLogs(d?.logs || d || []); }
+      if (sessRes.status === 'fulfilled') { setSessions(sessRes.value?.sessions || []); }
+      if (alertRes.status === 'fulfilled') { setAlerts(alertRes.value?.alerts || []); }
+      if (auditRes.status === 'fulfilled') { setAuditLogs(auditRes.value?.logs || []); }
     } catch {} finally { setLoading(false); }
   };
 
@@ -40,7 +40,7 @@ const SystemSecurityPage = () => {
   const handleRevokeSession = async () => {
     setRevoking(true);
     try {
-      await api.delete(`/admin/system/sessions/${revokeConfirm._id}`);
+      await adminService.revokeSystemSession(revokeConfirm._id);
       toast.success('Session revoked'); fetch(); setRevokeConfirm(null);
     } catch { toast.error('Failed to revoke session'); }
     finally { setRevoking(false); }
@@ -48,7 +48,7 @@ const SystemSecurityPage = () => {
 
   const handleRevokeAll = async () => {
     try {
-      await api.delete('/admin/system/sessions');
+      await adminService.clearSystemSessions();
       toast.success('All sessions revoked'); fetch();
     } catch { toast.error('Failed'); }
   };

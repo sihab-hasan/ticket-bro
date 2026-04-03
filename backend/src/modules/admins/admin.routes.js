@@ -16,12 +16,21 @@ const ctrl = () => { if (!_ctrl) _ctrl = require('./admin.controller'); return _
 // ── Dashboard & System ────────────────────────────────────────────────────────
 // GET /admin/dashboard
 router.get('/dashboard',        (req, res, next) => ctrl().getDashboard(req, res, next));
+router.get('/dashboard/stats',  (req, res, next) => ctrl().getDashboardStats(req, res, next));
 
 // GET /admin/system/health
 router.get('/system/health',    (req, res, next) => ctrl().getSystemHealth(req, res, next));
 
 // GET /admin/system/metrics
 router.get('/system/metrics',   (req, res, next) => ctrl().getSystemMetrics(req, res, next));
+router.get('/system/settings',  (req, res, next) => ctrl().getSystemSettings(req, res, next));
+router.put('/system/settings',  (req, res, next) => ctrl().updateSystemSettings(req, res, next));
+router.get('/system/logs',      (req, res, next) => ctrl().getSystemLogs(req, res, next));
+router.get('/system/sessions',  (req, res, next) => ctrl().getSystemSessions(req, res, next));
+router.delete('/system/sessions',     (req, res, next) => ctrl().clearSystemSessions(req, res, next));
+router.delete('/system/sessions/:id', (req, res, next) => ctrl().revokeSystemSession(req, res, next));
+router.get('/system/security-alerts', (req, res, next) => ctrl().getSecurityAlerts(req, res, next));
+router.get('/system/audit-logs',      (req, res, next) => ctrl().getAuditLogs(req, res, next));
 
 // ── Feature Flags ─────────────────────────────────────────────────────────────
 // GET  /admin/feature-flags
@@ -90,6 +99,10 @@ router.get('/payments/:id',             (req, res, next) => ctrl().getPaymentByI
 // POST   /admin/payments/:id/refund
 router.post('/payments/:id/refund',     (req, res, next) => ctrl().refundPayment(req, res, next));
 
+// ── Payouts ───────────────────────────────────────────────────────────────────
+router.get('/payouts',                  (req, res, next) => ctrl().getPayouts(req, res, next));
+router.patch('/payouts/:id',            (req, res, next) => ctrl().updatePayout(req, res, next));
+
 // ── Reviews ───────────────────────────────────────────────────────────────────
 // GET    /admin/reviews
 router.get('/reviews',                  (req, res, next) => ctrl().getAllReviews(req, res, next));
@@ -119,8 +132,22 @@ router.get('/analytics/organizers',     (req, res, next) => ctrl().getOrganizerA
 // ── Promotions ────────────────────────────────────────────────────────────────
 // GET /admin/promotions
 router.get('/promotions',               (req, res, next) => ctrl().getAllPromotions(req, res, next));
+router.post('/promotions',              (req, res, next) => ctrl().createPromotion(req, res, next));
+router.put('/promotions/:id',           (req, res, next) => ctrl().updatePromotion(req, res, next));
+router.delete('/promotions/:id',        (req, res, next) => ctrl().deletePromotion(req, res, next));
 
 // PUT /admin/promotions/:id/disable
 router.put('/promotions/:id/disable',   (req, res, next) => ctrl().disablePromotion(req, res, next));
+
+// ── Reports ───────────────────────────────────────────────────────────────────
+router.get('/reports',                  (req, res, next) => ctrl().getReports(req, res, next));
+router.get('/reports/:id',              (req, res, next) => ctrl().getReportById(req, res, next));
+router.patch('/reports/:id',            (req, res, next) => ctrl().updateReport(req, res, next));
+
+// ── Events ────────────────────────────────────────────────────────────────────
+router.get('/events',                   (req, res, next) => ctrl().getEvents(req, res, next));
+router.get('/events/:id',               (req, res, next) => ctrl().getEventById(req, res, next));
+router.patch('/events/:id',             (req, res, next) => ctrl().updateEvent(req, res, next));
+router.delete('/events/:id',            (req, res, next) => ctrl().deleteEvent(req, res, next));
 
 module.exports = router;

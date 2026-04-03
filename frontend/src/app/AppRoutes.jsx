@@ -19,14 +19,14 @@ import { Routes, Route, Navigate } from "react-router-dom";
 
 import { PageLoader } from "@/components/shared/Loader";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import AuthLayout from "@/components/layout/AuthLayout";
-import { UserRole } from "@/types/auth.types";
 
 // ── Layouts ──────────────────────────────────────────────────────────────────
 import MainLayout from "@/components/layout/MainLayout";
 import UserLayout from "@/components/layout/UserLayout";
 import OrganizerLayout from "@/components/layout/OrganizerLayout";
 import AdminLayout from "@/components/layout/AdminLayout";
+import ModeratorLayout from "@/components/layout/ModeratorLayout";
+import SuperAdminLayout from "@/components/layout/SuperAdminLayout";
 
 // ── Critical path — eager ─────────────────────────────────────────────────────
 import BrowsePage from "@/pages/browse/BrowseAllPage";
@@ -160,6 +160,30 @@ const AdminSystemSettingsPage = lazy(
   () => import("@/pages/admin/SystemSettingsPage"),
 );
 const AdminLogsPage = lazy(() => import("@/pages/admin/LogsPage"));
+const ModeratorDashboard = lazy(
+  () => import("@/pages/moderator/ModeratorDashboard"),
+);
+const ReportsQueuePage = lazy(
+  () => import("@/pages/moderator/ReportsQueuePage"),
+);
+const EventModerationPage = lazy(
+  () => import("@/pages/moderator/EventModerationPage"),
+);
+const UserModerationPage = lazy(
+  () => import("@/pages/moderator/UserModerationPage"),
+);
+const SuperAdminDashboard = lazy(
+  () => import("@/pages/super-admin/SuperAdminDashboard"),
+);
+const RoleManagementPage = lazy(
+  () => import("@/pages/super-admin/RoleManagementPage"),
+);
+const AuditCenterPage = lazy(
+  () => import("@/pages/super-admin/AuditCenterPage"),
+);
+const PlatformControlPage = lazy(
+  () => import("@/pages/super-admin/PlatformControlPage"),
+);
 const AboutPage = lazy(() => import("@/pages/static/AboutPage"));
 const ContactPage = lazy(() => import("@/pages/static/ContactPage"));
 const FAQPage = lazy(() => import("@/pages/static/FAQPage"));
@@ -271,6 +295,14 @@ export const ROUTES = {
     SETTINGS: "/organizer/settings",
   },
 
+  MODERATOR: {
+    ROOT: "/moderator",
+    DASHBOARD: "/moderator/dashboard",
+    REPORTS: "/moderator/reports",
+    EVENTS: "/moderator/events",
+    USERS: "/moderator/users",
+  },
+
   ADMIN: {
     ROOT: "/admin",
     DASHBOARD: "/admin/dashboard",
@@ -286,7 +318,17 @@ export const ROUTES = {
     REPORTS: "/admin/reports",
     PROMOTIONS: "/admin/promotions",
     SYSTEM_SETTINGS: "/admin/system/settings",
+    SYSTEM_SECURITY: "/admin/system/security",
+    SYSTEM_HEALTH: "/admin/system/health",
     SYSTEM_LOGS: "/admin/system/logs",
+  },
+
+  SUPER_ADMIN: {
+    ROOT: "/super-admin",
+    DASHBOARD: "/super-admin/dashboard",
+    ROLES: "/super-admin/roles",
+    AUDIT: "/super-admin/audit",
+    PLATFORM: "/super-admin/platform",
   },
 
   STATIC: {
@@ -467,13 +509,7 @@ const AppRoutes = () => (
       ══════════════════════════════════════════════════════════ */}
       <Route
         element={
-          <ProtectedRoute
-            allowedRoles={[
-              UserRole.ORGANIZER,
-              UserRole.ADMIN,
-              UserRole.SUPER_ADMIN,
-            ]}
-          />
+          <ProtectedRoute requiredPanel="organizer" />
         }
       >
         <Route element={<OrganizerLayout />}>
@@ -509,9 +545,7 @@ const AppRoutes = () => (
       ══════════════════════════════════════════════════════════ */}
       <Route
         element={
-          <ProtectedRoute
-            allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}
-          />
+          <ProtectedRoute requiredPanel="admin" />
         }
       >
         <Route element={<AdminLayout />}>
@@ -549,6 +583,42 @@ const AppRoutes = () => (
               <Route path="health" element={<SystemHealthPage />} />
               <Route path="logs" element={<AdminLogsPage />} />
             </Route>
+          </Route>
+        </Route>
+      </Route>
+
+      {/* ══════════════════════════════════════════════════════════
+          PROTECTED — Moderator + Admin + Super Admin
+      ══════════════════════════════════════════════════════════ */}
+      <Route element={<ProtectedRoute requiredPanel="moderator" />}>
+        <Route element={<ModeratorLayout />}>
+          <Route path="/moderator">
+            <Route
+              index
+              element={<Navigate to="/moderator/dashboard" replace />}
+            />
+            <Route path="dashboard" element={<ModeratorDashboard />} />
+            <Route path="reports" element={<ReportsQueuePage />} />
+            <Route path="events" element={<EventModerationPage />} />
+            <Route path="users" element={<UserModerationPage />} />
+          </Route>
+        </Route>
+      </Route>
+
+      {/* ══════════════════════════════════════════════════════════
+          PROTECTED — Super Admin only
+      ══════════════════════════════════════════════════════════ */}
+      <Route element={<ProtectedRoute requiredPanel="super_admin" />}>
+        <Route element={<SuperAdminLayout />}>
+          <Route path="/super-admin">
+            <Route
+              index
+              element={<Navigate to="/super-admin/dashboard" replace />}
+            />
+            <Route path="dashboard" element={<SuperAdminDashboard />} />
+            <Route path="roles" element={<RoleManagementPage />} />
+            <Route path="audit" element={<AuditCenterPage />} />
+            <Route path="platform" element={<PlatformControlPage />} />
           </Route>
         </Route>
       </Route>

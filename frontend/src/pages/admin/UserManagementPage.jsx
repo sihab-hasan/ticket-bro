@@ -25,7 +25,8 @@ import { StatusBadge, RoleBadge, ConfirmDialog } from '@/components/shared/Statu
 import { formatDate } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
-import api from '@/lib/axios';
+import { adminService, superAdminService } from '@/api';
+import { useAuth } from '@/context/AuthContext';
 
 const ROLE_OPTIONS = [
   { label: 'User', value: 'user' },
@@ -43,6 +44,8 @@ const STATUS_OPTIONS = [
 const UserManagementPage = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
+  const { canAccessPanel } = useAuth();
+  const canManageRoles = canAccessPanel('super_admin');
 
   const [users, setUsers] = useState([]);
   const [total, setTotal] = useState(0);
@@ -64,10 +67,9 @@ const UserManagementPage = () => {
       if (filters.search) params.search = filters.search;
       if (filters.role) params.role = filters.role;
       if (filters.status) params.status = filters.status;
-      const res = await api.get('/admin/users', { params });
-      const d = res.data?.data || res.data;
-      setUsers(d?.users || d || []);
-      setTotal(d?.total || 0);
+      const data = await adminService.getUsers(params);
+      setUsers(data?.users || []);
+      setTotal(data?.total || 0);
     } catch (e) {
       toast.error('Failed to load users');
     } finally {
@@ -86,8 +88,8 @@ const UserManagementPage = () => {
     setDrawerOpen(true);
     setDrawerLoading(true);
     try {
-      const res = await api.get(`/admin/users/${id}`);
-      setSelectedUser(res.data?.data || res.data);
+      const data = await adminService.getUserById(id);
+      setSelectedUser(data);
     } catch {
       toast.error('Failed to load user details');
       setDrawerOpen(false);
@@ -112,10 +114,10 @@ const UserManagementPage = () => {
     setActionLoading(true);
     const { type, user } = confirmAction;
     try {
-      if (type === 'ban') await api.patch(`/admin/users/${user._id}`, { status: 'banned' });
-      else if (type === 'activate') await api.patch(`/users/${user._id}/activate`);
-      else if (type === 'deactivate') await api.patch(`/users/${user._id}/deactivate`);
-      else if (type === 'delete') await api.delete(`/admin/users/${user._id}`);
+      if (type === 'ban') await adminService.banUser(user._id);
+      else if (type === 'activate') await adminService.updateUser(user._id, { status: 'active' });
+      else if (type === 'deactivate') await adminService.updateUser(user._id, { status: 'suspended' });
+      else if (type === 'delete') await adminService.deleteUser(user._id);
       toast.success(`User ${type === 'delete' ? 'deleted' : 'updated'} successfully`);
       fetchUsers();
       setConfirmAction(null);
@@ -128,8 +130,13 @@ const UserManagementPage = () => {
   };
 
   const handleRoleChange = async (userId, newRole) => {
+    if (!canManageRoles) {
+      toast.error('Only super admins can change user roles');
+      return;
+    }
+
     try {
-      await api.patch(`/users/${userId}/role`, { role: newRole });
+      await superAdminService.updateUserRole(userId, newRole);
       toast.success('Role updated');
       fetchUsers();
       if (selectedUser?._id === userId) {
@@ -343,19 +350,25 @@ const UserManagementPage = () => {
             </DetailSection>
 
             <DetailSection title="Change Role">
-              <Select
-                value={selectedUser.role}
-                onValueChange={(v) => handleRoleChange(selectedUser._id, v)}
-              >
-                <SelectTrigger className="h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ROLE_OPTIONS.concat([{ label: 'Super Admin', value: 'super_admin' }]).map((o) => (
-                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {canManageRoles ? (
+                <Select
+                  value={selectedUser.role}
+                  onValueChange={(v) => handleRoleChange(selectedUser._id, v)}
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ROLE_OPTIONS.concat([{ label: 'Super Admin', value: 'super_admin' }]).map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Role assignment is restricted to the super-admin panel.
+                </p>
+              )}
             </DetailSection>
 
             {selectedUser.address && (

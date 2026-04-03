@@ -1,109 +1,48 @@
-// ============================================================
-//  MODERATOR CONTROLLER — Full Complete
-//  src/modules/moderators/moderator.controller.js
-// ============================================================
+'use strict';
 
-const moderatorService = require("./moderator.service");
-const asyncHandler = require("../../common/utils/asyncHandler");
-const ApiResponse = require("../../common/utils/apiResponse");
+const asyncHandler = require('../../common/utils/asyncHandler');
+const { sendSuccess } = require('../../common/utils/apiResponse');
+const moderatorService = require('./moderator.service');
 
 class ModeratorController {
+  getDashboard = asyncHandler(async (_req, res) => {
+    sendSuccess(res, 'Moderator dashboard fetched.', await moderatorService.getDashboard());
+  });
+
+  getUsers = asyncHandler(async (req, res) => {
+    sendSuccess(res, 'Moderated users fetched.', await moderatorService.getUsers(req.query));
+  });
+
   suspendUser = asyncHandler(async (req, res) => {
-    const { reason } = req.body;
-    if (!reason) {
-      return res.status(400).json(ApiResponse.error("Reason required", 400));
-    }
-    const meta = { ip: req.ip };
-    const result = await moderatorService.suspendUser(
-      req.user._id,
-      req.params.userId,
-      reason,
-      meta,
-    );
-    return res.status(200).json(ApiResponse.success(result.message));
+    sendSuccess(res, 'User suspended.', await moderatorService.suspendUser(req.user, req.params.userId, req.body.reason));
   });
 
   unsuspendUser = asyncHandler(async (req, res) => {
-    const meta = { ip: req.ip };
-    const result = await moderatorService.unsuspendUser(
-      req.user._id,
-      req.params.userId,
-      meta,
-    );
-    return res.status(200).json(ApiResponse.success(result.message));
+    sendSuccess(res, 'User unsuspended.', await moderatorService.unsuspendUser(req.user, req.params.userId));
   });
 
   warnUser = asyncHandler(async (req, res) => {
-    const { warning } = req.body;
-    if (!warning) {
-      return res
-        .status(400)
-        .json(ApiResponse.error("Warning message required", 400));
-    }
-    const meta = { ip: req.ip };
-    const result = await moderatorService.warnUser(
-      req.user._id,
-      req.params.userId,
-      warning,
-      meta,
-    );
-    return res.status(200).json(ApiResponse.success(result.message));
+    sendSuccess(res, 'User warned.', await moderatorService.warnUser(req.user, req.params.userId, req.body.warning));
   });
 
   getReportsQueue = asyncHandler(async (req, res) => {
-    const { status, entityType, page, limit } = req.query;
-    const result = await moderatorService.getReportsQueue(
-      { status, entityType },
-      { page: Number(page) || 1, limit: Number(limit) || 20 },
-    );
-    return res.status(200).json(ApiResponse.success("Reports queue", result));
+    sendSuccess(res, 'Reports queue fetched.', await moderatorService.getReportsQueue(req.query));
   });
 
   resolveReport = asyncHandler(async (req, res) => {
-    const meta = { ip: req.ip };
-    const result = await moderatorService.resolveReport(
-      req.user._id,
-      req.params.reportId,
-      req.body,
-      meta,
-    );
-    return res.status(200).json(ApiResponse.success(result.message));
+    sendSuccess(res, 'Report resolved.', await moderatorService.resolveReport(req.user, req.params.reportId, req.body));
   });
 
   getPendingEvents = asyncHandler(async (req, res) => {
-    const { page, limit } = req.query;
-    const result = await moderatorService.getPendingEvents({
-      page: Number(page) || 1,
-      limit: Number(limit) || 20,
-    });
-    return res.status(200).json(ApiResponse.success("Pending events", result));
+    sendSuccess(res, 'Pending events fetched.', await moderatorService.getPendingEvents(req.query));
   });
 
   approveEvent = asyncHandler(async (req, res) => {
-    const meta = { ip: req.ip };
-    const result = await moderatorService.approveEvent(
-      req.user._id,
-      req.params.eventId,
-      meta,
-    );
-    return res.status(200).json(ApiResponse.success(result.message));
+    sendSuccess(res, 'Event approved.', await moderatorService.approveEvent(req.user, req.params.eventId));
   });
 
   rejectEvent = asyncHandler(async (req, res) => {
-    const { reason } = req.body;
-    if (!reason) {
-      return res
-        .status(400)
-        .json(ApiResponse.error("Rejection reason required", 400));
-    }
-    const meta = { ip: req.ip };
-    const result = await moderatorService.rejectEvent(
-      req.user._id,
-      req.params.eventId,
-      reason,
-      meta,
-    );
-    return res.status(200).json(ApiResponse.success(result.message));
+    sendSuccess(res, 'Event rejected.', await moderatorService.rejectEvent(req.user, req.params.eventId, req.body.reason));
   });
 }
 

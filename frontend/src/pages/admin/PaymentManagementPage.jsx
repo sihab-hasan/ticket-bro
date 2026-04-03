@@ -17,7 +17,7 @@ import { StatusBadge, ConfirmDialog } from '@/components/shared/StatusBadge';
 import { formatDate, formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
-import api from '@/lib/axios';
+import { adminService } from '@/api';
 
 const PaymentManagementPage = () => {
   const { paymentId } = useParams();
@@ -42,21 +42,19 @@ const PaymentManagementPage = () => {
     try {
       const params = { page, limit: LIMIT, ...filters };
       const [paymentsRes, payoutsRes, statsRes] = await Promise.allSettled([
-        api.get('/admin/payments', { params }),
-        api.get('/admin/payouts', { params: { status: 'pending', limit: 10 } }),
-        api.get('/admin/dashboard/stats'),
+        adminService.getPayments(params),
+        adminService.getPayouts({ status: 'pending', limit: 10 }),
+        adminService.getDashboardStats(),
       ]);
       if (paymentsRes.status === 'fulfilled') {
-        const d = paymentsRes.value.data?.data || paymentsRes.value.data;
-        setPayments(d?.payments || d || []);
-        setTotal(d?.total || 0);
+        setPayments(paymentsRes.value?.payments || []);
+        setTotal(paymentsRes.value?.total || 0);
       }
       if (payoutsRes.status === 'fulfilled') {
-        const d = payoutsRes.value.data?.data || payoutsRes.value.data;
-        setPayouts(d?.payouts || d || []);
+        setPayouts(payoutsRes.value?.payouts || []);
       }
       if (statsRes.status === 'fulfilled') {
-        setStats(statsRes.value.data?.data || statsRes.value.data);
+        setStats(statsRes.value);
       }
     } catch { toast.error('Failed to load payments'); }
     finally { setLoading(false); }
@@ -68,8 +66,8 @@ const PaymentManagementPage = () => {
   const openDrawer = async (id) => {
     setDrawerOpen(true); setDrawerLoading(true);
     try {
-      const res = await api.get(`/admin/payments/${id}`);
-      setSelected(res.data?.data || res.data);
+      const data = await adminService.getPaymentById(id);
+      setSelected(data);
     } catch { toast.error('Failed to load payment'); setDrawerOpen(false); }
     finally { setDrawerLoading(false); }
   };
@@ -82,7 +80,7 @@ const PaymentManagementPage = () => {
   const handleRefund = async () => {
     setActionLoading(true);
     try {
-      await api.post(`/payments/${confirmRefund._id}/refund`);
+      await adminService.refundPayment(confirmRefund._id);
       toast.success('Refund processed');
       fetchAll(); setConfirmRefund(null); closeDrawer();
     } catch { toast.error('Refund failed'); }
@@ -92,7 +90,7 @@ const PaymentManagementPage = () => {
   const handleApprovePayout = async () => {
     setActionLoading(true);
     try {
-      await api.patch(`/admin/payouts/${confirmPayout._id}`, { status: 'approved' });
+      await adminService.updatePayout(confirmPayout._id, { status: 'approved' });
       toast.success('Payout approved');
       fetchAll(); setConfirmPayout(null);
     } catch { toast.error('Failed to approve payout'); }

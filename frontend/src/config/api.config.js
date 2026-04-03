@@ -230,6 +230,7 @@ export const ENDPOINTS = {
 
   ADMIN: {
     DASHBOARD: "/admin/dashboard",
+    DASHBOARD_STATS: "/admin/dashboard/stats",
     USERS: "/admin/users",
     USER: (id) => `/admin/users/${id}`,
     BAN_USER: (id) => `/admin/users/${id}/ban`,
@@ -241,6 +242,7 @@ export const ENDPOINTS = {
     REJECT_ORGANIZER: (id) => `/admin/organizers/${id}/reject`,
     SUSPEND_ORGANIZER: (id) => `/admin/organizers/${id}/suspend`,
     BOOKINGS: "/admin/bookings",
+    BOOKING: (id) => `/admin/bookings/${id}`,
     BOOKING_CANCEL: (ref) => `/admin/bookings/${ref}/cancel`,
     BOOKING_REFUND: (ref) => `/admin/bookings/${ref}/refund`,
     PAYMENTS: "/admin/payments",
@@ -269,6 +271,34 @@ export const ENDPOINTS = {
     SYSTEM_AUDIT_LOGS: "/admin/system/audit-logs",
     PAYOUTS: "/admin/payouts",
     PAYOUT: (id) => `/admin/payouts/${id}`,
+    EVENTS: "/admin/events",
+    EVENT: (id) => `/admin/events/${id}`,
+  },
+
+  MODERATOR: {
+    DASHBOARD: "/moderator/dashboard",
+    USERS: "/moderator/users",
+    SUSPEND_USER: (id) => `/moderator/users/${id}/suspend`,
+    UNSUSPEND_USER: (id) => `/moderator/users/${id}/unsuspend`,
+    WARN_USER: (id) => `/moderator/users/${id}/warn`,
+    REPORTS: "/moderator/reports",
+    REPORT_RESOLVE: (id) => `/moderator/reports/${id}/resolve`,
+    EVENTS_PENDING: "/moderator/events/pending",
+    APPROVE_EVENT: (id) => `/moderator/events/${id}/approve`,
+    REJECT_EVENT: (id) => `/moderator/events/${id}/reject`,
+  },
+
+  SUPER_ADMIN: {
+    DASHBOARD: "/super-admin/dashboard",
+    ADMINS: "/super-admin/admins",
+    USERS: "/super-admin/users",
+    ASSIGN_ADMIN: (id) => `/super-admin/admins/${id}/assign`,
+    REVOKE_ADMIN: (id) => `/super-admin/admins/${id}/revoke`,
+    USER_ROLE: (id) => `/super-admin/users/${id}/role`,
+    SETTINGS: "/super-admin/settings",
+    AUDIT_LOGS: "/super-admin/audit-logs",
+    FORCE_LOGOUT_ALL: "/super-admin/force-logout-all",
+    HEALTH: "/super-admin/health",
   },
 
   LOCATIONS: {

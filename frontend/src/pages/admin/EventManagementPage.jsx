@@ -23,7 +23,7 @@ import { StatusBadge, ConfirmDialog } from '@/components/shared/StatusBadge';
 import { formatDate, formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
-import api from '@/lib/axios';
+import { adminService } from '@/api';
 
 const STATUS_OPTS = [
   { label: 'Published', value: 'published' },
@@ -56,9 +56,8 @@ const EventManagementPage = () => {
       if (filters.search) params.search = filters.search;
       if (filters.status) params.status = filters.status;
       if (filters.category) params.category = filters.category;
-      const res = await api.get('/admin/events', { params });
-      const d = res.data?.data || res.data;
-      setEvents(d?.events || d || []);
+      const d = await adminService.getEvents(params);
+      setEvents(d?.events || []);
       setTotal(d?.total || 0);
     } catch {
       toast.error('Failed to load events');
@@ -74,8 +73,8 @@ const EventManagementPage = () => {
     setDrawerOpen(true);
     setDrawerLoading(true);
     try {
-      const res = await api.get(`/admin/events/${id}`);
-      setSelectedEvent(res.data?.data || res.data);
+      const data = await adminService.getEventBySlug(id);
+      setSelectedEvent(data);
     } catch {
       toast.error('Failed to load event');
       setDrawerOpen(false);
@@ -92,7 +91,7 @@ const EventManagementPage = () => {
 
   const handleStatusChange = async (id, status) => {
     try {
-      await api.patch(`/admin/events/${id}`, { status });
+      await adminService.updateEvent(id, { status });
       toast.success(`Event ${status}`);
       fetchEvents();
       if (selectedEvent?._id === id) setSelectedEvent((e) => ({ ...e, status }));
@@ -104,7 +103,7 @@ const EventManagementPage = () => {
   const handleDelete = async () => {
     setActionLoading(true);
     try {
-      await api.delete(`/admin/events/${confirmAction.event._id}`);
+      await adminService.deleteEvent(confirmAction.event._id);
       toast.success('Event deleted');
       fetchEvents();
       setConfirmAction(null);

@@ -3,6 +3,13 @@
 // Memoised selectors for auth state. Import these instead of accessing
 // state.auth.* directly so components don't break if the slice shape changes.
 
+import {
+  canUserAccessPanel,
+  getUserAllowedPanels,
+  getUserPermissions,
+  hasUserPermission,
+} from "@/utils/access.utils";
+
 // ── Raw selectors ─────────────────────────────────────────────────────────────
 export const selectAuth            = (state) => state.auth;
 export const selectUser            = (state) => state.auth.user;
@@ -44,17 +51,28 @@ export const selectUserFullName = (state) => {
 /** User's avatar URL or null */
 export const selectUserAvatar = (state) => state.auth.user?.avatar ?? null;
 
+export const selectUserPermissions = (state) =>
+  getUserPermissions(state.auth.user);
+
+export const selectAllowedPanels = (state) =>
+  getUserAllowedPanels(state.auth.user);
+
+export const selectHasPermission = (permission) => (state) =>
+  hasUserPermission(state.auth.user, permission);
+
+export const selectCanAccessPanel = (panel) => (state) =>
+  canUserAccessPanel(state.auth.user, panel);
+
 /** True if user is admin or super_admin */
 export const selectIsAdmin = (state) => {
-  const role = state.auth.user?.role;
-  return role === 'admin' || role === 'super_admin';
+  return canUserAccessPanel(state.auth.user, 'admin');
 };
 
 /** True if user is organizer, admin, or super_admin */
 export const selectIsOrganizer = (state) => {
-  const role = state.auth.user?.role;
-  return ['organizer', 'admin', 'super_admin'].includes(role);
+  return canUserAccessPanel(state.auth.user, 'organizer');
 };
 
 /** True if user is super_admin */
-export const selectIsSuperAdmin = (state) => state.auth.user?.role === 'super_admin';
+export const selectIsSuperAdmin = (state) =>
+  canUserAccessPanel(state.auth.user, 'super_admin');

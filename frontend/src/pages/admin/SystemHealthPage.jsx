@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import PageHeader from '@/components/shared/PageHeader';
 import { toast } from '@/components/shared/common';
-import api from '@/lib/axios';
+import { adminService } from '@/api';
 
 const HealthStatus = ({ status }) => {
   if (status === 'healthy') return <span className="flex items-center gap-1.5 text-green-600 text-xs font-semibold"><CheckCircle2 className="h-3.5 w-3.5" />Healthy</span>;
@@ -38,8 +38,8 @@ const SystemHealthPage = () => {
   const fetch = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/admin/system/health');
-      setHealth(res.data?.data || res.data);
+      const data = await adminService.getSystemHealth();
+      setHealth(data);
       setLastCheck(new Date());
     } catch { toast.error('Failed to fetch health data'); }
     finally { setLoading(false); }
