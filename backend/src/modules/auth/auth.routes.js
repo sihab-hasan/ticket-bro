@@ -7,6 +7,7 @@ const router = express.Router();
 const controller = require('./auth.controller');
 const { protect, requireEmailVerified } = require('./auth.middleware');
 const asyncHandler = require('../../common/utils/asyncHandler');
+const env = require('../../config/env');
 const {
   loginLimiter,
   forgotPasswordLimiter,
@@ -76,7 +77,10 @@ router.get(
  */
 router.get(
   '/oauth/google/callback',
-  passport.authenticate('google', { session: false, failureRedirect: '/auth/login?error=oauth_failed' }),
+  passport.authenticate('google', {
+    session: false,
+    failureRedirect: `${env.FRONTEND_URL}/auth/login?error=oauth_failed`,
+  }),
   asyncHandler(controller.googleOAuthCallback),
 );
 
@@ -93,7 +97,10 @@ router.get(
  */
 router.get(
   '/oauth/facebook/callback',
-  passport.authenticate('facebook', { session: false, failureRedirect: '/auth/login?error=oauth_failed' }),
+  passport.authenticate('facebook', {
+    session: false,
+    failureRedirect: `${env.FRONTEND_URL}/auth/login?error=oauth_failed`,
+  }),
   asyncHandler(controller.facebookOAuthCallback),
 );
 
@@ -107,7 +114,7 @@ router.get('/me', protect, asyncHandler(controller.getMe));
 /**
  * @route   POST /api/v1/auth/logout
  */
-router.post('/logout', protect, asyncHandler(controller.logout));
+router.post('/logout', asyncHandler(controller.logout));
 
 /**
  * @route   POST /api/v1/auth/logout-all

@@ -14,7 +14,6 @@ const emailService = require("../../infrastructure/mail/emailService");
 const {
   hashPassword,
   comparePassword,
-  generateSecureToken,
   hashToken,
   generateOTP,
   getOTPExpiry,
@@ -84,16 +83,12 @@ class AuthService {
       verificationUrl,
     });
 
-    const tokenPayload = this._buildTokenPayload(user);
-    const tokens = generateTokenPair(tokenPayload);
-    await this._storeRefreshToken(user._id, tokens.refreshToken, null, null);
-
     logger.info(`User registered: ${user.email} [${user._id}]`);
 
-    return new AuthResponseDTO({
-      user,
-      tokens: { ...tokens, expiresIn: authConfig.jwt.accessToken.expiresIn },
-    });
+    return {
+      user: new UserResponseDTO(user),
+      requiresEmailVerification: true,
+    };
   }
 
   // ── Login ───────────────────────────────────────────────────────────────────
@@ -210,6 +205,17 @@ class AuthService {
       throw new UnauthorizedError("Invalid or expired OTP.");
     }
 
+    if (!user.isActive) {
+      const statusLabel = user.status || 'deactivated';
+      throw new ForbiddenError(
+        `Your account is ${statusLabel}. Please contact support.`,
+      );
+    }
+
+    if (!user.isEmailVerified) {
+      throw new ForbiddenError("Please verify your email address before logging in.");
+    }
+
     await authRepository.clearOTP(user._id);
     await user.resetLoginAttempts();
     await authRepository.updateLastLogin(user._id, {
@@ -300,7 +306,7 @@ class AuthService {
   // ── Email Verification ──────────────────────────────────────────────────────
 
   async verifyEmail(token) {
-    const decoded = verifyEmailVerificationToken(token);
+    verifyEmailVerificationToken(token);
 
     const hashedToken = hashToken(token);
     const user =
@@ -496,15 +502,12 @@ class AuthService {
       length: 20,
     });
 
-    const recoveryCodes = generateRecoveryCodes(8);
-
     const qrCodeDataURL = await QRCode.toDataURL(secret.otpauth_url);
     await authRepository.updateUser(userId, { twoFactorSecret: secret.base32 });
 
     return {
       secret: secret.base32,
       qrCode: qrCodeDataURL,
-      recoveryCodes,
       message:
         "Scan the QR code with your authenticator app, then verify to enable 2FA.",
     };
@@ -565,14 +568,26 @@ class AuthService {
     if (!user && email) {
       user = await authRepository.findUserByEmail(email);
       if (user) {
-        const updateData = { oauthProvider: provider };
+        const updateData = {
+          oauthProvider: provider,
+          isEmailVerified: true,
+        };
         if (provider === "google") updateData.googleId = providerId;
         if (provider === "facebook") updateData.facebookId = providerId;
+        if (!user.avatar && profile.photos?.[0]?.value) {
+          updateData.avatar = profile.photos[0].value;
+        }
         user = await authRepository.updateUser(user._id, updateData);
       }
     }
 
     if (!user) {
+      if (!email) {
+        throw new BadRequestError(
+          `Your ${provider} account did not provide an email address. Please use a different sign-in method.`,
+        );
+      }
+
       const firstName =
         profile.name?.givenName || profile.displayName?.split(" ")[0] || "User";
       const lastName =
@@ -648,7 +663,7 @@ class AuthService {
   }
 
   async _storeRefreshToken(userId, token, ipAddress, userAgent) {
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    const expiresAt = new Date(Date.now() + authConfig.cookie.maxAge);
     return authRepository.createRefreshToken({
       userId,
       token,

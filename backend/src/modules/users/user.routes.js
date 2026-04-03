@@ -10,6 +10,16 @@ const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
 const userController = require("./user.controller");
+const { validateRequest } = require("../../common/middleware/validation.middleware");
+const {
+  updateProfileSchema,
+  adminUpdateUserSchema,
+  statusReasonSchema,
+  changeRoleSchema,
+  userListQuerySchema,
+  mongoIdParamSchema,
+  sessionIdParamSchema,
+} = require("./user.validation");
 
 const router = express.Router();
 
@@ -79,7 +89,7 @@ const { ROLES } = require("../../common/constants/roles");
 // ══════════════════════════════════════════════════════════════════════════════
 
 router.get("/me", userController.getMe);
-router.patch("/me", userController.updateMe);
+router.patch("/me", validateRequest(updateProfileSchema), userController.updateMe);
 router.delete("/me", userController.deleteMe);
 
 // ✅ FIX: Use handleUpload wrapper so multer errors are caught properly
@@ -87,7 +97,11 @@ router.post("/me/avatar", handleUpload, userController.uploadAvatar);
 router.delete("/me/avatar", userController.removeAvatar);
 
 router.get("/me/sessions", userController.getMySessions);
-router.delete("/me/sessions/:sessionId", userController.revokeSession);
+router.delete(
+  "/me/sessions/:sessionId",
+  validateRequest(sessionIdParamSchema, "params"),
+  userController.revokeSession,
+);
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ADMIN  —  /api/v1/users
@@ -96,13 +110,33 @@ router.delete("/me/sessions/:sessionId", userController.revokeSession);
 router.use(authorize(ROLES.ADMIN, ROLES.SUPER_ADMIN));
 
 router.get("/stats", userController.getUserStats); // must be before /:userId
-router.get("/", userController.getAllUsers);
-router.get("/:userId", userController.getUserById);
-router.patch("/:userId", userController.updateUserById);
-router.delete("/:userId", userController.deleteUserById);
+router.get("/", validateRequest(userListQuerySchema, "query"), userController.getAllUsers);
+router.get("/:userId", validateRequest(mongoIdParamSchema, "params"), userController.getUserById);
+router.patch(
+  "/:userId",
+  validateRequest(mongoIdParamSchema, "params"),
+  validateRequest(adminUpdateUserSchema),
+  userController.updateUserById,
+);
+router.delete("/:userId", validateRequest(mongoIdParamSchema, "params"), userController.deleteUserById);
 
-router.patch("/:userId/activate", userController.activateUser);
-router.patch("/:userId/deactivate", userController.deactivateUser);
-router.patch("/:userId/role", userController.changeUserRole);
+router.patch(
+  "/:userId/activate",
+  validateRequest(mongoIdParamSchema, "params"),
+  validateRequest(statusReasonSchema),
+  userController.activateUser,
+);
+router.patch(
+  "/:userId/deactivate",
+  validateRequest(mongoIdParamSchema, "params"),
+  validateRequest(statusReasonSchema),
+  userController.deactivateUser,
+);
+router.patch(
+  "/:userId/role",
+  validateRequest(mongoIdParamSchema, "params"),
+  validateRequest(changeRoleSchema),
+  userController.changeUserRole,
+);
 
 module.exports = router;
