@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthContext';
 import { formatDate } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
-import api from '@/lib/axios';
+import { messagingService } from '@/api';
 
 const ConversationPage = () => {
   const { conversationId } = useParams();
@@ -24,13 +24,16 @@ const ConversationPage = () => {
 
   const fetch = useCallback(async () => {
     try {
-      const res = await api.get(`/messaging/conversations/${conversationId}`);
-      const d = res.data?.data || res.data;
-      setConversation(d?.conversation || d);
-      setMessages(d?.messages || d?.conversation?.messages || []);
+      const [conversationData, messagesData] = await Promise.all([
+        messagingService.getConversation(conversationId),
+        messagingService.getMessages(conversationId),
+      ]);
+      setConversation(conversationData);
+      setMessages(messagesData.messages || []);
+      await messagingService.markAsRead(conversationId).catch(() => {});
     } catch { toast.error('Failed to load conversation'); navigate(-1); }
     finally { setLoading(false); }
-  }, [conversationId]);
+  }, [conversationId, navigate]);
 
   useEffect(() => { fetch(); }, [fetch]);
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
@@ -42,8 +45,7 @@ const ConversationPage = () => {
     setMessages((m) => [...m, optimistic]);
     setNewMsg('');
     try {
-      const res = await api.post(`/messaging/conversations/${conversationId}/messages`, { content: newMsg });
-      const sent = res.data?.data || res.data;
+      const sent = await messagingService.sendMessage(conversationId, { content: newMsg });
       setMessages((m) => m.map((msg) => msg._id === optimistic._id ? sent : msg));
     } catch {
       toast.error('Failed to send');

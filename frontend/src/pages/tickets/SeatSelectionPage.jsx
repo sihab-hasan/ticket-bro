@@ -9,7 +9,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
-import api from '@/lib/axios';
+import { cartService, eventsService } from '@/api';
+import { getApiErrorMessage } from '@/api/client';
 
 const SEAT_STATUS = { available: 'bg-muted hover:bg-primary/20 border-border cursor-pointer', selected: 'bg-primary border-primary text-black cursor-pointer', booked: 'bg-muted/30 border-muted cursor-not-allowed opacity-40' };
 
@@ -23,13 +24,12 @@ const SeatSelectionPage = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await api.get(`/events/${eventId}/seats`);
-        const d = res.data?.data || res.data;
-        setSections(d?.sections || d || []);
+        const seatMap = await eventsService.getSeatMap(eventId);
+        setSections(seatMap?.sections || seatMap || []);
       } catch { toast.error('Failed to load seats'); navigate(-1); }
       finally { setLoading(false); }
     })();
-  }, [eventId]);
+  }, [eventId, navigate]);
 
   const toggleSeat = (seat) => {
     if (seat.status === 'booked') return;
@@ -42,11 +42,11 @@ const SeatSelectionPage = () => {
     if (selectedSeats.length === 0) return toast.error('Select at least one seat');
     try {
       for (const seat of selectedSeats) {
-        await api.post('/cart/items', { eventId, seatId: seat._id, quantity: 1 });
+        await cartService.addItem({ eventId, seatId: seat._id, quantity: 1 });
       }
       navigate(ROUTES.CART.CHECKOUT);
     } catch (e) {
-      toast.error(e.response?.data?.message || 'Failed to reserve seats');
+      toast.error(getApiErrorMessage(e, 'Failed to reserve seats'));
     }
   };
 

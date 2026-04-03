@@ -9,7 +9,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatDate, formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
-import api from '@/lib/axios';
+import { bookingService } from '@/api';
+import { downloadBlob } from '@/utils/downloadFile';
 
 const TicketConfirmationPage = () => {
   const { bookingRef } = useParams();
@@ -20,13 +21,9 @@ const TicketConfirmationPage = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await api.get(`/bookings/ref/${bookingRef}`);
-        setBooking(res.data?.data || res.data);
+        setBooking(await bookingService.getByRef(bookingRef));
       } catch {
-        try {
-          const res = await api.get(`/bookings/${bookingRef}`);
-          setBooking(res.data?.data || res.data);
-        } catch { /* show what we have */ }
+        // Keep the confirmation page usable even if the booking lookup fails.
       } finally { setLoading(false); }
     })();
   }, [bookingRef]);
@@ -34,9 +31,8 @@ const TicketConfirmationPage = () => {
   const handleDownload = async () => {
     setDownloading(true);
     try {
-      const res = await api.get(`/bookings/${booking?._id}/invoice`, { responseType: 'blob' });
-      const url = URL.createObjectURL(res.data);
-      const a = document.createElement('a'); a.href = url; a.download = `tickets-${bookingRef}.pdf`; a.click();
+      const blob = await bookingService.getInvoice(bookingRef);
+      downloadBlob(blob, `tickets-${bookingRef}.pdf`);
     } catch { toast.error('Download failed'); }
     finally { setDownloading(false); }
   };

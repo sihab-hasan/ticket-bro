@@ -10,7 +10,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatDate, formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
-import api from '@/lib/axios';
+import { cartService } from '@/api';
+import { getApiErrorMessage } from '@/api/client';
 
 const CartPage = () => {
   const navigate = useNavigate();
@@ -23,8 +24,7 @@ const CartPage = () => {
   const fetchCart = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get('/cart');
-      setCart(res.data?.data || res.data);
+      setCart(await cartService.getCart());
     } catch { toast.error('Failed to load cart'); }
     finally { setLoading(false); }
   }, []);
@@ -35,13 +35,13 @@ const CartPage = () => {
     setUpdating((u) => ({ ...u, [itemId]: true }));
     try {
       if (newQty <= 0) {
-        await api.delete(`/cart/items/${itemId}`);
+        await cartService.removeItem(itemId);
       } else {
-        await api.put(`/cart/items/${itemId}`, { quantity: newQty });
+        await cartService.updateItem(itemId, { quantity: newQty });
       }
       await fetchCart();
     } catch (e) {
-      toast.error(e.response?.data?.message || 'Failed to update');
+      toast.error(getApiErrorMessage(e, 'Failed to update'));
     } finally {
       setUpdating((u) => ({ ...u, [itemId]: false }));
     }
@@ -51,11 +51,11 @@ const CartPage = () => {
     if (!promoCode.trim()) return;
     setApplyingPromo(true);
     try {
-      await api.post('/cart/promo', { code: promoCode });
+      await cartService.applyPromo(promoCode);
       toast.success('Promo code applied!');
       fetchCart();
     } catch (e) {
-      toast.error(e.response?.data?.message || 'Invalid promo code');
+      toast.error(getApiErrorMessage(e, 'Invalid promo code'));
     } finally {
       setApplyingPromo(false);
     }
@@ -63,7 +63,7 @@ const CartPage = () => {
 
   const handleRemovePromo = async () => {
     try {
-      await api.delete('/cart/promo');
+      await cartService.removePromo();
       setPromoCode('');
       fetchCart();
     } catch {}
@@ -71,7 +71,7 @@ const CartPage = () => {
 
   const handleClearCart = async () => {
     try {
-      await api.delete('/cart');
+      await cartService.clearCart();
       fetchCart();
       toast.success('Cart cleared');
     } catch {}

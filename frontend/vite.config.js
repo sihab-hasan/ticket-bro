@@ -14,7 +14,7 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
-    strictPort: true,
+    strictPort: false,
     allowedHosts: ["localhost", "127.0.0.1", process.env.CLOUDFLARE_TUNNEL_HOST || ".trycloudflare.com"],
 
     proxy: {

@@ -1,4 +1,3 @@
-// Thin wrapper around eventsService for event detail pages
 import {
   getEventDetails,
   getRelatedEvents,
@@ -10,4 +9,5 @@ const eventDetailsService = {
   getRelated: (slug) => getRelatedEvents(slug),
   getReviews: (slug, params) => getEventReviews(slug, params),
 };
+
 export default eventDetailsService;

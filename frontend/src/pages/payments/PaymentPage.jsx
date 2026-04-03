@@ -11,7 +11,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
-import api from '@/lib/axios';
+import { bookingService, paymentsService } from '@/api';
+import { getApiErrorMessage } from '@/api/client';
 
 const PaymentPage = () => {
   const navigate = useNavigate();
@@ -26,22 +27,20 @@ const PaymentPage = () => {
     if (!bookingId) { setLoading(false); return; }
     (async () => {
       try {
-        const res = await api.get(`/bookings/${bookingId}`);
-        setBooking(res.data?.data || res.data);
+        setBooking(await bookingService.getByRef(bookingId));
       } catch { toast.error('Booking not found'); navigate(-1); }
       finally { setLoading(false); }
     })();
-  }, [bookingId]);
+  }, [bookingId, navigate]);
 
   const handlePay = async () => {
     setProcessing(true);
     try {
-      const intentRes = await api.post('/payments/intent', { bookingId, paymentMethod: method });
-      const intent = intentRes.data?.data || intentRes.data;
-      await api.post('/payments/verify', { intentId: intent._id || intent.id, paymentMethod: method });
+      const intent = await paymentsService.createIntent({ bookingId, paymentMethod: method });
+      await paymentsService.verifyPayment({ intentId: intent._id || intent.id, paymentMethod: method });
       navigate(`/payments/success/${intent._id || bookingId}?ref=${intent.bookingRef || bookingId}`);
     } catch (e) {
-      toast.error(e.response?.data?.message || 'Payment failed');
+      toast.error(getApiErrorMessage(e, 'Payment failed'));
     } finally {
       setProcessing(false);
     }

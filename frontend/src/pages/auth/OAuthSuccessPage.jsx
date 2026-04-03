@@ -42,8 +42,7 @@ const OAuthSuccessPage = () => {
         storageUtils.setAccessToken(token);
 
         // Fetch full user profile using the new access token
-        const res = await authService.getMe();
-        const user = res.data.data;
+        const user = await authService.getMe();
 
         if (cancelled) return;
 
@@ -61,8 +60,7 @@ const OAuthSuccessPage = () => {
         if (!cancelled) {
           storageUtils.clearAll();
           setError(
-            err.response?.data?.message ||
-              "Failed to complete sign in. Please try again.",
+            err.message || "Failed to complete sign in. Please try again.",
           );
         }
       }

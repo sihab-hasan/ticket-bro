@@ -106,12 +106,18 @@ class BookingService {
     return updated;
   }
 
-  async confirmBooking(bookingRef) {
-    return bookingRepository.updateByRef(bookingRef, {
+  async confirmBooking(bookingRef, paymentId = null) {
+    const update = {
       status: 'confirmed',
       paymentStatus: 'paid',
       paidAt: new Date(),
-    });
+    };
+
+    if (paymentId) {
+      update.payment = paymentId;
+    }
+
+    return bookingRepository.updateByRef(bookingRef, update);
   }
 
   async getStats() {

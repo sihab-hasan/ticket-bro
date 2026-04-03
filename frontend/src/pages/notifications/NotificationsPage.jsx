@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import PageHeader from '@/components/shared/PageHeader';
 import { formatDate } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
-import api from '@/lib/axios';
+import { notificationsService } from '@/api';
 
 const ICONS = {
   booking: '🎟️', payment: '💳', event: '📅', system: '⚙️', promo: '🎁', refund: '💰', checkin: '✅',
@@ -23,9 +23,10 @@ const NotificationsPage = () => {
   const fetch = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get('/notifications', { params: { type: tab === 'all' ? undefined : tab } });
-      const d = res.data?.data || res.data;
-      setNotifications(d?.notifications || d || []);
+      const data = await notificationsService.getAll({
+        type: tab === 'all' ? undefined : tab,
+      });
+      setNotifications(data.notifications || []);
     } catch { toast.error('Failed to load notifications'); }
     finally { setLoading(false); }
   }, [tab]);
@@ -34,7 +35,7 @@ const NotificationsPage = () => {
 
   const markAllRead = async () => {
     try {
-      await api.put('/notifications/read-all');
+      await notificationsService.markAllRead();
       setNotifications((n) => n.map((item) => ({ ...item, isRead: true })));
       toast.success('All marked as read');
     } catch { toast.error('Failed to update'); }
@@ -42,14 +43,14 @@ const NotificationsPage = () => {
 
   const markRead = async (id) => {
     try {
-      await api.put(`/notifications/${id}/read`);
+      await notificationsService.markRead(id);
       setNotifications((n) => n.map((item) => item._id === id ? { ...item, isRead: true } : item));
     } catch {}
   };
 
   const deleteNotif = async (id) => {
     try {
-      await api.delete(`/notifications/${id}`);
+      await notificationsService.deleteOne(id);
       setNotifications((n) => n.filter((item) => item._id !== id));
     } catch { toast.error('Failed to delete'); }
   };

@@ -11,7 +11,7 @@ import PageHeader from '@/components/shared/PageHeader';
 import { formatDate } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
-import api from '@/lib/axios';
+import { reviewsService } from '@/api';
 
 const Stars = ({ rating, size = 'sm' }) => (
   <div className="flex items-center gap-0.5">
@@ -32,11 +32,27 @@ const ReviewsPage = () => {
   const fetch = async (p = 1) => {
     setLoading(p === 1);
     try {
-      const res = await api.get(`/reviews/event/${eventId}`, { params: { page: p, limit: 10 } });
-      const d = res.data?.data || res.data;
-      if (p === 1) { setData(d); setReviews(d?.reviews || []); }
-      else setReviews((prev) => [...prev, ...(d?.reviews || [])]);
-      setHasMore((d?.page || p) < (d?.totalPages || 1));
+      const [reviewsData, summary] = await Promise.all([
+        reviewsService.getByEvent(eventId, { page: p, limit: 10 }),
+        p === 1 ? reviewsService.getSummary(eventId) : Promise.resolve(data || null),
+      ]);
+
+      if (p === 1) {
+        setData({
+          ...summary,
+          reviews: reviewsData.reviews || [],
+          totalReviews:
+            summary?.totalReviews ||
+            reviewsData.total ||
+            reviewsData.pagination?.total ||
+            0,
+        });
+        setReviews(reviewsData.reviews || []);
+      } else {
+        setReviews((prev) => [...prev, ...(reviewsData.reviews || [])]);
+      }
+
+      setHasMore((reviewsData.pagination?.page || p) < (reviewsData.pagination?.totalPages || 1));
       setPage(p);
     } catch { toast.error('Failed to load reviews'); }
     finally { setLoading(false); }

@@ -45,23 +45,37 @@ class OrganizerController {
   });
 
   getDashboard = asyncHandler(async (req, res) => {
-    sendSuccess(res, 'Dashboard data.', { placeholder: true });
+    const analyticsService = require('../analytics/analytics.service');
+    const organizerService = require('./organizer.service');
+    const [profile, overview] = await Promise.all([
+      organizerService.getOwnProfile(getId(req.user)),
+      analyticsService.getOverview(getId(req.user)),
+    ]);
+    sendSuccess(res, 'Dashboard data.', { profile, overview });
   });
 
   getMyEvents = asyncHandler(async (req, res) => {
-    sendSuccess(res, 'Events fetched.', { placeholder: true });
+    const eventService = require('../events/event.service');
+    const events = await eventService.getOrganizerEvents(getId(req.user), req.query);
+    sendSuccess(res, 'Events fetched.', events);
   });
 
   getMyBookings = asyncHandler(async (req, res) => {
-    sendSuccess(res, 'Bookings fetched.', { placeholder: true });
+    const bookingService = require('../bookings/booking.service');
+    const bookings = await bookingService.getOrganizerBookings(getId(req.user), req.query);
+    sendSuccess(res, 'Bookings fetched.', bookings);
   });
 
   getRevenue = asyncHandler(async (req, res) => {
-    sendSuccess(res, 'Revenue data.', { placeholder: true });
+    const analyticsService = require('../analytics/analytics.service');
+    const revenue = await analyticsService.getRevenue(getId(req.user), req.query);
+    sendSuccess(res, 'Revenue data.', revenue);
   });
 
   getPayouts = asyncHandler(async (req, res) => {
-    sendSuccess(res, 'Payouts fetched.', { placeholder: true });
+    const payoutService = require('../payouts/payout.service');
+    const payouts = await payoutService.getMyPayouts(getId(req.user), req.query);
+    sendSuccess(res, 'Payouts fetched.', payouts);
   });
 }
 

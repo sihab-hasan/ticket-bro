@@ -12,7 +12,7 @@ import PageHeader from '@/components/shared/PageHeader';
 import { formatDate } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
-import api from '@/lib/axios';
+import { bookingService, eventsService } from '@/api';
 
 const WaitlistPage = () => {
   const { eventId } = useParams();
@@ -27,21 +27,20 @@ const WaitlistPage = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await api.get(`/events/${eventId}`);
-        setEvent(res.data?.data || res.data);
+        setEvent(await eventsService.getEventBySlug(eventId));
       } catch { toast.error('Event not found'); navigate(-1); }
       finally { setLoading(false); }
     })();
-  }, [eventId]);
+  }, [eventId, navigate]);
 
   const handleJoin = async () => {
     setSubmitting(true);
     try {
-      await api.post(`/bookings/waitlist/${eventId}`, form);
+      await bookingService.joinWaitlist(eventId, form);
       setJoined(true);
     } catch (e) {
-      if (e.response?.status === 409) setAlreadyJoined(true);
-      else toast.error(e.response?.data?.message || 'Failed to join waitlist');
+      if (e.status === 409) setAlreadyJoined(true);
+      else toast.error(e.message || 'Failed to join waitlist');
     } finally {
       setSubmitting(false);
     }

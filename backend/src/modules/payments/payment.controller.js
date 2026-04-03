@@ -19,6 +19,7 @@ class PaymentController {
     const result = await paymentService.verifyPayment({
       paymentIntentId: req.body.paymentIntentId,
       bookingRef:      req.body.bookingRef,
+      userId:          getId(req.user),
     });
     sendSuccess(res, 'Payment verified.', result);
   });

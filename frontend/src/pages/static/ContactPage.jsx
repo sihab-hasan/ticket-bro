@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/components/shared/common';
-import api from '@/lib/axios';
+import { supportService } from '@/api';
+import { getApiErrorMessage } from '@/api/client';
 
 const ContactPage = () => {
   const [form, setForm] = useState({ name: '', email: '', subject: '', category: '', message: '' });
@@ -21,10 +22,10 @@ const ContactPage = () => {
     if (!form.name || !form.email || !form.message) return toast.error('Please fill required fields');
     setSubmitting(true);
     try {
-      await api.post('/support/contact', form);
+      await supportService.sendContactMessage(form);
       setSent(true);
     } catch (e) {
-      toast.error(e.response?.data?.message || 'Failed to send message');
+      toast.error(getApiErrorMessage(e, 'Failed to send message'));
     } finally {
       setSubmitting(false);
     }

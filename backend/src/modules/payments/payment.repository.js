@@ -14,11 +14,24 @@ class PaymentRepository {
   }
 
   async findByGatewayId(gatewayPaymentId) {
-    return Payment.findOne({ gatewayPaymentId }).exec();
+    return Payment.findOne({ gatewayPaymentId, deletedAt: null })
+      .populate('booking', 'bookingRef status paymentStatus user totalAmount')
+      .populate('user', 'firstName lastName email')
+      .exec();
   }
 
   async findByBookingId(bookingId) {
     return Payment.findOne({ booking: bookingId, deletedAt: null }).exec();
+  }
+
+  async findPendingByBookingId(bookingId) {
+    return Payment.findOne({
+      booking: bookingId,
+      deletedAt: null,
+      status: { $in: ['pending', 'processing'] },
+    })
+      .select('+clientSecret')
+      .exec();
   }
 
   async findByUserId({ userId, page = 1, limit = 20, sort = '-createdAt' }) {
