@@ -12,7 +12,7 @@ import DetailDrawer, { DetailField, DetailSection } from '@/components/shared/De
 import { StatusBadge, ConfirmDialog } from '@/components/shared/StatusBadge';
 import { formatDate } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
-import api from '@/lib/axios';
+import { adminService } from '@/api';
 
 const PRIORITY_STYLES = {
   high: 'bg-red-500/10 text-red-500 border-red-500/20',
@@ -37,9 +37,8 @@ const ReportsPage = () => {
     setLoading(true);
     try {
       const params = { page, limit: LIMIT, ...filters };
-      const res = await api.get('/admin/reports', { params });
-      const d = res.data?.data || res.data;
-      setReports(d?.reports || d || []);
+      const d = await adminService.getReports(params);
+      setReports(d?.reports || []);
       setTotal(d?.total || 0);
     } catch { toast.error('Failed to load reports'); }
     finally { setLoading(false); }
@@ -50,8 +49,8 @@ const ReportsPage = () => {
   const openDrawer = async (id) => {
     setDrawerOpen(true); setDrawerLoading(true);
     try {
-      const res = await api.get(`/admin/reports/${id}`);
-      setSelected(res.data?.data || res.data);
+      const data = await adminService.getReportById(id);
+      setSelected(data);
     } catch { toast.error('Failed to load report'); setDrawerOpen(false); }
     finally { setDrawerLoading(false); }
   };
@@ -59,7 +58,7 @@ const ReportsPage = () => {
   const handleResolve = async (id, action) => {
     setActionLoading(true);
     try {
-      await api.patch(`/admin/reports/${id}`, { status: action });
+      await adminService.updateReport(id, { status: action });
       toast.success(`Report ${action}`);
       fetch(); setConfirmAction(null); setDrawerOpen(false);
     } catch { toast.error('Failed to update report'); }

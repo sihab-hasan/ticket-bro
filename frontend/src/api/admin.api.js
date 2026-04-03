@@ -56,7 +56,7 @@ const pickPromotions = (payload) => {
 
 const adminService = {
   getDashboard: () => get(ENDPOINTS.ADMIN.DASHBOARD),
-  getDashboardStats: () => get(ENDPOINTS.ADMIN.DASHBOARD),
+  getDashboardStats: () => get(ENDPOINTS.ADMIN.DASHBOARD_STATS),
   getSystemHealth: () => get(ENDPOINTS.ADMIN.SYSTEM_HEALTH),
   getSystemMetrics: () => get(ENDPOINTS.ADMIN.SYSTEM_METRICS),
   getFeatureFlags: () => get(ENDPOINTS.ADMIN.FEATURE_FLAGS),
@@ -72,17 +72,23 @@ const adminService = {
   changeUserRole: (id, role) =>
     patch(ENDPOINTS.ADMIN.USER_ROLE(id), { role }, { select: pickEntity("user") }),
 
-  getEvents: (params) => get(ENDPOINTS.EVENTS.ADMIN_LIST, { params, select: pickEvents }),
+  getEvents: (params) => get(ENDPOINTS.ADMIN.EVENTS, { params, select: pickEvents }),
   getEventBySlug: (slug) =>
-    get(ENDPOINTS.EVENTS.DETAIL(slug), { select: pickEntity("event") }),
+    get(ENDPOINTS.ADMIN.EVENT(slug), { select: pickEntity("event") }),
   approveEvent: (slug) =>
-    put(ENDPOINTS.EVENTS.APPROVE(slug), {}, { select: pickEntity("event") }),
+    patch(ENDPOINTS.ADMIN.EVENT(slug), { status: "published" }, { select: pickEntity("event") }),
   rejectEvent: (slug, data) =>
-    put(ENDPOINTS.EVENTS.REJECT(slug), data || {}, { select: pickEntity("event") }),
-  deleteEvent: (slug) => del(ENDPOINTS.EVENTS.DELETE(slug)),
+    patch(
+      ENDPOINTS.ADMIN.EVENT(slug),
+      { status: "rejected", ...(data || {}) },
+      { select: pickEntity("event") },
+    ),
+  deleteEvent: (slug) => del(ENDPOINTS.ADMIN.EVENT(slug)),
 
   getBookings: (params) =>
     get(ENDPOINTS.ADMIN.BOOKINGS, { params, select: pickBookings }),
+  getBookingById: (id) =>
+    get(ENDPOINTS.ADMIN.BOOKING(id), { select: pickEntity("booking") }),
   cancelBooking: (ref, data) => put(ENDPOINTS.ADMIN.BOOKING_CANCEL(ref), data || {}),
   refundBooking: (ref, data) => put(ENDPOINTS.ADMIN.BOOKING_REFUND(ref), data || {}),
 
@@ -106,6 +112,13 @@ const adminService = {
 
   getPromotions: (params) =>
     get(ENDPOINTS.ADMIN.PROMOTIONS, { params, select: pickPromotions }),
+  createPromotion: (data) =>
+    post(ENDPOINTS.ADMIN.PROMOTIONS, data, { select: pickEntity("promotion") }),
+  updatePromotion: (id, data) =>
+    put(ENDPOINTS.ADMIN.PROMOTIONS + `/${id}`, data, {
+      select: pickEntity("promotion"),
+    }),
+  deletePromotion: (id) => del(ENDPOINTS.ADMIN.PROMOTIONS + `/${id}`),
   disablePromotion: (id, data) =>
     put(ENDPOINTS.ADMIN.PROMOTION_DISABLE(id), data || {}, {
       select: pickEntity("promotion"),

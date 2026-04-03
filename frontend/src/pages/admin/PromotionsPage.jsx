@@ -16,7 +16,7 @@ import FilterBar from '@/components/shared/FilterBar';
 import { StatusBadge, ConfirmDialog } from '@/components/shared/StatusBadge';
 import { formatDate, formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
-import api from '@/lib/axios';
+import { adminService } from '@/api';
 
 const EMPTY_FORM = { code: '', type: 'percentage', value: '', minOrderValue: '', maxUses: '', expiresAt: '', isActive: true, description: '' };
 
@@ -37,9 +37,8 @@ const PromotionsPage = () => {
   const fetch = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get('/admin/promotions', { params: { page, limit: LIMIT, ...filters } });
-      const d = res.data?.data || res.data;
-      setPromos(d?.promotions || d || []);
+      const d = await adminService.getPromotions({ page, limit: LIMIT, ...filters });
+      setPromos(d?.promotions || []);
       setTotal(d?.total || 0);
     } catch { toast.error('Failed to load promotions'); }
     finally { setLoading(false); }
@@ -58,18 +57,18 @@ const PromotionsPage = () => {
     setSaving(true);
     try {
       const payload = { ...form, code: form.code.toUpperCase(), value: parseFloat(form.value), minOrderValue: form.minOrderValue ? parseFloat(form.minOrderValue) : undefined, maxUses: form.maxUses ? parseInt(form.maxUses) : undefined };
-      if (editingId) await api.put(`/admin/promotions/${editingId}`, payload);
-      else await api.post('/admin/promotions', payload);
+      if (editingId) await adminService.updatePromotion(editingId, payload);
+      else await adminService.createPromotion(payload);
       toast.success(`Promotion ${editingId ? 'updated' : 'created'}`);
       setDialogOpen(false); fetch();
-    } catch (e) { toast.error(e.response?.data?.message || 'Save failed'); }
+    } catch (e) { toast.error(e.message || 'Save failed'); }
     finally { setSaving(false); }
   };
 
   const handleDelete = async () => {
     setDeleteLoading(true);
     try {
-      await api.delete(`/admin/promotions/${deleteConfirm._id}`);
+      await adminService.deletePromotion(deleteConfirm._id);
       toast.success('Promotion deleted'); fetch(); setDeleteConfirm(null);
     } catch { toast.error('Delete failed'); }
     finally { setDeleteLoading(false); }
@@ -77,7 +76,7 @@ const PromotionsPage = () => {
 
   const handleToggle = async (promo) => {
     try {
-      await api.put(`/admin/promotions/${promo._id}`, { ...promo, isActive: !promo.isActive });
+      await adminService.updatePromotion(promo._id, { isActive: !promo.isActive });
       toast.success(`Promotion ${promo.isActive ? 'deactivated' : 'activated'}`); fetch();
     } catch { toast.error('Failed to update'); }
   };

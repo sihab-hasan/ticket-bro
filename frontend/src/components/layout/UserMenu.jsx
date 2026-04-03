@@ -205,7 +205,6 @@ const UserMenu = ({
   const handleLogout = async () => {
     if (mode !== "dropdown") onClose();
     await logout();
-    navigate("/");
   };
 
   const handleAvatarClick = () => setShowAvatarUpload(true);

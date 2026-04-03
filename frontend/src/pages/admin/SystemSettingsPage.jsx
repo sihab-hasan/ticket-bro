@@ -12,7 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import PageHeader from '@/components/shared/PageHeader';
 import { toast } from '@/components/shared/common';
-import api from '@/lib/axios';
+import { adminService } from '@/api';
 
 const SettingField = ({ label, hint, children }) => (
   <div className="flex flex-col sm:flex-row sm:items-start gap-4 py-4 border-b border-border last:border-0">
@@ -33,8 +33,7 @@ const SystemSettingsPage = () => {
   useEffect(() => {
     const fetch = async () => {
       try {
-        const res = await api.get('/admin/system/settings');
-        const d = res.data?.data || res.data;
+        const d = await adminService.getSystemSettings();
         setSettings(d); setForm(d || {});
       } catch { toast.error('Failed to load settings'); }
       finally { setLoading(false); }
@@ -47,7 +46,7 @@ const SystemSettingsPage = () => {
   const handleSave = async (section) => {
     setSaving(true);
     try {
-      await api.put('/admin/system/settings', form);
+      await adminService.updateSystemSettings(form);
       toast.success('Settings saved successfully');
     } catch { toast.error('Failed to save settings'); }
     finally { setSaving(false); }

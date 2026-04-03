@@ -18,7 +18,7 @@ import StatCard from '@/components/shared/StatCard';
 import { StatusBadge, RoleBadge } from '@/components/shared/StatusBadge';
 import { formatDate, formatPrice } from '@/utils/formatters';
 import { ROUTES } from '@/app/AppRoutes';
-import api from '@/lib/axios';
+import { adminService } from '@/api';
 
 // ── Revenue Mini Chart Bar ────────────────────────────────────────────────────
 const MiniBar = ({ value, max, color = 'bg-primary' }) => (
@@ -108,20 +108,18 @@ const AdminDashboard = () => {
   const fetchAll = useCallback(async () => {
     try {
       const [statsRes, usersRes, eventsRes] = await Promise.allSettled([
-        api.get('/admin/dashboard/stats'),
-        api.get('/admin/users', { params: { limit: 8, sort: '-createdAt' } }),
-        api.get('/admin/events', { params: { limit: 8, sort: '-createdAt' } }),
+        adminService.getDashboardStats(),
+        adminService.getUsers({ limit: 8, sort: '-createdAt' }),
+        adminService.getEvents({ limit: 8, sort: '-createdAt' }),
       ]);
       if (statsRes.status === 'fulfilled') {
-        setStats(statsRes.value.data?.data || statsRes.value.data);
+        setStats(statsRes.value);
       }
       if (usersRes.status === 'fulfilled') {
-        const d = usersRes.value.data?.data;
-        setRecentUsers(d?.users || d || []);
+        setRecentUsers(usersRes.value?.users || []);
       }
       if (eventsRes.status === 'fulfilled') {
-        const d = eventsRes.value.data?.data;
-        setRecentEvents(d?.events || d || []);
+        setRecentEvents(eventsRes.value?.events || []);
       }
       setLastRefresh(new Date());
     } catch (e) {

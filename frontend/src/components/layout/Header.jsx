@@ -41,7 +41,6 @@ import { useBrowse } from "@/hooks";
 import lightLogo     from "@/assets/images/ticket-bro-logo-light-mode.png";
 import darkLogo      from "@/assets/images/ticket-bro-logo-dark-mode.png";
 import UserMenu      from "@/components/layout/UserMenu";
-import { Role }      from "@/components/layout/MenuSheet";
 
 /* ════════════════════════════════════════════════════════════════
    LOCATION SELECTOR
@@ -428,16 +427,14 @@ const Header = () => {
   const navigate = useNavigate();
 
   const { theme, isDark, setThemeMode }      = useTheme();
-  const { user, isAuthenticated }            = useAuth();
+  const { isAuthenticated, hasPermission }   = useAuth();
   const { itemCount }                        = useCart();
   const { setQuery }                         = useSearch();
   const { selectedLocation, changeLocation, locations } = useLocationCtx();
   const { navigationItems } = useBrowse();
 
   // "Create Event" CTA — only for organizer / admin
-  const canCreateEvent =
-    isAuthenticated &&
-    (user?.role === Role.ORGANIZER || user?.role === Role.ADMIN);
+  const canCreateEvent = isAuthenticated && hasPermission("event:create");
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -590,13 +587,13 @@ const Header = () => {
             {/* User menu — UserMenu decides auth/guest + role visibility */}
             <UserMenu mode="dropdown" />
 
-            {/* Create Event — only for organizer / admin (role check via Role from MenuSheet) */}
+            {/* Create Event — backend permission driven */}
             {canCreateEvent && (
               <Button
                 size="sm" asChild
                 className="gap-1.5 bg-primary hover:bg-primary/90 h-9 px-3 text-sm shrink-0 whitespace-nowrap"
               >
-                <Link to="/events/create">
+                <Link to="/organizer/events/create">
                   <PlusCircle className="h-3.5 w-3.5" /> Create Event
                 </Link>
               </Button>

@@ -110,8 +110,9 @@ class AuthService {
 
     // 2. Check account is active
     if (!user.isActive) {
+      const statusLabel = user.status || 'deactivated';
       throw new ForbiddenError(
-        "Your account has been deactivated. Please contact support.",
+        `Your account is ${statusLabel}. Please contact support.`,
       );
     }
 

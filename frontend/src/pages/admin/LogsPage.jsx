@@ -11,7 +11,7 @@ import PageHeader from '@/components/shared/PageHeader';
 import FilterBar from '@/components/shared/FilterBar';
 import { formatDate } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
-import api from '@/lib/axios';
+import { adminService } from '@/api';
 
 const LOG_STYLES = {
   error: { icon: XCircle, color: 'text-red-500', bg: 'bg-red-500/5 border-red-500/20' },
@@ -64,9 +64,8 @@ const LogsPage = () => {
     setLoading(true);
     try {
       const params = { page, limit: LIMIT, ...filters };
-      const res = await api.get('/admin/system/logs', { params });
-      const d = res.data?.data || res.data;
-      setLogs(d?.logs || d || []);
+      const d = await adminService.getSystemLogs(params);
+      setLogs(d?.logs || []);
       setTotal(d?.total || 0);
     } catch { toast.error('Failed to load logs'); }
     finally { setLoading(false); }
