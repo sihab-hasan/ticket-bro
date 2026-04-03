@@ -7,48 +7,13 @@ import React, { useState } from "react";
 import { ChevronDown, HelpCircle } from "lucide-react";
 import { SectionHeading } from "./shared/EventShared.jsx";
 
-const MOCK_FAQS = [
-  {
-    _id: "f1",
-    question: "What is the age restriction?",
-    answer:
-      "This is an all-ages event. Children under 5 enter free with a paying adult.",
-  },
-  {
-    _id: "f2",
-    question: "Can I bring my own food or drinks?",
-    answer:
-      "Outside food and beverages are not permitted. Multiple F&B stalls will be available on site throughout the event.",
-  },
-  {
-    _id: "f3",
-    question: "Is re-entry allowed?",
-    answer:
-      "Re-entry is not permitted once you exit the venue. Please plan accordingly and ensure you have everything you need before leaving.",
-  },
-  {
-    _id: "f4",
-    question: "Are tickets refundable?",
-    answer:
-      "All ticket sales are final. However, tickets may be transferred to another person via the Ticket Bro app up to 2 hours before the event.",
-  },
-  {
-    _id: "f5",
-    question: "What should I bring?",
-    answer:
-      "Please bring your ticket (digital or printed), a valid photo ID, and arrive early to avoid queues at entry.",
-  },
-  {
-    _id: "f6",
-    question: "Is there parking available?",
-    answer:
-      "Limited parking is available at the venue. We strongly recommend using public transport or ride-sharing services to avoid delays.",
-  },
-];
-
 const EventFAQSection = ({ event }) => {
   const [openIdx, setOpenIdx] = useState(null);
-  const faqs = event.faqs?.length ? event.faqs : MOCK_FAQS;
+  const faqs = event.faqs || [];
+
+  if (!faqs.length) {
+    return null;
+  }
 
   return (
     <div className="flex flex-col gap-5">

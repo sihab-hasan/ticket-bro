@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { SlidersHorizontal, ChevronDown, X, Calendar, MapPin, Tag, Clock, Check, RotateCcw } from "lucide-react";
 import Container from "@/components/layout/Container";
-import { FILTER_FACETS } from "@/data/browseData";
+import { useBrowse } from "@/hooks";
 
 const DATE_OPTIONS = [
   { value: "today", label: "Today" }, { value: "tomorrow", label: "Tomorrow" },
@@ -28,7 +28,13 @@ const SORT_OPTIONS = [
   { value: "price-desc", label: "Price: High to Low" }, { value: "rating", label: "Top Rated" },
   { value: "popular", label: "Most Popular" },
 ];
-const DEFAULT_FILTERS = { date: null, price: null, format: null, time: null, sort: "relevance" };
+const createFiltersFromSearchParams = (searchParams) => ({
+  date: searchParams.get("date"),
+  price: searchParams.get("price"),
+  format: searchParams.get("format"),
+  time: searchParams.get("time"),
+  sort: searchParams.get("sort") || "relevance",
+});
 
 const FilterDropdown = ({ label, icon: Icon, options, value, onChange, counts = {} }) => {
   const [open, setOpen] = useState(false);
@@ -137,10 +143,16 @@ const ActiveChips = ({ filters, onRemove }) => {
   );
 };
 
-const FiltersSection = ({ onFiltersChange, counts = FILTER_FACETS }) => {
+const FiltersSection = ({ onFiltersChange, counts }) => {
+  const { getFacets } = useBrowse();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState(() => createFiltersFromSearchParams(searchParams));
+  const resolvedCounts = counts || getFacets();
   const activeCount = ["date","price","format","time"].filter((k) => filters[k] !== null).length;
+
+  useEffect(() => {
+    setFilters(createFiltersFromSearchParams(searchParams));
+  }, [searchParams]);
 
   const updateFilter = (key, value) => {
     const next = { ...filters, [key]: value };
@@ -152,8 +164,9 @@ const FiltersSection = ({ onFiltersChange, counts = FILTER_FACETS }) => {
   };
 
   const resetAll = () => {
-    setFilters(DEFAULT_FILTERS);
-    onFiltersChange?.(DEFAULT_FILTERS);
+    const next = { date: null, price: null, format: null, time: null, sort: "relevance" };
+    setFilters(next);
+    onFiltersChange?.(next);
     setSearchParams({}, { replace: true });
   };
 
@@ -170,10 +183,10 @@ const FiltersSection = ({ onFiltersChange, counts = FILTER_FACETS }) => {
                   style={{ background: "var(--foreground)", color: "var(--background)" }}>{activeCount}</span>
               )}
             </div>
-            <FilterDropdown label="Date" icon={Calendar} options={DATE_OPTIONS} value={filters.date} onChange={(v) => updateFilter("date", v)} counts={counts.date} />
-            <FilterDropdown label="Price" icon={Tag} options={PRICE_OPTIONS} value={filters.price} onChange={(v) => updateFilter("price", v)} counts={counts.price} />
-            <FilterDropdown label="Format" icon={MapPin} options={FORMAT_OPTIONS} value={filters.format} onChange={(v) => updateFilter("format", v)} counts={counts.format} />
-            <FilterDropdown label="Time of Day" icon={Clock} options={TIME_OPTIONS} value={filters.time} onChange={(v) => updateFilter("time", v)} counts={counts.time} />
+            <FilterDropdown label="Date" icon={Calendar} options={DATE_OPTIONS} value={filters.date} onChange={(v) => updateFilter("date", v)} counts={resolvedCounts.date} />
+            <FilterDropdown label="Price" icon={Tag} options={PRICE_OPTIONS} value={filters.price} onChange={(v) => updateFilter("price", v)} counts={resolvedCounts.price} />
+            <FilterDropdown label="Format" icon={MapPin} options={FORMAT_OPTIONS} value={filters.format} onChange={(v) => updateFilter("format", v)} counts={resolvedCounts.format} />
+            <FilterDropdown label="Time of Day" icon={Clock} options={TIME_OPTIONS} value={filters.time} onChange={(v) => updateFilter("time", v)} counts={resolvedCounts.time} />
             {activeCount > 0 && (
               <button onClick={resetAll} className="flex items-center gap-1 h-8 px-2 text-xs text-muted-foreground hover:text-foreground shrink-0" style={{ fontFamily: "var(--font-sans)" }}>
                 <RotateCcw size={11} /><span className="hidden sm:inline">Reset</span>

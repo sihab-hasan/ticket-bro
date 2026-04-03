@@ -1,79 +1,70 @@
-/**
- * EventTicketsSection.jsx
- * Ticket selection + booking CTA
- * Fields: event.tickets[] (Ticket refs — populated), isFree, minPrice, maxPrice,
- *         currency, totalCapacity, totalSold, spotsLeft, isSoldOut, canPurchase
- * Production: fetch ticket types from GET /api/events/:slug/ticket-types
- */
-import React, { useState, forwardRef } from "react";
-import {
-  Ticket,
-  Check,
-  Lock,
-  ChevronRight,
-  Shield,
-  Zap,
-  Clock,
-} from "lucide-react";
-import { CapacityBar, PriceBadge } from "./shared/EventShared.jsx";
+import React, { forwardRef, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Check, Clock, Shield, Ticket, Zap } from "lucide-react";
+import { ROUTES } from "@/app/AppRoutes";
+import { CapacityBar } from "./shared/EventShared.jsx";
 
-const MOCK_TICKETS = [
-  {
-    id: "general",
-    label: "General",
-    price: 1500,
-    currency: "BDT",
-    available: true,
-    perks: ["Standing area", "Basic entry", "Merchandise access"],
-  },
-  {
-    id: "silver",
-    label: "Silver",
-    price: 2500,
-    currency: "BDT",
-    available: true,
-    perks: ["Reserved seating", "Priority entry", "Complimentary water"],
-  },
-  {
-    id: "gold",
-    label: "Gold",
-    price: 5000,
-    currency: "BDT",
-    available: true,
-    perks: [
-      "Premium seating",
-      "Backstage pass",
-      "Meet & greet",
-      "F&B included",
-    ],
-  },
-  {
-    id: "vip",
-    label: "VIP",
-    price: 10000,
-    currency: "BDT",
-    available: false,
-    perks: ["Front row", "Full backstage", "Private lounge", "All inclusive"],
-  },
-];
+const formatTicketPrice = (ticket) => {
+  if (!ticket) {
+    return "Unavailable";
+  }
+
+  if (ticket.price === 0) {
+    return "Free";
+  }
+
+  if (ticket.currency === "BDT") {
+    return `Taka ${ticket.price.toLocaleString()}`;
+  }
+
+  return `${ticket.currency || "BDT"} ${ticket.price.toLocaleString()}`;
+};
 
 const EventTicketsSection = forwardRef(({ event }, ref) => {
-  const tickets = event.tickets?.length ? event.tickets : MOCK_TICKETS;
-  const available = tickets.filter((t) => t.available !== false);
+  const navigate = useNavigate();
+  const tickets = useMemo(() => event.tickets || [], [event.tickets]);
+  const availableTickets = useMemo(
+    () =>
+      tickets.filter((ticket) => ticket.available !== false && ticket.isSoldOut !== true),
+    [tickets],
+  );
   const [selected, setSelected] = useState(
-    available[1]?.id || available[0]?.id,
+    availableTickets[0]?.id || tickets[0]?.id || null,
   );
   const [qty, setQty] = useState(1);
 
-  const ticket = tickets.find((t) => t.id === selected);
+  useEffect(() => {
+    setSelected(availableTickets[0]?.id || tickets[0]?.id || null);
+    setQty(1);
+  }, [availableTickets, tickets]);
+
+  const ticket = tickets.find((item) => item.id === selected) || null;
+  const maxQty = Math.max(
+    1,
+    Math.min(
+      Number(ticket?.maxPerOrder || 10),
+      Number(ticket?.availableCount || 10),
+      10,
+    ),
+  );
   const total = ticket ? ticket.price * qty : 0;
   const spotsLeft = event.spotsLeft;
   const soldPct = event.soldPercentage || 0;
-  const canPurchase = event.canPurchase !== false;
+  const canPurchase = event.canPurchase !== false && availableTickets.length > 0;
+
+  useEffect(() => {
+    setQty((current) => Math.min(current, maxQty));
+  }, [maxQty]);
+
+  const handleCheckout = () => {
+    if (!event.slug || !ticket) {
+      return;
+    }
+    navigate(ROUTES.TICKETS.SELECT(event.slug));
+  };
 
   return (
     <div ref={ref} className="flex flex-col gap-5">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <h3
           className="text-lg font-bold text-foreground"
@@ -91,7 +82,6 @@ const EventTicketsSection = forwardRef(({ event }, ref) => {
         )}
       </div>
 
-      {/* Capacity bar */}
       <div>
         <CapacityBar soldPercentage={soldPct} />
         <p
@@ -104,118 +94,133 @@ const EventTicketsSection = forwardRef(({ event }, ref) => {
         </p>
       </div>
 
-      {/* Ticket tiers */}
-      <div className="flex flex-col gap-2">
-        {tickets.map((t) => {
-          const isSelected = selected === t.id;
-          const isSoldOut = t.available === false;
-          return (
-            <button
-              key={t.id}
-              onClick={() => !isSoldOut && setSelected(t.id)}
-              disabled={isSoldOut}
-              className="flex items-start gap-3 p-3.5 rounded-xl border text-left transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{
-                borderColor: isSelected ? "var(--foreground)" : "var(--border)",
-                background: isSelected ? "var(--secondary)" : "var(--card)",
-                boxShadow: isSelected
-                  ? "inset 0 0 0 1px var(--foreground)"
-                  : "none",
-              }}
-            >
-              {/* Radio */}
-              <span
-                className="w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5"
+      {!tickets.length ? (
+        <div
+          className="rounded-xl border border-border p-4 text-sm text-muted-foreground"
+          style={{ background: "var(--secondary)" }}
+        >
+          Ticket inventory has not been published for this event yet.
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {tickets.map((ticketOption) => {
+            const isSelected = selected === ticketOption.id;
+            const isSoldOut = ticketOption.available === false || ticketOption.isSoldOut;
+            const availableCount = Number(ticketOption.availableCount || 0);
+
+            return (
+              <button
+                key={ticketOption.id}
+                onClick={() => !isSoldOut && setSelected(ticketOption.id)}
+                disabled={isSoldOut}
+                className="flex items-start gap-3 rounded-xl border p-3.5 text-left transition-all disabled:cursor-not-allowed disabled:opacity-50"
                 style={{
-                  borderColor: isSelected
-                    ? "var(--foreground)"
-                    : "var(--border)",
+                  borderColor: isSelected ? "var(--foreground)" : "var(--border)",
+                  background: isSelected ? "var(--secondary)" : "var(--card)",
+                  boxShadow: isSelected
+                    ? "inset 0 0 0 1px var(--foreground)"
+                    : "none",
                 }}
               >
-                {isSelected && (
-                  <span
-                    className="w-2 h-2 rounded-full"
-                    style={{ background: "var(--foreground)" }}
-                  />
-                )}
-              </span>
-
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-2">
-                  <span
-                    className="text-sm font-bold text-foreground"
-                    style={{ fontFamily: "var(--font-heading)" }}
-                  >
-                    {t.label}
-                    {isSoldOut && (
-                      <span className="ml-2 text-[10px] font-normal text-muted-foreground">
-                        (Sold out)
-                      </span>
-                    )}
-                  </span>
-                  <span
-                    className="text-sm font-extrabold text-foreground shrink-0"
-                    style={{ fontFamily: "var(--font-heading)" }}
-                  >
-                    ৳{t.price?.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
-                  {(t.perks || []).map((p, i) => (
+                <span
+                  className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2"
+                  style={{
+                    borderColor: isSelected
+                      ? "var(--foreground)"
+                      : "var(--border)",
+                  }}
+                >
+                  {isSelected && (
                     <span
-                      key={i}
-                      className="flex items-center gap-1 text-[11px] text-muted-foreground"
+                      className="h-2 w-2 rounded-full"
+                      style={{ background: "var(--foreground)" }}
+                    />
+                  )}
+                </span>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span
+                      className="text-sm font-bold text-foreground"
+                      style={{ fontFamily: "var(--font-heading)" }}
+                    >
+                      {ticketOption.label}
+                      {isSoldOut && (
+                        <span className="ml-2 text-[10px] font-normal text-muted-foreground">
+                          (Sold out)
+                        </span>
+                      )}
+                    </span>
+                    <span
+                      className="shrink-0 text-sm font-extrabold text-foreground"
+                      style={{ fontFamily: "var(--font-heading)" }}
+                    >
+                      {formatTicketPrice(ticketOption)}
+                    </span>
+                  </div>
+
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                    <span
+                      className="text-[11px] text-muted-foreground"
                       style={{ fontFamily: "var(--font-sans)" }}
                     >
-                      <Check size={9} className="text-foreground" />
-                      {p}
+                      {availableCount.toLocaleString()} available
                     </span>
-                  ))}
+                    {(ticketOption.perks || []).slice(0, 2).map((perk) => (
+                      <span
+                        key={perk}
+                        className="flex items-center gap-1 text-[11px] text-muted-foreground"
+                        style={{ fontFamily: "var(--font-sans)" }}
+                      >
+                        <Check size={9} className="text-foreground" />
+                        {perk}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            </button>
-          );
-        })}
-      </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
-      {/* Quantity + total */}
       {ticket && (
         <div
-          className="flex items-center justify-between gap-4 p-4 rounded-xl border border-border"
+          className="flex items-center justify-between gap-4 rounded-xl border border-border p-4"
           style={{ background: "var(--secondary)" }}
         >
           <div>
             <p
-              className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1"
+              className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground"
               style={{ fontFamily: "var(--font-sans)" }}
             >
               Quantity
             </p>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setQty((q) => Math.max(1, q - 1))}
-                className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-foreground hover:bg-background transition-colors text-base font-bold"
+                onClick={() => setQty((current) => Math.max(1, current - 1))}
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-base font-bold text-foreground transition-colors hover:bg-background"
               >
-                −
+                -
               </button>
               <span
-                className="text-sm font-bold text-foreground w-5 text-center"
+                className="w-5 text-center text-sm font-bold text-foreground"
                 style={{ fontFamily: "var(--font-heading)" }}
               >
                 {qty}
               </span>
               <button
-                onClick={() => setQty((q) => Math.min(10, q + 1))}
-                className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-foreground hover:bg-background transition-colors text-base font-bold"
+                onClick={() => setQty((current) => Math.min(maxQty, current + 1))}
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-base font-bold text-foreground transition-colors hover:bg-background"
               >
                 +
               </button>
             </div>
           </div>
+
           <div className="text-right">
             <p
-              className="text-[10px] text-muted-foreground uppercase tracking-wide"
+              className="text-[10px] uppercase tracking-wide text-muted-foreground"
               style={{ fontFamily: "var(--font-sans)" }}
             >
               Total
@@ -224,16 +229,19 @@ const EventTicketsSection = forwardRef(({ event }, ref) => {
               className="text-2xl font-extrabold text-foreground"
               style={{ fontFamily: "var(--font-heading)" }}
             >
-              ৳{total.toLocaleString()}
+              {formatTicketPrice({
+                price: total,
+                currency: ticket.currency,
+              })}
             </p>
           </div>
         </div>
       )}
 
-      {/* CTA */}
       <button
         disabled={!canPurchase || !ticket}
-        className="flex items-center justify-center gap-2 h-12 rounded-xl text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 active:scale-[0.99]"
+        onClick={handleCheckout}
+        className="flex h-12 items-center justify-center gap-2 rounded-xl text-sm font-bold transition-all hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
         style={{
           background: "var(--foreground)",
           color: "var(--background)",
@@ -241,17 +249,14 @@ const EventTicketsSection = forwardRef(({ event }, ref) => {
         }}
       >
         <Ticket size={15} />
-        {!canPurchase
-          ? "Not Available"
-          : `Book Now · ৳${total.toLocaleString()}`}
+        {!canPurchase ? "Not Available" : `Continue to Checkout`}
       </button>
 
-      {/* Trust signals */}
-      <div className="flex items-center justify-center gap-4 flex-wrap">
+      <div className="flex flex-wrap items-center justify-center gap-4">
         {[
           { icon: Shield, text: "Secure checkout" },
           { icon: Zap, text: "Instant confirm" },
-          { icon: Clock, text: "Refundable*" },
+          { icon: Clock, text: "Live inventory" },
         ].map(({ icon: Icon, text }) => (
           <span
             key={text}
