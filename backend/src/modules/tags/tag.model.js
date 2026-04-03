@@ -16,8 +16,8 @@ const tagSchema = new mongoose.Schema({
   deletedAt: { type: Date, default: null, index: true },
 }, { timestamps: true });
 
-tagSchema.pre('save', async function(next) {
-  if (!this.isModified('name') && this.slug) return next();
+tagSchema.pre('save', async function() {
+  if (!this.isModified('name') && this.slug) return;
 
   let base = toSlug(this.name);
   let slug = base;
@@ -27,7 +27,6 @@ tagSchema.pre('save', async function(next) {
     slug = `${base}-${i++}`;
   }
   this.slug = slug;
-  next();
 });
 
 tagSchema.virtual('isDeleted').get(function() {

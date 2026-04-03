@@ -24,8 +24,8 @@ subcategorySchema.index({ slug: 1 });
 subcategorySchema.index({ category: 1 });
 
 // ── Slug auto-generation ───────────────────────────
-subcategorySchema.pre('save', async function(next) {
-  if (!this.isModified('name') && this.slug) return next();
+subcategorySchema.pre('save', async function() {
+  if (!this.isModified('name') && this.slug) return;
 
   let base = toSlug(this.name);
   let slug = base;
@@ -35,7 +35,6 @@ subcategorySchema.pre('save', async function(next) {
     slug = `${base}-${i++}`;
   }
   this.slug = slug;
-  next();
 });
 
 // ── Statics ───────────────────────────────────────

@@ -1,4 +1,10 @@
 'use strict';
+require('../users/user.model');
+require('../organizers/organizer.model');
+require('../categories/category.model');
+require('../subcategories/subcategory.model');
+require('../eventTypes/eventTypes.model');
+require('../tags/tag.model');
 const Event = require('./event.model');
 
 const eventPopulate = [
