@@ -4,6 +4,13 @@ const bookingRepository = require('../bookings/booking.repository');
 const bookingService    = require('../bookings/booking.service');
 const { NotFoundError, BadRequestError } = require('../../common/errors/AppError');
 const logger = require('../../infrastructure/logger/logger');
+const emailService = require('../../infrastructure/mail/emailService');
+const {
+  formatDateTime,
+  buildFrontendUrl,
+  getPaymentMethodLabel,
+  getUserFirstName,
+} = require('../../infrastructure/mail/templateData');
 
 const getId = (u) => u?.id || u?._id?.toString() || u?.userId || u?.user?._id?.toString();
 
@@ -124,11 +131,18 @@ class PaymentService {
     }
 
     if (succeeded) {
-      if (payment.status !== 'succeeded') {
+      const wasAlreadySucceeded = payment.status === 'succeeded';
+      const bookingAlreadyPaid = booking.paymentStatus === 'paid';
+
+      if (!wasAlreadySucceeded) {
         await paymentRepository.updateById(payment._id, { status: 'succeeded', paidAt: new Date() });
       }
-      if (booking.paymentStatus !== 'paid') {
+      if (!bookingAlreadyPaid) {
         await bookingService.confirmBooking(expectedBookingRef, payment._id);
+      }
+
+      if (!wasAlreadySucceeded) {
+        await this._sendPaymentReceiptEmail(payment, booking);
       }
     }
 
@@ -164,6 +178,11 @@ class PaymentService {
       status: 'refunded', refundReason: reason, refundedAt: new Date(),
     });
     logger.info(`Refund processed: payment ${paymentId} by user ${userId}`);
+
+    await this._sendRefundProcessedEmail(
+      { ...payment.toObject(), ...updated?.toObject?.(), refundedAt: updated?.refundedAt || new Date() },
+      payment.booking,
+    );
     return updated;
   }
 
@@ -211,6 +230,43 @@ class PaymentService {
     }
 
     return { received: true };
+  }
+
+  async _sendPaymentReceiptEmail(payment, booking) {
+    if (!payment?.user?.email) {
+      return;
+    }
+
+    await emailService.sendPaymentReceiptEmail({
+      to: payment.user.email,
+      firstName: getUserFirstName(payment.user),
+      amount: payment.amount,
+      currency: payment.currency,
+      paymentMethod: getPaymentMethodLabel(payment),
+      paymentDate: formatDateTime(payment.paidAt || new Date()),
+      receiptNumber: payment.gatewayPaymentId || payment._id?.toString?.(),
+      bookingRef: booking?.bookingRef || payment.booking?.bookingRef,
+      receiptUrl: buildFrontendUrl('/payments/history'),
+    });
+  }
+
+  async _sendRefundProcessedEmail(payment, booking) {
+    if (!payment?.user?.email) {
+      return;
+    }
+
+    await emailService.sendRefundProcessedEmail({
+      to: payment.user.email,
+      firstName: getUserFirstName(payment.user),
+      amount: payment.refundAmount || payment.amount,
+      currency: payment.currency,
+      paymentMethod: getPaymentMethodLabel(payment),
+      processedAt: formatDateTime(payment.refundedAt || new Date()),
+      bookingRef: booking?.bookingRef || payment.booking?.bookingRef,
+      statusUrl: booking?.bookingRef
+        ? buildFrontendUrl(`/bookings/${booking.bookingRef}`)
+        : buildFrontendUrl('/payments/history'),
+    });
   }
 }
 

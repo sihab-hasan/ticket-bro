@@ -52,16 +52,30 @@ const verifyConnection = async () => {
   }
 };
 
-const sendMail = async ({ to, subject, html, text, attachments = [] }) => {
+const sendMail = async ({
+  to,
+  cc,
+  bcc,
+  replyTo,
+  subject,
+  html,
+  text,
+  attachments = [],
+  headers = {},
+}) => {
   try {
     const t = getTransporter();
     const info = await t.sendMail({
       from: `"${env.EMAIL_FROM_NAME}" <${env.EMAIL_FROM_ADDRESS}>`,
       to,
+      cc,
+      bcc,
+      replyTo: replyTo || env.EMAIL_REPLY_TO || env.EMAIL_FROM_ADDRESS,
       subject,
       html,
       text: text || html.replace(/<[^>]*>/g, ''), // fallback text
       attachments,
+      headers,
     });
 
     logger.info(`Email sent to ${to} | MessageId: ${info.messageId}`);
