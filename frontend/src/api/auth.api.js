@@ -9,7 +9,13 @@ const authService = {
   logoutAll: () => post(ENDPOINTS.AUTH.LOGOUT_ALL),
   refreshToken: () => post(ENDPOINTS.AUTH.REFRESH_TOKEN, {}),
   getMe: () => get(ENDPOINTS.AUTH.ME),
-  verifyEmail: (token) => post(ENDPOINTS.AUTH.VERIFY_EMAIL, { token }),
+  verifyEmail: (token) =>
+    post(ENDPOINTS.AUTH.VERIFY_EMAIL, { token }, {
+      select: (payload, response) => ({
+        user: payload,
+        message: response?.data?.message,
+      }),
+    }),
   resendVerification: (email) =>
     post(ENDPOINTS.AUTH.RESEND_VERIFICATION, { email }),
   forgotPassword: (email) =>

@@ -19,6 +19,38 @@ const { buildFrontendUrl } = require('../../infrastructure/mail/templateData');
 const getId = (user) => user?.id || user?._id || user?.userId;
 const isPrivilegedRole = (role) => [ROLES.ADMIN, ROLES.SUPER_ADMIN].includes(normalizeRole(role));
 const validRoles = Object.values(ROLES);
+const PROFILE_FIELDS = ['firstName', 'lastName', 'phone', 'bio', 'dateOfBirth', 'address'];
+const ADMIN_EDITABLE_FIELDS = [
+  ...PROFILE_FIELDS,
+  'avatar',
+  'status',
+  'statusReason',
+  'isEmailVerified',
+];
+
+const pickDefinedFields = (source, fields) => {
+  const output = {};
+
+  for (const field of fields) {
+    if (source[field] !== undefined) {
+      output[field] = source[field];
+    }
+  }
+
+  if (output.address && typeof output.address === 'object') {
+    output.address = ['street', 'city', 'state', 'country', 'postalCode'].reduce(
+      (acc, key) => {
+        if (output.address[key] !== undefined) {
+          acc[key] = output.address[key];
+        }
+        return acc;
+      },
+      {},
+    );
+  }
+
+  return output;
+};
 
 class UserService {
   _toSafeUser(user) {
@@ -59,12 +91,10 @@ class UserService {
   }
 
   async updateUser(id, data) {
-    const {
-      role, isActive, isEmailVerified, deletedAt, password,
-      status, statusReason, statusUpdatedAt, statusUpdatedBy,
-      googleId, facebookId, oauthProvider, loginAttempts, lockUntil,
-      emailVerificationToken, passwordResetToken, ...safe
-    } = data;
+    const safe = pickDefinedFields(data, PROFILE_FIELDS);
+    if (!Object.keys(safe).length) {
+      throw new BadRequestError('No valid profile fields were provided.');
+    }
     const user = await userRepository.updateById(id, safe);
     if (!user) throw new NotFoundError('User not found.');
     return this._toSafeUser(user);
@@ -126,11 +156,17 @@ class UserService {
   async getUserStats() { return userRepository.getStats(); }
 
   async adminUpdateUser(id, data) {
-    const { password, deletedAt, role, ...safe } = data;
+    const safe = pickDefinedFields(data, ADMIN_EDITABLE_FIELDS);
+    if (!Object.keys(safe).length) {
+      throw new BadRequestError('No valid user fields were provided.');
+    }
 
-    if (safe.status) {
+    if (safe.status !== undefined) {
       safe.isActive = safe.status === 'active';
       safe.statusUpdatedAt = new Date();
+      if (safe.status === 'active' && safe.statusReason === undefined) {
+        safe.statusReason = '';
+      }
     }
 
     const user = await userRepository.updateById(id, safe);

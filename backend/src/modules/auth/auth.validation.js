@@ -125,6 +125,12 @@ const twoFactorVerifySchema = Joi.object({
   }),
 });
 
+const disableTwoFactorSchema = Joi.object({
+  password: Joi.string().required().messages({
+    'any.required': 'Password is required to disable 2FA',
+  }),
+});
+
 const validate = (schema) => (data) => {
   const { error, value } = schema.validate(data, {
     abortEarly: false,
@@ -153,4 +159,5 @@ module.exports = {
   validateResendVerification: validate(resendVerificationSchema),
   validateVerifyOTP: validate(verifyOTPSchema),
   validateTwoFactorVerify: validate(twoFactorVerifySchema),
+  validateDisableTwoFactor: validate(disableTwoFactorSchema),
 };
