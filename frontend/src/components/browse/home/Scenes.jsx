@@ -4,7 +4,6 @@ import { Star, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Container from "@/components/layout/Container";
 import { useBrowse } from "@/hooks";
-import { CATEGORY_MAP } from "@/data/browseData";
 
 const fmtDate = (d) => {
   if (!d) return "Date TBA";
@@ -21,7 +20,7 @@ const FALLBACK = "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?a
 
 const Scenes = () => {
   const navigate = useNavigate();
-  const { getEvents, locationLabel, buildEventUrl, buildCategoryUrl } = useBrowse();
+  const { getEvents, locationLabel, buildEventUrl, categoryItems } = useBrowse();
 
   const [selectedCat, setSelectedCat] = useState("all");
   const [visibleCount, setVisibleCount] = useState(8);
@@ -30,13 +29,18 @@ const Scenes = () => {
 
   const categoryNav = useMemo(() => {
     const cats = [{ slug: "all", label: "All Events", icon: "✨" }];
-    Object.entries(CATEGORY_MAP).forEach(([slug, cat]) => {
-      if (allEvents.some((e) => e.category?.slug === slug)) {
-        cats.push({ slug, label: cat.label, icon: null, Icon: cat.icon });
+    categoryItems.forEach((category) => {
+      if (allEvents.some((event) => event.category?.slug === category.slug)) {
+        cats.push({
+          slug: category.slug,
+          label: category.label,
+          icon: null,
+          Icon: category.icon,
+        });
       }
     });
     return cats;
-  }, [allEvents]);
+  }, [allEvents, categoryItems]);
 
   const filtered = useMemo(() =>
     selectedCat === "all" ? allEvents : allEvents.filter((e) => e.category?.slug === selectedCat),

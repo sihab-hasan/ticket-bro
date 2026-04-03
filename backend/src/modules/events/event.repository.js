@@ -1,20 +1,30 @@
 'use strict';
 const Event = require('./event.model');
 
+const eventPopulate = [
+  { path: 'organizer', select: 'firstName lastName email avatar organizationName' },
+  {
+    path: 'organizerProfile',
+    select: 'displayName slug bio logo coverImage website phone email socialLinks verificationStatus eventCount',
+  },
+  { path: 'category', select: 'name slug' },
+  { path: 'subcategory', select: 'name slug category' },
+  { path: 'eventType', select: 'name slug' },
+  { path: 'tags', select: 'name slug' },
+];
+
 class EventRepository {
   async create(data) { return new Event(data).save(); }
 
   async findById(id) {
     return Event.findOne({ _id: id, deletedAt: null })
-      .populate('organizer', 'firstName lastName email avatar organizationName')
-      .populate('category', 'name slug icon color')
+      .populate(eventPopulate)
       .exec();
   }
 
   async findBySlug(slug) {
     return Event.findOne({ slug, deletedAt: null })
-      .populate('organizer', 'firstName lastName email avatar organizationName')
-      .populate('category', 'name slug icon color')
+      .populate(eventPopulate)
       .exec();
   }
 
@@ -30,9 +40,11 @@ class EventRepository {
     const skip = (Number(page) - 1) * Number(limit);
     const [events, total] = await Promise.all([
       Event.find(filter)
-        .populate('organizer', 'firstName lastName email')
-        .populate('category', 'name slug')
-        .sort(sort).skip(skip).limit(Number(limit)).lean(),
+        .populate(eventPopulate)
+        .sort(sort)
+        .skip(skip)
+        .limit(Number(limit))
+        .lean({ virtuals: true }),
       Event.countDocuments(filter),
     ]);
     return { events, pagination: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / Number(limit)) } };
@@ -50,7 +62,12 @@ class EventRepository {
     if (endDate)   filter.endDate   = { $lte: new Date(endDate) };
     const skip = (Number(page) - 1) * Number(limit);
     const [events, total] = await Promise.all([
-      Event.find(filter).populate('category', 'name slug').sort(sort).skip(skip).limit(Number(limit)).lean(),
+      Event.find(filter)
+        .populate(eventPopulate)
+        .sort(sort)
+        .skip(skip)
+        .limit(Number(limit))
+        .lean({ virtuals: true }),
       Event.countDocuments(filter),
     ]);
     return { events, pagination: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / Number(limit)) } };

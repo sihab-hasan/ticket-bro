@@ -21,138 +21,7 @@ import React, {
 import { Link, useLocation } from "react-router-dom";
 import { ChevronDown, ChevronRight, ChevronLeft, X } from "lucide-react";
 import Container from "@/components/layout/Container";
-
-// ─────────────────────────────────────────────────────────────────
-// DATA
-// ─────────────────────────────────────────────────────────────────
-
-const NAV_ITEMS = [
-  {
-    id: 1, name: "Music", slug: "music",
-    categories: [
-      { id: 11, name: "Concerts", slug: "concerts", subcategories: [
-        { id: 111, name: "Live Bands", slug: "live-bands" },
-        { id: 112, name: "Solo Artists", slug: "solo-artists" },
-        { id: 113, name: "Open Mic", slug: "open-mic" },
-      ]},
-      { id: 12, name: "Festivals", slug: "festivals", subcategories: [
-        { id: 121, name: "Multi-Day", slug: "multi-day" },
-        { id: 122, name: "Outdoor", slug: "outdoor" },
-      ]},
-      { id: 13, name: "Club Nights", slug: "club-nights", subcategories: [] },
-    ],
-  },
-  {
-    id: 2, name: "Sports", slug: "sports",
-    categories: [
-      { id: 21, name: "Football", slug: "football", subcategories: [
-        { id: 211, name: "League Matches", slug: "league-matches" },
-        { id: 212, name: "Cup Games", slug: "cup-games" },
-      ]},
-      { id: 22, name: "Cricket", slug: "cricket", subcategories: [
-        { id: 221, name: "T20", slug: "t20" },
-        { id: 222, name: "ODI", slug: "odi" },
-      ]},
-      { id: 23, name: "Tennis", slug: "tennis", subcategories: [] },
-      { id: 24, name: "Basketball", slug: "basketball", subcategories: [] },
-    ],
-  },
-  {
-    id: 3, name: "Arts & Culture", slug: "arts-culture",
-    categories: [
-      { id: 31, name: "Theatre", slug: "theatre", subcategories: [
-        { id: 311, name: "Drama", slug: "drama" },
-        { id: 312, name: "Musical", slug: "musical" },
-        { id: 313, name: "Comedy", slug: "comedy" },
-      ]},
-      { id: 32, name: "Exhibitions", slug: "exhibitions", subcategories: [
-        { id: 321, name: "Art Galleries", slug: "art-galleries" },
-        { id: 322, name: "Photography", slug: "photography" },
-      ]},
-      { id: 33, name: "Film", slug: "film", subcategories: [] },
-    ],
-  },
-  {
-    id: 4, name: "Food & Drink", slug: "food-drink",
-    categories: [
-      { id: 41, name: "Dining", slug: "dining", subcategories: [
-        { id: 411, name: "Pop-Up", slug: "pop-up" },
-        { id: 412, name: "Fine Dining", slug: "fine-dining" },
-      ]},
-      { id: 42, name: "Tastings", slug: "tastings", subcategories: [
-        { id: 421, name: "Wine", slug: "wine" },
-        { id: 422, name: "Craft Beer", slug: "craft-beer" },
-      ]},
-    ],
-  },
-  {
-    id: 5, name: "Business", slug: "business",
-    categories: [
-      { id: 51, name: "Conferences", slug: "conferences", subcategories: [
-        { id: 511, name: "Tech", slug: "tech" },
-        { id: 512, name: "Marketing", slug: "marketing" },
-      ]},
-      { id: 52, name: "Networking", slug: "networking", subcategories: [] },
-      { id: 53, name: "Workshops", slug: "workshops", subcategories: [
-        { id: 531, name: "Leadership", slug: "leadership" },
-        { id: 532, name: "Finance", slug: "finance" },
-      ]},
-    ],
-  },
-  {
-    id: 6, name: "Education", slug: "education",
-    categories: [
-      { id: 61, name: "Seminars", slug: "seminars", subcategories: [
-        { id: 611, name: "Science", slug: "science" },
-        { id: 612, name: "History", slug: "history" },
-      ]},
-      { id: 62, name: "Courses", slug: "courses", subcategories: [] },
-    ],
-  },
-  {
-    id: 7, name: "Health", slug: "health",
-    categories: [
-      { id: 71, name: "Wellness", slug: "wellness", subcategories: [
-        { id: 711, name: "Yoga", slug: "yoga" },
-        { id: 712, name: "Meditation", slug: "meditation" },
-      ]},
-      { id: 72, name: "Fitness", slug: "fitness", subcategories: [
-        { id: 721, name: "HIIT", slug: "hiit" },
-        { id: 722, name: "CrossFit", slug: "crossfit" },
-      ]},
-    ],
-  },
-  {
-    id: 8, name: "Technology", slug: "technology",
-    categories: [
-      { id: 81, name: "Hackathons", slug: "hackathons", subcategories: [
-        { id: 811, name: "AI & ML", slug: "ai-ml" },
-        { id: 812, name: "Web Dev", slug: "web-dev" },
-      ]},
-      { id: 82, name: "Meetups", slug: "meetups", subcategories: [] },
-    ],
-  },
-  {
-    id: 9, name: "Kids & Family", slug: "kids-family",
-    categories: [
-      { id: 91, name: "Activities", slug: "activities", subcategories: [
-        { id: 911, name: "Outdoor", slug: "outdoor" },
-        { id: 912, name: "Indoor", slug: "indoor" },
-      ]},
-      { id: 92, name: "Shows", slug: "shows", subcategories: [] },
-    ],
-  },
-  {
-    id: 10, name: "Community", slug: "community",
-    categories: [
-      { id: 101, name: "Charity", slug: "charity", subcategories: [
-        { id: 1011, name: "Fundraisers", slug: "fundraisers" },
-        { id: 1012, name: "Volunteering", slug: "volunteering" },
-      ]},
-      { id: 102, name: "Markets", slug: "markets", subcategories: [] },
-    ],
-  },
-];
+import { useBrowse } from "@/hooks";
 
 // ─────────────────────────────────────────────────────────────────
 // HOOKS
@@ -171,8 +40,8 @@ const useRouteActive = () => {
   return { pathname, isTopActive, isCatActive, isSubActive };
 };
 
-const useNavOverflow = (containerRef, anchorRef, itemRefs) => {
-  const [visibleCount, setVisibleCount] = useState(NAV_ITEMS.length);
+const useNavOverflow = (items, containerRef, anchorRef, itemRefs) => {
+  const [visibleCount, setVisibleCount] = useState(items.length);
   const MORE_BTN_W = 72;
 
   useLayoutEffect(() => {
@@ -185,7 +54,7 @@ const useNavOverflow = (containerRef, anchorRef, itemRefs) => {
       let used      = anchorW;
       let count     = 0;
 
-      for (let i = 0; i < NAV_ITEMS.length; i++) {
+      for (let i = 0; i < items.length; i++) {
         const el = itemRefs.current[i];
         if (!el) continue;
 
@@ -197,7 +66,7 @@ const useNavOverflow = (containerRef, anchorRef, itemRefs) => {
         el.style.visibility = prevVis;
         el.style.position   = prevPos;
 
-        const isLastPossible = i === NAV_ITEMS.length - 1;
+        const isLastPossible = i === items.length - 1;
         const needed = used + w + (isLastPossible ? 0 : MORE_BTN_W);
         if (needed > totalW) break;
 
@@ -212,7 +81,7 @@ const useNavOverflow = (containerRef, anchorRef, itemRefs) => {
     const ro = new ResizeObserver(measure);
     if (containerRef.current) ro.observe(containerRef.current);
     return () => ro.disconnect();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [items]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return visibleCount;
 };
@@ -775,7 +644,7 @@ const COLS = 3;
 // MobileDrawer — with slide-down + fade open/close animation
 // ─────────────────────────────────────────────────────────────────
 
-const MobileDrawer = memo(({ open, onClose, pathname, isTopActive, isCatActive, isSubActive }) => {
+const MobileDrawer = memo(({ items, open, onClose, pathname, isTopActive, isCatActive, isSubActive }) => {
   const [openId, setOpenId] = useState(null);
 
   // Two-phase state: `mounted` keeps DOM alive during exit animation,
@@ -834,9 +703,9 @@ const MobileDrawer = memo(({ open, onClose, pathname, isTopActive, isCatActive, 
 
   if (!mounted) return null;
 
-  const ITEMS_PER_COL = Math.ceil(NAV_ITEMS.length / COLS); // auto: 10/3 = 4
+  const ITEMS_PER_COL = Math.ceil(items.length / COLS) || 1;
   const columns = Array.from({ length: COLS }, (_, ci) =>
-    NAV_ITEMS.slice(ci * ITEMS_PER_COL, (ci + 1) * ITEMS_PER_COL)
+    items.slice(ci * ITEMS_PER_COL, (ci + 1) * ITEMS_PER_COL)
   ).filter((col) => col.length > 0);
 
   return (
@@ -918,14 +787,15 @@ MobileDrawer.displayName = "MobileDrawer";
 
 const Navbar = () => {
   const { pathname, isTopActive, isCatActive, isSubActive } = useRouteActive();
+  const { navigationItems } = useBrowse();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const containerRef = useRef(null);
   const anchorRef    = useRef(null);
   const itemRefs     = useRef([]);
 
-  const visibleCount  = useNavOverflow(containerRef, anchorRef, itemRefs);
-  const overflowItems = NAV_ITEMS.slice(visibleCount);
+  const visibleCount  = useNavOverflow(navigationItems, containerRef, anchorRef, itemRefs);
+  const overflowItems = navigationItems.slice(visibleCount);
   const hasOverflow   = overflowItems.length > 0;
 
   const openDrawer  = useCallback(() => setDrawerOpen(true), []);
@@ -963,7 +833,7 @@ const Navbar = () => {
                 </Link>
               </li>
 
-              {NAV_ITEMS.map((item, i) => (
+              {navigationItems.map((item, i) => (
                 <DesktopNavItem
                   key={item.id}
                   ref={(el) => { itemRefs.current[i] = el; }}
@@ -1021,6 +891,7 @@ const Navbar = () => {
       </nav>
 
       <MobileDrawer
+        items={navigationItems}
         open={drawerOpen}
         onClose={closeDrawer}
         pathname={pathname}

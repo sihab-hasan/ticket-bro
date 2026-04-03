@@ -13,15 +13,13 @@ import {
   X,
 } from "lucide-react";
 import Container from "@/components/layout/Container";
-import Breadcrumb from "@/components/shared/common/Breadcrumb";
 import {
   useLocation as useLocationCtx,
-  LOCATIONS,
 } from "@/context/LocationContext";
 import { useBrowse, unslugify } from "@/hooks";
-import { CATEGORY_MAP } from "@/data/browseData";
+import Breadcrumb from "@/components/shared/common/Breadcrumb";
 
-const InlineLocationPicker = ({ selectedLocation, onLocationChange }) => {
+const InlineLocationPicker = ({ locations, selectedLocation, onLocationChange }) => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const ref = React.useRef(null);
@@ -39,7 +37,7 @@ const InlineLocationPicker = ({ selectedLocation, onLocationChange }) => {
   React.useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 50);
   }, [open]);
-  const filtered = LOCATIONS.filter(
+  const filtered = locations.filter(
     (l) =>
       l.label.toLowerCase().includes(query.toLowerCase()) ||
       l.country.toLowerCase().includes(query.toLowerCase()),
@@ -186,7 +184,7 @@ const StatCard = ({ icon: Icon, value, label }) => (
 
 const HeroSection = () => {
   const navigate = useNavigate();
-  const { selectedLocation, changeLocation } = useLocationCtx();
+  const { selectedLocation, changeLocation, locations } = useLocationCtx();
   const {
     level,
     categorySlug,
@@ -199,6 +197,8 @@ const HeroSection = () => {
     getHeroDescription,
     buildCategoryUrl,
     buildSubCategoryUrl,
+    buildEventTypeUrl,
+    categoryItems,
   } = useBrowse();
   const [search, setSearch] = useState("");
   const Icon = config.icon;
@@ -259,20 +259,25 @@ const HeroSection = () => {
 
   const chipLinks = (() => {
     if (level === "root")
-      return Object.entries(CATEGORY_MAP)
-        .slice(0, 8)
-        .map(([slug, cat]) => ({
-          label: cat.label,
-          href: buildCategoryUrl(slug),
-          key: slug,
+      return categoryItems.slice(0, 8).map((category) => ({
+          label: category.label,
+          href: buildCategoryUrl(category.slug),
+          key: category.slug,
         }));
     if (level === "category")
-      return config.subcategories.map((c) => ({
-        label: c,
-        href: buildSubCategoryUrl(categorySlug, c),
-        key: c,
+      return (config.subcategories || []).map((subcategory) => ({
+        label: subcategory.name || subcategory.label,
+        href: buildSubCategoryUrl(categorySlug, subcategory.slug),
+        key: subcategory.slug,
       }));
-    return config.subcategories.map((c) => ({ label: c, href: null, key: c }));
+    return (config.subcategories || []).map((item) => ({
+      label: item.name || item.label,
+      href:
+        level === "subCategory"
+          ? buildEventTypeUrl(categorySlug, subCategorySlug, item.slug)
+          : null,
+      key: item.slug || item.name,
+    }));
   })();
 
   const statCards = [
@@ -337,6 +342,7 @@ const HeroSection = () => {
                 className="flex items-center gap-0 rounded-md border border-border bg-background overflow-hidden mb-6 h-10 shadow-sm hover:border-foreground/30 focus-within:border-primary "
               >
                 <InlineLocationPicker
+                  locations={locations}
                   selectedLocation={selectedLocation}
                   onLocationChange={changeLocation}
                 />

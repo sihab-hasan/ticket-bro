@@ -1,85 +1,58 @@
-/**
- * EventDetailsPage.jsx
- * ─────────────────────────────────────────────────────────────────────────────
- * Route: /:categorySlug/:subCategorySlug/:eventTypeSlug/:eventSlug
- *        /events/:eventSlug  (legacy redirect)
- *
- * Architecture:
- *   - Uses useEventDetails() hook for data + loading states
- *   - All UI broken into section components in /components/event/sections/
- *   - Layout: full-bleed hero → 2-col (details left, sticky tickets right)
- *   - Sticky BookingBar appears on scroll (mobile-first)
- *   - Breadcrumb auto-generated from route params
- *
- * Data flow (production):
- *   useEventDetails(slug) → dispatch(fetchEventBySlug) → GET /api/events/:slug
- *   All fields mapped via normaliseEvent() from event.model.js
- *
- * Mock data:
- *   MOCK_EVENT in /data/eventDetailMock.js (one event, full shape)
- *   Swap out for real API by replacing useEventDetails() implementation
- * ─────────────────────────────────────────────────────────────────────────────
- */
-import React, { useRef, useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
-import { ChevronLeft, AlertCircle, Loader2 } from "lucide-react";
-
+import React, { useEffect, useRef, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { AlertCircle, ChevronLeft, Loader2 } from "lucide-react";
 import Container from "@/components/layout/Container";
 import Breadcrumb from "@/components/shared/common/Breadcrumb";
-
-// ── Event section components ───────────────────────────────────────────────
+import eventsService from "@/api/events.api";
 import {
-  EventHeroSection,
+  normalizeBrowseReview,
+  normalizeEvent,
+  normalizeTicketType,
+} from "@/utils/browse.utils";
+import {
   EventAboutSection,
-  EventLineupSection,
   EventAgendaSection,
+  EventFAQSection,
+  EventHeroSection,
+  EventLineupSection,
+  EventOrganizerSection,
+  EventRelatedSection,
+  EventReviewsSection,
+  EventSponsorsSection,
+  EventStickyBar,
   EventTicketsSection,
   EventVenueSection,
-  EventOrganizerSection,
-  EventReviewsSection,
-  EventFAQSection,
-  EventSponsorsSection,
-  EventRelatedSection,
-  EventStickyBar,
 } from "@/components/browse/event";
 
-// ── Mock data (replace with API hook in production) ───────────────────────
-import MOCK_EVENT from "./eventDetailMock";
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   LOADING STATE
-═══════════════════════════════════════════════════════════════════════════ */
 const EventLoading = () => (
-  <div className="min-h-screen bg-background flex items-center justify-center">
+  <div className="flex min-h-screen items-center justify-center bg-background">
     <div className="flex flex-col items-center gap-3">
-      <Loader2 size={28} className="text-muted-foreground animate-spin" />
+      <Loader2 size={28} className="animate-spin text-muted-foreground" />
       <p
         className="text-sm text-muted-foreground"
         style={{ fontFamily: "var(--font-sans)" }}
       >
-        Loading event…
+        Loading event...
       </p>
     </div>
   </div>
 );
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   NOT FOUND STATE
-═══════════════════════════════════════════════════════════════════════════ */
 const EventNotFound = () => {
   const navigate = useNavigate();
+
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <div className="flex flex-col items-center gap-4 text-center max-w-sm">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="flex max-w-sm flex-col items-center gap-4 text-center">
         <div
-          className="w-14 h-14 rounded-2xl flex items-center justify-center border border-border"
+          className="flex h-14 w-14 items-center justify-center rounded-2xl border border-border"
           style={{ background: "var(--secondary)" }}
         >
           <AlertCircle size={24} className="text-muted-foreground" />
         </div>
         <div>
           <h2
-            className="text-xl font-bold text-foreground mb-1"
+            className="mb-1 text-xl font-bold text-foreground"
             style={{ fontFamily: "var(--font-heading)" }}
           >
             Event not found
@@ -94,14 +67,14 @@ const EventNotFound = () => {
         <div className="flex gap-2">
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-1.5 h-9 px-4 rounded-lg border border-border text-sm font-medium hover:bg-accent "
+            className="flex h-9 items-center gap-1.5 rounded-lg border border-border px-4 text-sm font-medium hover:bg-accent"
             style={{ fontFamily: "var(--font-sans)" }}
           >
             <ChevronLeft size={14} /> Go Back
           </button>
           <Link
             to="/browse"
-            className="flex items-center gap-1.5 h-9 px-4 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
+            className="flex h-9 items-center gap-1.5 rounded-lg px-4 text-sm font-medium transition-opacity hover:opacity-90"
             style={{
               background: "var(--foreground)",
               color: "var(--background)",
@@ -116,62 +89,131 @@ const EventNotFound = () => {
   );
 };
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   SECTION DIVIDER
-═══════════════════════════════════════════════════════════════════════════ */
-const SDiv = () => <div className="border-t border-border" />;
+const Divider = () => <div className="border-t border-border" />;
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   MAIN PAGE
-═══════════════════════════════════════════════════════════════════════════ */
 const EventDetailsPage = () => {
-  const { categorySlug, subCategorySlug, eventTypeSlug, eventSlug } =
-    useParams();
-
-  // ── State ────────────────────────────────────────────────────────────
+  const { eventSlug } = useParams();
+  const ticketsRef = useRef(null);
   const [saved, setSaved] = useState(false);
   const [shared, setShared] = useState(false);
-  const ticketsRef = useRef(null);
+  const [state, setState] = useState({
+    event: null,
+    relatedEvents: [],
+    reviews: [],
+    isLoading: true,
+    notFound: false,
+  });
 
-  // ── Data ─────────────────────────────────────────────────────────────
-  // Production: replace with real hook
-  //   const { event, isLoading, notFound } = useEventDetails(eventSlug);
-  const isLoading = false;
-  const event = MOCK_EVENT;
-  const notFound = !event && !isLoading;
-
-  // ── Scroll behaviour ──────────────────────────────────────────────────
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "instant" });
+    window.scrollTo({ top: 0, left: 0 });
   }, [eventSlug]);
 
-  // ── Handlers ─────────────────────────────────────────────────────────
-  const handleSave = () => setSaved((p) => !p);
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadEvent = async () => {
+      setState({
+        event: null,
+        relatedEvents: [],
+        reviews: [],
+        isLoading: true,
+        notFound: false,
+      });
+
+      const [eventResult, ticketsResult, relatedResult, reviewsResult] =
+        await Promise.allSettled([
+          eventsService.getEventDetails(eventSlug),
+          eventsService.getTicketTypes(eventSlug),
+          eventsService.getRelatedEvents(eventSlug),
+          eventsService.getEventReviews(eventSlug, {
+            page: 1,
+            limit: 6,
+            sort: "-createdAt",
+          }),
+        ]);
+
+      if (cancelled) {
+        return;
+      }
+
+      if (eventResult.status !== "fulfilled" || !eventResult.value) {
+        setState({
+          event: null,
+          relatedEvents: [],
+          reviews: [],
+          isLoading: false,
+          notFound: true,
+        });
+        return;
+      }
+
+      const event = normalizeEvent(eventResult.value);
+      const tickets =
+        ticketsResult.status === "fulfilled"
+          ? (ticketsResult.value || []).map((ticket) =>
+              normalizeTicketType(ticket, event.currency),
+            )
+          : [];
+      const hydratedEvent = {
+        ...event,
+        tickets,
+      };
+      const relatedEvents =
+        relatedResult.status === "fulfilled"
+          ? (relatedResult.value || []).map(normalizeEvent)
+          : [];
+      const reviews =
+        reviewsResult.status === "fulfilled"
+          ? (reviewsResult.value?.reviews || reviewsResult.value || []).map((review) =>
+              normalizeBrowseReview(review, hydratedEvent),
+            )
+          : [];
+
+      setState({
+        event: hydratedEvent,
+        relatedEvents,
+        reviews,
+        isLoading: false,
+        notFound: false,
+      });
+
+      eventsService.trackEventView(eventSlug).catch(() => null);
+    };
+
+    loadEvent();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [eventSlug]);
+
+  const { event, relatedEvents, reviews, isLoading, notFound } = state;
+
+  const handleSave = () => setSaved((current) => !current);
 
   const handleShare = () => {
     const url = window.location.href;
+
     if (navigator.share) {
       navigator.share({ title: event?.title, url }).catch(() => {});
-    } else {
-      navigator.clipboard.writeText(url).then(() => {
-        setShared(true);
-        setTimeout(() => setShared(false), 2000);
-      });
+      return;
     }
+
+    navigator.clipboard?.writeText(url).then(() => {
+      setShared(true);
+      setTimeout(() => setShared(false), 2000);
+    });
   };
 
   const scrollToTickets = () => {
     ticketsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  // ── Guards ────────────────────────────────────────────────────────────
   if (isLoading) return <EventLoading />;
-  if (notFound) return <EventNotFound />;
+  if (notFound || !event) return <EventNotFound />;
 
-  // ── Render ────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-background" style={{ paddingBottom: 80 }}>
-      {/* ── Breadcrumb ──────────────────────────────────────────────── */}
       <div
         className="border-b border-border"
         style={{ background: "var(--background)" }}
@@ -183,7 +225,6 @@ const EventDetailsPage = () => {
         </Container>
       </div>
 
-      {/* ── Hero ────────────────────────────────────────────────────── */}
       <EventHeroSection
         event={event}
         saved={saved}
@@ -192,61 +233,52 @@ const EventDetailsPage = () => {
         onBook={scrollToTickets}
       />
 
-      {/* ── Main content grid ────────────────────────────────────────── */}
       <Container>
-        <div className="py-8 xl:py-12 grid grid-cols-1 xl:grid-cols-[1fr_400px] gap-8 xl:gap-12">
-          {/* ────────────────────────────────────────────────────────────
-              LEFT COLUMN — Full event details
-          ────────────────────────────────────────────────────────────── */}
-          <div className="flex flex-col gap-10 min-w-0">
-            {/* About */}
+        <div className="grid grid-cols-1 gap-8 py-8 xl:grid-cols-[1fr_400px] xl:gap-12 xl:py-12">
+          <div className="flex min-w-0 flex-col gap-10">
             <EventAboutSection event={event} />
-            <SDiv />
+            <Divider />
 
-            {/* Lineup — only if has performers */}
             {event.lineup?.length > 0 && (
               <>
                 <EventLineupSection event={event} />
-                <SDiv />
+                <Divider />
               </>
             )}
 
-            {/* Agenda / Schedule */}
             {(event.agenda?.length > 0 || event.schedule?.length > 0) && (
               <>
                 <EventAgendaSection event={event} />
-                <SDiv />
+                <Divider />
               </>
             )}
 
-            {/* Venue */}
             <EventVenueSection event={event} />
-            <SDiv />
+            <Divider />
 
-            {/* Organizer */}
             <EventOrganizerSection event={event} />
-            <SDiv />
+            <Divider />
 
-            {/* Sponsors — only if present */}
             {event.sponsors?.length > 0 && (
               <>
                 <EventSponsorsSection event={event} />
-                <SDiv />
+                <Divider />
               </>
             )}
 
-            {/* Reviews */}
-            <EventReviewsSection event={event} />
-            <SDiv />
+            <EventReviewsSection event={event} reviews={reviews} />
 
-            {/* FAQ */}
-            <EventFAQSection event={event} />
+            {event.faqs?.length > 0 && (
+              <>
+                <Divider />
+                <EventFAQSection event={event} />
+              </>
+            )}
 
-            {/* Mobile Tickets — below all content on mobile */}
             <div className="xl:hidden" ref={ticketsRef}>
-              <SDiv />
+              <Divider />
               <div
-                className="mt-10 p-5 rounded-2xl border border-border"
+                className="mt-10 rounded-2xl border border-border p-5"
                 style={{ background: "var(--card)" }}
               >
                 <EventTicketsSection event={event} />
@@ -254,9 +286,6 @@ const EventDetailsPage = () => {
             </div>
           </div>
 
-          {/* ────────────────────────────────────────────────────────────
-              RIGHT COLUMN — Sticky ticket sidebar (desktop only)
-          ────────────────────────────────────────────────────────────── */}
           <div className="hidden xl:block">
             <div ref={ticketsRef} className="sticky top-24">
               <div
@@ -266,25 +295,24 @@ const EventDetailsPage = () => {
                 <EventTicketsSection event={event} />
               </div>
 
-              {/* Quick info card below tickets */}
               <div
-                className="mt-4 p-4 rounded-xl border border-border flex flex-col gap-2"
+                className="mt-4 flex flex-col gap-2 rounded-xl border border-border p-4"
                 style={{ background: "var(--secondary)" }}
               >
                 <p
-                  className="text-xs font-semibold text-muted-foreground uppercase tracking-wide"
+                  className="text-xs font-semibold uppercase tracking-wide text-muted-foreground"
                   style={{ fontFamily: "var(--font-sans)" }}
                 >
                   Quick Info
                 </p>
                 {[
-                  { label: "Category", value: event.category?.name || "–" },
+                  { label: "Category", value: event.category?.name || "-" },
                   {
-                    label: "Sub-Category",
-                    value: event.subcategory?.name || "–",
+                    label: "Subcategory",
+                    value: event.subcategory?.name || "-",
                   },
-                  { label: "Event Type", value: event.eventType?.name || "–" },
-                  { label: "Language", value: "Bengali / English" },
+                  { label: "Event Type", value: event.eventType?.name || "-" },
+                  { label: "Timezone", value: event.timezone || "Asia/Dhaka" },
                   { label: "Currency", value: event.currency || "BDT" },
                 ].map(({ label, value }) => (
                   <div
@@ -298,7 +326,7 @@ const EventDetailsPage = () => {
                       {label}
                     </span>
                     <span
-                      className="text-[11px] font-medium text-foreground text-right"
+                      className="text-right text-[11px] font-medium text-foreground"
                       style={{ fontFamily: "var(--font-sans)" }}
                     >
                       {value}
@@ -311,11 +339,17 @@ const EventDetailsPage = () => {
         </div>
       </Container>
 
-      {/* ── Related Events ───────────────────────────────────────────── */}
-      <EventRelatedSection event={event} />
-
-      {/* ── Sticky Booking Bar (scroll-triggered) ────────────────────── */}
+      <EventRelatedSection event={event} events={relatedEvents} />
       <EventStickyBar event={event} onBook={scrollToTickets} />
+
+      {shared && (
+        <div
+          className="fixed bottom-24 right-4 rounded-lg border border-border px-3 py-2 text-xs text-foreground shadow-lg"
+          style={{ background: "var(--card)", fontFamily: "var(--font-sans)" }}
+        >
+          Link copied to clipboard
+        </div>
+      )}
     </div>
   );
 };

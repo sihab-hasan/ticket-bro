@@ -1,15 +1,19 @@
 'use strict';
 const reviewRepository = require('./review.repository');
 const { NotFoundError, ForbiddenError, ConflictError } = require('../../common/errors/AppError');
+const Event = require('../events/event.model');
 const getId = (u) => u?._id?.toString() || u?.id || u?.userId;
 
 class ReviewService {
   async getEventReviews(eventSlug, query={}) {
-    // In real impl, look up event by slug first
-    return reviewRepository.findByEvent({ eventSlug, ...query });
+    const event = await Event.findOne({ slug: eventSlug, deletedAt: null }).select('_id').lean();
+    if (!event) throw new NotFoundError('Event not found.');
+    return reviewRepository.findByEventId({ eventId: event._id, ...query });
   }
   async getReviewSummary(eventSlug) {
-    return { summary: { average: 0, count: 0 }, eventSlug };
+    const event = await Event.findOne({ slug: eventSlug, deletedAt: null }).select('_id').lean();
+    if (!event) throw new NotFoundError('Event not found.');
+    return { summary: await reviewRepository.getSummary(event._id), eventSlug };
   }
   async createReview(data, user) {
     const existing = await reviewRepository.findByUserAndEvent(getId(user), data.eventId);

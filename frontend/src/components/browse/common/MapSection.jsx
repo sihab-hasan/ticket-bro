@@ -1,7 +1,7 @@
 // frontend/src/components/browse/sections/MapSection.jsx
-import React, { useState } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
-import { MapPin, Navigation, Star, BadgeCheck, Ticket } from "lucide-react";
+import { MapPin, Navigation } from "lucide-react";
 import Container from "@/components/layout/Container";
 import { useBrowse } from "@/hooks";
 
@@ -35,11 +35,13 @@ const MapPlaceholder = ({ locationLabel, eventCount }) => (
 );
 
 const MapSection = () => {
-  const { getNearby, locationLabel, locationFlag, config, level } = useBrowse();
-  const [savedIds, setSavedIds] = useState(new Set());
+  const { getNearby, locationLabel, locationFlag, config, level, buildEventUrl } = useBrowse();
   const events = getNearby();
-  const toggle = (id) => setSavedIds((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const title = level === "root" ? `Events Map — ${locationLabel}` : `${config.label} Map`;
+
+  if (!events.length) {
+    return null;
+  }
 
   return (
     <section className="w-full bg-background" aria-label="Events map">
@@ -58,17 +60,17 @@ const MapSection = () => {
             <MapPlaceholder locationLabel={locationLabel} eventCount={events.length} />
             <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
               {events.slice(0, 6).map((e) => (
-                <Link key={e.id} to={`/${e.category}/${e.subCategory}/${e.eventType}/${e.slug}`}
+                <Link key={e.id} to={buildEventUrl(e)}
                   className="group flex items-center gap-2.5 p-2.5 rounded-md border border-border bg-card hover:border-foreground/20 hover:bg-accent/20 transition-all">
                   <div className="w-10 h-10 rounded shrink-0 overflow-hidden bg-muted">
-                    <img src={e.image} alt={e.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onError={(x) => x.target.style.display="none"} />
+                    <img src={e.coverImage} alt={e.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onError={(x) => x.target.style.display="none"} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="text-xs font-bold text-foreground line-clamp-1 group-hover:underline" style={{ fontFamily: "var(--font-heading)" }}>
-                      {e.title}{e.verified && <BadgeCheck size={9} className="inline ml-0.5" />}
+                      {e.title}
                     </h4>
                     <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-0.5" style={{ fontFamily: "var(--font-sans)" }}>
-                      <MapPin size={8} /><span className="truncate">{e.distance} · {e.venue}</span>
+                      <MapPin size={8} /><span className="truncate">{e.location?.name || e.location?.city || "Venue TBA"}</span>
                     </div>
                   </div>
                   <span className="text-xs font-bold text-foreground shrink-0" style={{ fontFamily: "var(--font-heading)" }}>{e.priceLabel}</span>

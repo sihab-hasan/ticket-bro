@@ -3,24 +3,9 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import Container from "@/components/layout/Container";
 import { useBrowse } from "@/hooks";
-import { CATEGORY_MAP } from "@/data/browseData";
-
-// Visual accent colours per category slug
-const ACCENT = {
-  music:         { bg: "rgba(59,130,246,0.08)",  text: "#93c5fd" },
-  sports:        { bg: "rgba(34,197,94,0.08)",   text: "#86efac" },
-  "arts-culture":{ bg: "rgba(168,85,247,0.08)",  text: "#d8b4fe" },
-  "food-drink":  { bg: "rgba(249,115,22,0.08)",  text: "#fdba74" },
-  business:      { bg: "rgba(99,102,241,0.08)",  text: "#a5b4fc" },
-  education:     { bg: "rgba(20,184,166,0.08)",  text: "#5eead4" },
-  health:        { bg: "rgba(236,72,153,0.08)",  text: "#f9a8d4" },
-  technology:    { bg: "rgba(163,230,53,0.08)",  text: "#a3e635" },
-  "kids-family": { bg: "rgba(251,191,36,0.08)",  text: "#fde68a" },
-  community:     { bg: "rgba(239,68,68,0.08)",   text: "#fca5a5" },
-};
 
 const CategoryCard = ({ slug, cat, onClick }) => {
-  const accent = ACCENT[slug] || { bg: "rgba(163,230,53,0.08)", text: "#a3e635" };
+  const accent = cat.accent || { bg: "rgba(163,230,53,0.08)", text: "#a3e635" };
   const Icon = cat.icon;
   return (
     <button
@@ -63,9 +48,7 @@ const CategoryCard = ({ slug, cat, onClick }) => {
 
 const MostLovedCategories = () => {
   const navigate = useNavigate();
-  const { locationLabel, buildCategoryUrl } = useBrowse();
-
-  const categories = Object.entries(CATEGORY_MAP);
+  const { locationLabel, buildCategoryUrl, categoryItems } = useBrowse();
 
   return (
     <section className="bg-background py-10">
@@ -91,10 +74,10 @@ const MostLovedCategories = () => {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          {categories.map(([slug, cat]) => (
+          {categoryItems.map((cat) => (
             <CategoryCard
-              key={slug}
-              slug={slug}
+              key={cat.slug}
+              slug={cat.slug}
               cat={cat}
               onClick={(s) => navigate(buildCategoryUrl(s))}
             />

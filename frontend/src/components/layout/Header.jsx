@@ -36,30 +36,17 @@ import { useTheme }  from "@/context/ThemeContext";
 import useAuth       from "@/context/AuthContext";
 import { useCart }   from "@/context/CartContext";
 import { useSearch } from "@/context/SearchContext";
-import { useLocation as useLocationCtx, LOCATIONS } from "@/context/LocationContext";
+import { useLocation as useLocationCtx } from "@/context/LocationContext";
+import { useBrowse } from "@/hooks";
 import lightLogo     from "@/assets/images/ticket-bro-logo-light-mode.png";
 import darkLogo      from "@/assets/images/ticket-bro-logo-dark-mode.png";
 import UserMenu      from "@/components/layout/UserMenu";
 import { Role }      from "@/components/layout/MenuSheet";
 
-// ── Event categories — used only by BrowseSubPanel ────────────────
-const NAV_ITEMS = [
-  { id: 1,  name: "Music",          slug: "music",        categories: [{ id: 11, name: "Concerts",     slug: "concerts"     }, { id: 12, name: "Festivals",   slug: "festivals"   }, { id: 13, name: "Club Nights",  slug: "club-nights"  }] },
-  { id: 2,  name: "Sports",         slug: "sports",       categories: [{ id: 21, name: "Football",     slug: "football"     }, { id: 22, name: "Cricket",     slug: "cricket"     }, { id: 23, name: "Tennis",       slug: "tennis"       }, { id: 24, name: "Basketball",  slug: "basketball"   }] },
-  { id: 3,  name: "Arts & Culture", slug: "arts-culture", categories: [{ id: 31, name: "Theatre",      slug: "theatre"      }, { id: 32, name: "Exhibitions", slug: "exhibitions" }, { id: 33, name: "Film",         slug: "film"         }] },
-  { id: 4,  name: "Food & Drink",   slug: "food-drink",   categories: [{ id: 41, name: "Dining",       slug: "dining"       }, { id: 42, name: "Tastings",    slug: "tastings"    }] },
-  { id: 5,  name: "Business",       slug: "business",     categories: [{ id: 51, name: "Conferences",  slug: "conferences"  }, { id: 52, name: "Networking",  slug: "networking"  }, { id: 53, name: "Workshops",    slug: "workshops"    }] },
-  { id: 6,  name: "Education",      slug: "education",    categories: [{ id: 61, name: "Seminars",     slug: "seminars"     }, { id: 62, name: "Courses",     slug: "courses"     }] },
-  { id: 7,  name: "Health",         slug: "health",       categories: [{ id: 71, name: "Wellness",     slug: "wellness"     }, { id: 72, name: "Fitness",     slug: "fitness"     }] },
-  { id: 8,  name: "Technology",     slug: "technology",   categories: [{ id: 81, name: "Hackathons",   slug: "hackathons"   }, { id: 82, name: "Meetups",     slug: "meetups"     }] },
-  { id: 9,  name: "Kids & Family",  slug: "kids-family",  categories: [{ id: 91, name: "Activities",   slug: "activities"   }, { id: 92, name: "Shows",       slug: "shows"       }] },
-  { id: 10, name: "Community",      slug: "community",    categories: [{ id: 101,name: "Charity",      slug: "charity"      }, { id: 102,name: "Markets",     slug: "markets"     }] },
-];
-
 /* ════════════════════════════════════════════════════════════════
    LOCATION SELECTOR
 ════════════════════════════════════════════════════════════════ */
-const LocationSelector = ({ selectedLocation, onLocationChange, compact = false }) => {
+const LocationSelector = ({ locations, selectedLocation, onLocationChange, compact = false }) => {
   const [open,      setOpen]      = useState(false);
   const [locSearch, setLocSearch] = useState("");
   const [detecting, setDetecting] = useState(false);
@@ -80,7 +67,7 @@ const LocationSelector = ({ selectedLocation, onLocationChange, compact = false 
     if (open) setTimeout(() => inputRef.current?.focus(), 50);
   }, [open]);
 
-  const filtered = LOCATIONS.filter((l) =>
+  const filtered = locations.filter((l) =>
     l.label.toLowerCase().includes(locSearch.toLowerCase()) ||
     l.country.toLowerCase().includes(locSearch.toLowerCase()),
   );
@@ -238,7 +225,7 @@ const ThemeSwitcher = ({ theme, setThemeMode, size = "md" }) => {
    Slides right → over the sidebar.
    Kept in Header because it owns the event-category NAV_ITEMS data.
 ════════════════════════════════════════════════════════════════ */
-const BrowseSubPanel = ({ open, onBack, onClose }) => {
+const BrowseSubPanel = ({ items, open, onBack, onClose }) => {
   const [openCatId, setOpenCatId] = useState(null);
   const { pathname } = useLocation();
 
@@ -295,14 +282,14 @@ const BrowseSubPanel = ({ open, onBack, onClose }) => {
 
       {/* Category accordion */}
       <div className="flex-1 overflow-y-auto overscroll-contain">
-        {NAV_ITEMS.map((item) => {
+        {items.map((item) => {
           const isOpen  = openCatId === item.id;
           const hasCats = !!item.categories?.length;
           return (
             <div key={item.id} className="border-b border-border/50 last:border-0">
               <div className="flex items-center px-2">
                 <Link
-                  to={`/browse/${item.slug}`}
+                  to={`/${item.slug}`}
                   onClick={onClose}
                   className="flex-1 px-3 py-3 text-sm font-medium text-foreground hover:text-primary "
                 >
@@ -337,7 +324,7 @@ const BrowseSubPanel = ({ open, onBack, onClose }) => {
                       {item.categories.map((cat) => (
                         <li key={cat.id}>
                           <Link
-                            to={`/browse/${item.slug}/${cat.slug}`}
+                            to={`/${item.slug}/${cat.slug}`}
                             onClick={onClose}
                             className="flex items-center gap-2 pl-10 pr-4 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/50 "
                           >
@@ -362,7 +349,7 @@ const BrowseSubPanel = ({ open, onBack, onClose }) => {
    MOBILE SIDEBAR
    Chrome only. Nav content → <UserMenu mode="sidebar">.
 ════════════════════════════════════════════════════════════════ */
-const MobileSidebar = ({ open, onClose }) => {
+const MobileSidebar = ({ navItems, open, onClose }) => {
   const { pathname }                = useLocation();
   const [browseOpen, setBrowseOpen] = useState(false);
 
@@ -421,6 +408,7 @@ const MobileSidebar = ({ open, onClose }) => {
 
         {/* Browse sub-panel slides over panel */}
         <BrowseSubPanel
+          items={navItems}
           open={browseOpen}
           onBack={() => setBrowseOpen(false)}
           onClose={onClose}
@@ -443,7 +431,8 @@ const Header = () => {
   const { user, isAuthenticated }            = useAuth();
   const { itemCount }                        = useCart();
   const { setQuery }                         = useSearch();
-  const { selectedLocation, changeLocation } = useLocationCtx();
+  const { selectedLocation, changeLocation, locations } = useLocationCtx();
+  const { navigationItems } = useBrowse();
 
   // "Create Event" CTA — only for organizer / admin
   const canCreateEvent =
@@ -482,6 +471,7 @@ const Header = () => {
                 <Menu className="h-5 w-5" />
               </Button>
               <LocationSelector
+                locations={locations}
                 selectedLocation={selectedLocation}
                 onLocationChange={changeLocation}
                 compact
@@ -570,7 +560,7 @@ const Header = () => {
 
             <div className="h-5 w-px bg-border shrink-0 mx-1" />
 
-            <LocationSelector selectedLocation={selectedLocation} onLocationChange={changeLocation} />
+            <LocationSelector locations={locations} selectedLocation={selectedLocation} onLocationChange={changeLocation} />
 
             {/* Search */}
             <form onSubmit={handleSearch} className="flex-1 min-w-0 max-w-xl mx-1">
@@ -617,7 +607,7 @@ const Header = () => {
       </header>
 
       {/* Mobile sidebar — rendered outside <header> to overlay page correctly */}
-      <MobileSidebar open={sidebarOpen} onClose={closeSidebar} />
+      <MobileSidebar navItems={navigationItems} open={sidebarOpen} onClose={closeSidebar} />
     </>
   );
 };
