@@ -31,7 +31,7 @@ const InboxPage = () => {
   useEffect(() => { fetch(); }, [fetch]);
 
   const filtered = conversations.filter((c) => {
-    const name = c.otherParticipant?.name || c.subject || '';
+    const name = c.otherParticipant?.name || c.subject || c.event?.title || '';
     return name.toLowerCase().includes(search.toLowerCase());
   });
 
@@ -52,21 +52,21 @@ const InboxPage = () => {
       ) : (
         <div className="space-y-1">
           {filtered.map((conv) => (
-            <Link key={conv._id} to={ROUTES.MESSAGES.CONVERSATION ? ROUTES.MESSAGES.CONVERSATION(conv._id) : `#`} className="block no-underline">
-              <div className={`flex items-center gap-3 p-4 rounded-2xl cursor-pointer transition-colors hover:bg-muted/60 ${conv.unreadCount > 0 ? 'bg-muted/40' : ''}`}>
+            <Link key={conv._id || conv.id} to={ROUTES.MESSAGES.CONVERSATION(conv._id || conv.id)} className="block no-underline">
+              <div className={`flex items-center gap-3 p-4 rounded-2xl cursor-pointer transition-colors hover:bg-muted/60 ${Number(conv.unreadCount) > 0 ? 'bg-muted/40' : ''}`}>
                 <Avatar className="h-11 w-11 shrink-0">
                   <AvatarFallback className="text-sm font-bold bg-primary/10 text-primary">
-                    {(conv.otherParticipant?.name || conv.subject || '?')[0].toUpperCase()}
+                    {(conv.otherParticipant?.name || conv.subject || conv.event?.title || '?')[0].toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
-                    <p className={`text-sm truncate ${conv.unreadCount > 0 ? 'font-bold' : 'font-semibold'}`}>{conv.otherParticipant?.name || conv.subject || 'Unknown'}</p>
-                    <span className="text-[11px] text-muted-foreground shrink-0">{conv.lastMessage?.createdAt ? formatDate(conv.lastMessage.createdAt, { dateStyle: undefined, timeStyle: 'short' }) : ''}</span>
+                    <p className={`text-sm truncate ${Number(conv.unreadCount) > 0 ? 'font-bold' : 'font-semibold'}`}>{conv.otherParticipant?.name || conv.subject || conv.event?.title || 'Unknown'}</p>
+                    <span className="text-[11px] text-muted-foreground shrink-0">{conv.lastMessageAt ? formatDate(conv.lastMessageAt, { dateStyle: undefined, timeStyle: 'short' }) : ''}</span>
                   </div>
                   <div className="flex items-center justify-between gap-2 mt-0.5">
-                    <p className={`text-xs truncate ${conv.unreadCount > 0 ? 'text-foreground' : 'text-muted-foreground'}`}>{conv.lastMessage?.content || 'No messages yet'}</p>
-                    {conv.unreadCount > 0 && <Badge className="h-5 min-w-5 px-1.5 text-[10px] bg-primary text-black shrink-0">{conv.unreadCount}</Badge>}
+                    <p className={`text-xs truncate ${Number(conv.unreadCount) > 0 ? 'text-foreground' : 'text-muted-foreground'}`}>{conv.lastMessage?.content || conv.lastMessage?.body || 'No messages yet'}</p>
+                    {Number(conv.unreadCount) > 0 && <Badge className="h-5 min-w-5 px-1.5 text-[10px] bg-primary text-black shrink-0">{conv.unreadCount}</Badge>}
                   </div>
                 </div>
               </div>

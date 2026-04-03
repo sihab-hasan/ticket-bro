@@ -2,95 +2,349 @@
 
 const { sendMail } = require("./mailClient");
 const {
-  welcomeTemplate,
-  verifyEmailTemplate,
-  resetPasswordTemplate,
-  passwordChangedTemplate,
-  otpTemplate,
-  loginAlertTemplate,
-} = require("./templates/emailTemplates");
+  renderEmailTemplate,
+  getAvailableEmailTemplates,
+} = require("./templateRenderer");
 const logger = require("../../infrastructure/logger/logger");
+const {
+  formatCurrency,
+  formatCountLabel,
+} = require("./templateData");
 
 class EmailService {
-  /**
-   * Send welcome + verification email on registration
-   */
+  async sendTemplateEmail({
+    to,
+    templateName,
+    data = {},
+    subject,
+    text,
+    attachments,
+    cc,
+    bcc,
+    replyTo,
+    headers,
+  }) {
+    try {
+      if (!getAvailableEmailTemplates().includes(templateName)) {
+        throw new Error(`Unknown email template: ${templateName}`);
+      }
+
+      const rendered = renderEmailTemplate(templateName, data);
+
+      return await this._send({
+        to,
+        cc,
+        bcc,
+        replyTo,
+        headers,
+        subject: subject || rendered.subject,
+        html: rendered.html,
+        text: text || rendered.text,
+        attachments,
+      });
+    } catch (error) {
+      logger.error(
+        `EmailService.sendTemplateEmail failed [template: ${templateName}, to: ${to}]: ${error.message}`,
+      );
+      return { success: false, error: error.message };
+    }
+  }
+
   async sendWelcomeEmail({ to, firstName, verificationUrl }) {
-    return this._send({
+    return this.sendTemplateEmail({
       to,
-      subject: `Welcome to Ticket Bro, ${firstName}! Please verify your email`,
-      html: welcomeTemplate({ firstName, verificationUrl }),
+      templateName: "welcome",
+      data: { firstName, verificationUrl },
     });
   }
 
-  /**
-   * Resend verification email
-   */
   async sendVerificationEmail({ to, firstName, verificationUrl }) {
-    return this._send({
+    return this.sendTemplateEmail({
       to,
-      subject: "Verify your email address — Ticket Bro",
-      html: verifyEmailTemplate({ firstName, verificationUrl }),
+      templateName: "verifyEmail",
+      data: { firstName, verificationUrl },
     });
   }
 
-  /**
-   * Send password reset email
-   */
   async sendPasswordResetEmail({ to, firstName, resetUrl }) {
-    return this._send({
+    return this.sendTemplateEmail({
       to,
-      subject: "Reset your password — Ticket Bro",
-      html: resetPasswordTemplate({ firstName, resetUrl }),
+      templateName: "resetPassword",
+      data: { firstName, resetUrl },
     });
   }
 
-  /**
-   * Send password changed confirmation
-   */
   async sendPasswordChangedEmail({ to, firstName }) {
-    return this._send({
+    return this.sendTemplateEmail({
       to,
-      subject: "Your password has been changed — Ticket Bro",
-      html: passwordChangedTemplate({ firstName }),
+      templateName: "passwordChanged",
+      data: { firstName },
     });
   }
 
-  /**
-   * Send OTP for 2FA / phone verification
-   */
   async sendOTPEmail({ to, firstName, otp, purpose = "verification" }) {
-    return this._send({
+    return this.sendTemplateEmail({
       to,
-      subject: `Your Ticket Bro OTP code: ${otp}`,
-      html: otpTemplate({ firstName, otp, purpose }),
+      templateName: "twoFactorCode",
+      data: { firstName, otp, purpose },
     });
   }
 
-  /**
-   * Send login alert for suspicious login
-   */
   async sendLoginAlertEmail({ to, firstName, ipAddress, device, time }) {
-    return this._send({
+    return this.sendTemplateEmail({
       to,
-      subject: "⚠️ New login detected — Ticket Bro",
-      html: loginAlertTemplate({
+      templateName: "loginAlert",
+      data: {
         firstName,
         ipAddress,
         device,
-        time: time || new Date().toUTCString(),
-      }),
+        loginTime: time || new Date().toUTCString(),
+      },
     });
   }
 
-  /**
-   * Core send method with error handling
-   */
-  async _send({ to, subject, html, text, attachments }) {
+  async sendAccountSuspendedEmail({ to, firstName, reason, reviewDate, supportUrl }) {
+    return this.sendTemplateEmail({
+      to,
+      templateName: "accountSuspended",
+      data: {
+        firstName,
+        suspensionReason: reason,
+        reviewDate,
+        supportUrl,
+      },
+    });
+  }
+
+  async sendAccountBannedEmail({ to, firstName, reason, appealUrl }) {
+    return this.sendTemplateEmail({
+      to,
+      templateName: "accountBanned",
+      data: {
+        firstName,
+        banReason: reason,
+        appealUrl,
+      },
+    });
+  }
+
+  async sendBookingConfirmationEmail({
+    to,
+    firstName,
+    eventName,
+    bookingRef,
+    eventDate,
+    location,
+    ticketCount,
+    totalAmount,
+    currency,
+    bookingUrl,
+  }) {
+    return this.sendTemplateEmail({
+      to,
+      templateName: "bookingConfirmation",
+      data: {
+        firstName,
+        eventName,
+        bookingRef,
+        eventDate,
+        eventLocation: location,
+        ticketCount,
+        ticketCountLabel: formatCountLabel(ticketCount, "ticket"),
+        totalAmountFormatted: formatCurrency(totalAmount, currency),
+        bookingUrl,
+      },
+    });
+  }
+
+  async sendEventCancelledEmail({
+    to,
+    firstName,
+    eventName,
+    eventDate,
+    organizerName,
+    refundSummary,
+    bookingUrl,
+  }) {
+    return this.sendTemplateEmail({
+      to,
+      templateName: "eventCancelled",
+      data: {
+        firstName,
+        eventName,
+        eventDate,
+        organizerName,
+        refundSummary,
+        bookingUrl,
+      },
+    });
+  }
+
+  async sendEventReminderEmail({
+    to,
+    firstName,
+    eventName,
+    eventDate,
+    location,
+    ticketCount,
+    bookingUrl,
+  }) {
+    return this.sendTemplateEmail({
+      to,
+      templateName: "eventReminder",
+      data: {
+        firstName,
+        eventName,
+        eventDate,
+        eventLocation: location,
+        ticketCount,
+        ticketCountLabel: formatCountLabel(ticketCount, "ticket"),
+        bookingUrl,
+      },
+    });
+  }
+
+  async sendOrganizerApprovedEmail({ to, firstName, dashboardUrl }) {
+    return this.sendTemplateEmail({
+      to,
+      templateName: "organizerApproved",
+      data: { firstName, dashboardUrl },
+    });
+  }
+
+  async sendOrganizerRejectedEmail({ to, firstName, reason, dashboardUrl }) {
+    return this.sendTemplateEmail({
+      to,
+      templateName: "organizerRejected",
+      data: {
+        firstName,
+        rejectionReason: reason,
+        dashboardUrl,
+      },
+    });
+  }
+
+  async sendPaymentReceiptEmail({
+    to,
+    firstName,
+    amount,
+    currency,
+    paymentMethod,
+    paymentDate,
+    receiptNumber,
+    bookingRef,
+    receiptUrl,
+  }) {
+    return this.sendTemplateEmail({
+      to,
+      templateName: "paymentReceipt",
+      data: {
+        firstName,
+        amountFormatted: formatCurrency(amount, currency),
+        paymentMethod,
+        paymentDate,
+        receiptNumber,
+        bookingRef,
+        receiptUrl,
+      },
+    });
+  }
+
+  async sendPayoutSentEmail({
+    to,
+    firstName,
+    amount,
+    currency,
+    payoutReference,
+    destination,
+    processedAt,
+    dashboardUrl,
+  }) {
+    return this.sendTemplateEmail({
+      to,
+      templateName: "payoutSent",
+      data: {
+        firstName,
+        amountFormatted: formatCurrency(amount, currency),
+        payoutReference,
+        destination,
+        processedAt,
+        dashboardUrl,
+      },
+    });
+  }
+
+  async sendRefundProcessedEmail({
+    to,
+    firstName,
+    amount,
+    currency,
+    paymentMethod,
+    processedAt,
+    bookingRef,
+    statusUrl,
+  }) {
+    return this.sendTemplateEmail({
+      to,
+      templateName: "refundProcessed",
+      data: {
+        firstName,
+        amountFormatted: formatCurrency(amount, currency),
+        paymentMethod,
+        processedAt,
+        bookingRef,
+        statusUrl,
+      },
+    });
+  }
+
+  async sendTicketCancelledEmail({
+    to,
+    firstName,
+    eventName,
+    ticketCode,
+    cancelledAt,
+    refundSummary,
+    bookingUrl,
+  }) {
+    return this.sendTemplateEmail({
+      to,
+      templateName: "ticketCancelled",
+      data: {
+        firstName,
+        eventName,
+        ticketCode,
+        cancelledAt,
+        refundSummary,
+        bookingUrl,
+      },
+    });
+  }
+
+  async _send({
+    to,
+    cc,
+    bcc,
+    replyTo,
+    headers,
+    subject,
+    html,
+    text,
+    attachments,
+  }) {
     try {
-      return await sendMail({ to, subject, html, text, attachments });
+      return await sendMail({
+        to,
+        cc,
+        bcc,
+        replyTo,
+        headers,
+        subject,
+        html,
+        text,
+        attachments,
+      });
     } catch (error) {
-      // Log but don't throw — email failure should not crash auth flow
       logger.error(
         `EmailService._send failed [to: ${to}, subject: ${subject}]: ${error.message}`,
       );

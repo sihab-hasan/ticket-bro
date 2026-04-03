@@ -4,6 +4,7 @@ const userRepository = require('./user.repository');
 const avatarService = require('./avatar.service');
 const fs = require('fs');
 const AuditLog = require('../auditLogs/audit.model');
+const emailService = require('../../infrastructure/mail/emailService');
 const {
   BadRequestError,
   ForbiddenError,
@@ -13,6 +14,7 @@ const {
   ROLES,
   normalizeRole,
 } = require('../../common/constants/roles');
+const { buildFrontendUrl } = require('../../infrastructure/mail/templateData');
 
 const getId = (user) => user?.id || user?._id || user?.userId;
 const isPrivilegedRole = (role) => [ROLES.ADMIN, ROLES.SUPER_ADMIN].includes(normalizeRole(role));
@@ -183,6 +185,25 @@ class UserService {
       },
       metadata: { targetUserId: id },
     });
+
+    if (user.email && normalizedStatus === 'suspended') {
+      await emailService.sendAccountSuspendedEmail({
+        to: user.email,
+        firstName: user.firstName,
+        reason: reason || 'Your account is under review.',
+        reviewDate: 'Our support team will follow up after the review.',
+        supportUrl: buildFrontendUrl('/contact'),
+      });
+    }
+
+    if (user.email && normalizedStatus === 'banned') {
+      await emailService.sendAccountBannedEmail({
+        to: user.email,
+        firstName: user.firstName,
+        reason: reason || 'A serious policy violation was recorded on this account.',
+        appealUrl: buildFrontendUrl('/contact'),
+      });
+    }
 
     return this._toSafeUser(user);
   }

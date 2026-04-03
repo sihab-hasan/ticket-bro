@@ -23,6 +23,12 @@ const bookingRepository = require('../bookings/booking.repository');
 const paymentRepository = require('../payments/payment.repository');
 const payoutRepository = require('../payouts/payout.repository');
 const eventRepository = require('../events/event.repository');
+const emailService = require('../../infrastructure/mail/emailService');
+const {
+  formatDateTime,
+  buildFrontendUrl,
+  getPaymentMethodLabel,
+} = require('../../infrastructure/mail/templateData');
 const {
   BadRequestError,
   NotFoundError,
@@ -573,6 +579,15 @@ class AdminService {
       .lean();
 
     if (!organizer) throw new NotFoundError('Organizer not found.');
+
+    if (organizer.user?.email) {
+      await emailService.sendOrganizerApprovedEmail({
+        to: organizer.user.email,
+        firstName: organizer.user.firstName,
+        dashboardUrl: buildFrontendUrl('/organizer/dashboard'),
+      });
+    }
+
     return organizer;
   }
 
@@ -586,6 +601,16 @@ class AdminService {
       .lean();
 
     if (!organizer) throw new NotFoundError('Organizer not found.');
+
+    if (organizer.user?.email) {
+      await emailService.sendOrganizerRejectedEmail({
+        to: organizer.user.email,
+        firstName: organizer.user.firstName,
+        reason,
+        dashboardUrl: buildFrontendUrl('/organizer/settings'),
+      });
+    }
+
     return organizer;
   }
 
@@ -624,6 +649,18 @@ class AdminService {
       cancelledBy: getId(actor),
     });
 
+    if (booking.user?.email) {
+      await emailService.sendTicketCancelledEmail({
+        to: booking.user.email,
+        firstName: booking.user.firstName,
+        eventName: booking.event?.title,
+        ticketCode: booking.items?.[0]?.ticketCode || booking.items?.[0]?.code || booking.bookingRef,
+        cancelledAt: formatDateTime(updated.cancelledAt || new Date()),
+        refundSummary: 'If your booking qualifies for a refund, a separate update will follow.',
+        bookingUrl: buildFrontendUrl(`/bookings/${booking.bookingRef}`),
+      });
+    }
+
     return serializeBookingForAdmin(updated);
   }
 
@@ -648,6 +685,19 @@ class AdminService {
           refundReason: reason || 'Admin initiated booking refund',
           refundAmount: booking.totalAmount || 0,
         },
+      });
+    }
+
+    if (booking.user?.email) {
+      await emailService.sendRefundProcessedEmail({
+        to: booking.user.email,
+        firstName: booking.user.firstName,
+        amount: booking.totalAmount || 0,
+        currency: booking.currency || 'USD',
+        paymentMethod: 'Original payment method',
+        processedAt: formatDateTime(updated.refundedAt || new Date()),
+        bookingRef: booking.bookingRef,
+        statusUrl: buildFrontendUrl(`/bookings/${booking.bookingRef}`),
       });
     }
 
@@ -695,6 +745,21 @@ class AdminService {
           status: payment.booking.status === 'cancelled' ? 'refunded' : payment.booking.status,
           refundedAt: new Date(),
         },
+      });
+    }
+
+    if (payment.user?.email) {
+      await emailService.sendRefundProcessedEmail({
+        to: payment.user.email,
+        firstName: payment.user.firstName,
+        amount: payment.amount,
+        currency: payment.currency || 'USD',
+        paymentMethod: getPaymentMethodLabel(payment),
+        processedAt: formatDateTime(updated.refundedAt || new Date()),
+        bookingRef: payment.booking?.bookingRef,
+        statusUrl: payment.booking?.bookingRef
+          ? buildFrontendUrl(`/bookings/${payment.booking.bookingRef}`)
+          : buildFrontendUrl('/payments/history'),
       });
     }
 
