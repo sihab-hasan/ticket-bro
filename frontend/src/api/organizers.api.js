@@ -1,19 +1,106 @@
-import api from "@/lib/axios";
+import { ENDPOINTS } from "@/config/api.config";
+import {
+  get,
+  post,
+  put,
+  pickEntity,
+  pickPaginated,
+} from "@/api/client";
+
+const pickEvents = (payload) => {
+  const result = pickPaginated("events")(payload);
+  return {
+    events: result.items,
+    pagination: result.pagination,
+    total: result.total,
+  };
+};
+
+const pickBookings = (payload) => {
+  const result = pickPaginated("bookings")(payload);
+  return {
+    bookings: result.items,
+    pagination: result.pagination,
+    total: result.total,
+  };
+};
+
+const pickPayouts = (payload) => {
+  const result = pickPaginated("payouts")(payload);
+  return {
+    payouts: result.items,
+    pagination: result.pagination,
+    total: result.total,
+  };
+};
+
+const mapDashboard = (payload) => {
+  const profile = payload?.profile || null;
+  const overview = payload?.overview || {};
+
+  return {
+    ...payload,
+    profile,
+    overview,
+    totalEvents: overview.totalEvents || 0,
+    totalTicketsSold: overview.totalBookings || 0,
+    totalRevenue: overview.totalRevenue || 0,
+    activeEvents: overview.activeEvents || 0,
+    recentEvents: payload?.recentEvents || [],
+    recentBookings: payload?.recentBookings || [],
+    avgRating: payload?.avgRating || 0,
+    pendingPayout: payload?.pendingPayout || 0,
+  };
+};
 
 const organizersService = {
-  // Public
-  getBySlug: (slug) => api.get(`/organizers/${slug}`),
-  getOrganizerEvents: (slug, p) =>
-    api.get(`/organizers/${slug}/events`, { params: p }),
-  // Organizer (private — uses /organizer prefix)
-  getProfile: () => api.get("/organizer/profile"),
-  updateProfile: (data) => api.put("/organizer/profile", data),
-  submitVerification: (data) => api.post("/organizer/verification", data),
-  getVerification: () => api.get("/organizer/verification"),
-  getDashboard: () => api.get("/organizer/dashboard"),
-  getMyEvents: (params) => api.get("/organizer/events", { params }),
-  getMyBookings: (params) => api.get("/organizer/bookings", { params }),
-  getRevenue: (params) => api.get("/organizer/revenue", { params }),
-  getPayouts: (params) => api.get("/organizer/payouts", { params }),
+  getBySlug: (slug) =>
+    get(ENDPOINTS.ORGANIZERS.PROFILE(slug), { select: pickEntity("organizer") }),
+  getOrganizerEvents: (slug, params) =>
+    get(ENDPOINTS.ORGANIZERS.EVENTS(slug), {
+      params,
+      select: pickEvents,
+    }),
+  getProfile: () =>
+    get(ENDPOINTS.ORGANIZERS.OWN_PROFILE, {
+      select: pickEntity("organizer"),
+    }),
+  updateProfile: (data) =>
+    put(ENDPOINTS.ORGANIZERS.OWN_PROFILE, data, {
+      select: pickEntity("organizer"),
+    }),
+  submitVerification: (data = {}) =>
+    post(ENDPOINTS.ORGANIZERS.OWN_VERIFICATION, data),
+  getVerification: () => get(ENDPOINTS.ORGANIZERS.OWN_VERIFICATION),
+  getDashboard: () =>
+    get(ENDPOINTS.ORGANIZERS.DASHBOARD, { select: mapDashboard }),
+  getMyEvents: (params) =>
+    get(ENDPOINTS.ORGANIZERS.MY_EVENTS, {
+      params,
+      select: pickEvents,
+    }),
+  getMyBookings: (params) =>
+    get(ENDPOINTS.ORGANIZERS.MY_BOOKINGS, {
+      params,
+      select: pickBookings,
+    }),
+  getRevenue: (params) => get(ENDPOINTS.ORGANIZERS.REVENUE, { params }),
+  getPayouts: (params) =>
+    get(ENDPOINTS.ORGANIZERS.PAYOUTS, {
+      params,
+      select: pickPayouts,
+    }),
+  getAnalyticsOverview: (params) =>
+    get(ENDPOINTS.ORGANIZERS.ANALYTICS_OVERVIEW, { params }),
+  getAnalyticsRevenue: (params) =>
+    get(ENDPOINTS.ORGANIZERS.ANALYTICS_REVENUE, { params }),
+  getAnalyticsTickets: (params) =>
+    get(ENDPOINTS.ORGANIZERS.ANALYTICS_TICKETS, { params }),
+  getAnalyticsEvents: (params) =>
+    get(ENDPOINTS.ORGANIZERS.ANALYTICS_EVENTS, { params }),
+  getAnalyticsEvent: (id) => get(ENDPOINTS.ORGANIZERS.ANALYTICS_EVENT(id)),
+  getAnalyticsAudience: (params) =>
+    get(ENDPOINTS.ORGANIZERS.ANALYTICS_AUDIENCE, { params }),
 };
+
 export default organizersService;

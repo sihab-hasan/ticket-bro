@@ -1,23 +1,44 @@
 'use strict';
-const mongoose = require('mongoose');
 
-// Subcategory is stored inline in category or as separate model
-// Using a lightweight inline schema here
-const subcategorySchema = new mongoose.Schema({
-  name:       { type: String, required: true, trim: true },
-  slug:       { type: String, required: true, unique: true, lowercase: true, trim: true },
-  category:   { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true, index: true },
-  isActive:   { type: Boolean, default: true },
-  sortOrder:  { type: Number, default: 0 },
-  deletedAt:  { type: Date, default: null },
-}, { timestamps: true });
-
-const Subcategory = mongoose.models.Subcategory || mongoose.model('Subcategory', subcategorySchema);
+const Subcategory = require('./subcategory.model');
 
 class SubcategoryRepository {
-  async findAll(categoryId)    { return Subcategory.find({ category: categoryId, isActive: true, deletedAt: null }).sort('sortOrder').lean(); }
-  async create(data)           { return new Subcategory(data).save(); }
-  async updateById(id, data)   { return Subcategory.findByIdAndUpdate(id, { $set: data }, { new: true }).exec(); }
-  async deleteById(id)         { return Subcategory.findByIdAndUpdate(id, { $set: { deletedAt: new Date() } }).exec(); }
+  async findAll({ categoryId } = {}) {
+    const filter = { isActive: true, deletedAt: null };
+    if (categoryId) filter.category = categoryId;
+    return Subcategory.find(filter)
+      .populate('category', 'name slug')
+      .sort('name')
+      .lean();
+  }
+
+  async findBySlug(slug) {
+    return Subcategory.findOne({ slug, deletedAt: null })
+      .populate('category', 'name slug')
+      .exec();
+  }
+
+  async create(data) {
+    return new Subcategory(data).save();
+  }
+
+  async updateBySlug(slug, data) {
+    return Subcategory.findOneAndUpdate(
+      { slug, deletedAt: null },
+      { $set: data },
+      { new: true, runValidators: true },
+    )
+      .populate('category', 'name slug')
+      .exec();
+  }
+
+  async deleteBySlug(slug) {
+    return Subcategory.findOneAndUpdate(
+      { slug, deletedAt: null },
+      { $set: { deletedAt: new Date(), isActive: false } },
+      { new: true },
+    ).exec();
+  }
 }
+
 module.exports = new SubcategoryRepository();

@@ -15,9 +15,7 @@ export const registerUser = createAsyncThunk(
       // Force user to verify email before they can access protected routes.
       return { registered: true };
     } catch (err) {
-      return rejectWithValue(
-        err.response?.data?.message || "Registration failed.",
-      );
+      return rejectWithValue(err.message || "Registration failed.");
     }
   },
 );
@@ -26,8 +24,7 @@ export const loginUser = createAsyncThunk(
   "auth/login",
   async (data, { rejectWithValue }) => {
     try {
-      const res = await authService.login(data);
-      const payload = res.data.data;
+      const payload = await authService.login(data);
 
       // 2FA path — no tokens issued yet
       if (payload.requiresTwoFactor) {
@@ -42,7 +39,7 @@ export const loginUser = createAsyncThunk(
 
       return { user: payload.user, accessToken: payload.tokens.accessToken };
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || "Login failed.");
+      return rejectWithValue(err.message || "Login failed.");
     }
   },
 );
@@ -51,17 +48,14 @@ export const verifyTwoFactor = createAsyncThunk(
   "auth/verifyTwoFactor",
   async ({ email, otp }, { rejectWithValue }) => {
     try {
-      const res = await authService.verifyTwoFactor(email, otp);
-      const { user, tokens } = res.data.data;
+      const { user, tokens } = await authService.verifyTwoFactor(email, otp);
 
       storageUtils.setTokens({ accessToken: tokens.accessToken });
       storageUtils.setUser(user);
 
       return { user, accessToken: tokens.accessToken };
     } catch (err) {
-      return rejectWithValue(
-        err.response?.data?.message || "OTP verification failed.",
-      );
+      return rejectWithValue(err.message || "OTP verification failed.");
     }
   },
 );
@@ -84,15 +78,12 @@ export const fetchMe = createAsyncThunk(
   "auth/fetchMe",
   async (_, { rejectWithValue }) => {
     try {
-      const res = await authService.getMe();
-      const user = res.data.data;
+      const user = await authService.getMe();
       storageUtils.setUser(user);
       return user;
     } catch (err) {
       storageUtils.clearAll();
-      return rejectWithValue(
-        err.response?.data?.message || "Failed to fetch user.",
-      );
+      return rejectWithValue(err.message || "Failed to fetch user.");
     }
   },
 );

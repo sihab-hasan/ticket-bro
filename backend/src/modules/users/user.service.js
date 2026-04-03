@@ -59,21 +59,22 @@ class UserService {
   }
 
   async getActiveSessions(userId) {
-    try {
-      const RefreshToken = require('../auth/refreshToken.model');
-      return await RefreshToken.find({ userId, isRevoked: false })
-        .select('_id createdAt lastUsedAt device ip expiresAt').sort('-lastUsedAt').lean();
-    } catch { return []; }
+    const RefreshToken = require('../../infrastructure/tokens/tokens');
+    return RefreshToken.find({
+      userId,
+      isRevoked: false,
+      expiresAt: { $gt: new Date() },
+    })
+      .select('_id createdAt lastUsedAt userAgent ipAddress expiresAt')
+      .sort('-createdAt')
+      .lean();
   }
 
   async revokeSession(userId, sessionId) {
-    try {
-      const RefreshToken = require('../auth/refreshToken.model');
-      const session = await RefreshToken.findOne({ _id: sessionId, userId });
-      if (!session) throw new NotFoundError('Session not found.');
-      session.isRevoked = true;
-      await session.save();
-    } catch (err) { if (err.statusCode) throw err; }
+    const RefreshToken = require('../../infrastructure/tokens/tokens');
+    const session = await RefreshToken.findOne({ _id: sessionId, userId, isRevoked: false });
+    if (!session) throw new NotFoundError('Session not found.');
+    await session.revoke('manual_revoke');
   }
 
   async getAllUsers(query)        { return userRepository.findAll(query); }

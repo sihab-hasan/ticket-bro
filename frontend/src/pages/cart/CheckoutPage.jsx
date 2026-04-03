@@ -10,10 +10,11 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthContext';
-import { formatDate, formatPrice } from '@/utils/formatters';
+import { formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
-import api from '@/lib/axios';
+import { cartService } from '@/api';
+import { getApiErrorMessage } from '@/api/client';
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
@@ -31,8 +32,7 @@ const CheckoutPage = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await api.get('/cart');
-        const d = res.data?.data || res.data;
+        const d = await cartService.getCart();
         if (!d?.items?.length) { toast.error('Your cart is empty'); navigate(ROUTES.CART.ROOT); return; }
         setCart(d);
       } catch { navigate(ROUTES.CART.ROOT); }
@@ -46,8 +46,7 @@ const CheckoutPage = () => {
     if (!contact.firstName || !contact.email) return toast.error('Contact details required');
     setProcessing(true);
     try {
-      const res = await api.post('/cart/checkout', { paymentMethod, contact });
-      const d = res.data?.data || res.data;
+      const d = await cartService.checkout({ paymentMethod, contact });
       const bookingRef = d?.bookingRef || d?.booking?.bookingRef || d?._id;
 
       if (d?.paymentIntentId) {
@@ -57,7 +56,7 @@ const CheckoutPage = () => {
         navigate(ROUTES.TICKETS.CONFIRM(bookingRef));
       }
     } catch (e) {
-      toast.error(e.response?.data?.message || 'Checkout failed');
+      toast.error(getApiErrorMessage(e, 'Checkout failed'));
     } finally {
       setProcessing(false);
     }

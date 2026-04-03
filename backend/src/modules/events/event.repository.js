@@ -38,9 +38,13 @@ class EventRepository {
     return { events, pagination: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / Number(limit)) } };
   }
 
-  async findPublished({ category, page = 1, limit = 20, sort = '-createdAt', search, startDate, endDate } = {}) {
+  async findPublished({ category, organizer, isFeatured, isTrending, excludeId, page = 1, limit = 20, sort = '-createdAt', search, startDate, endDate } = {}) {
     const filter = { status: 'published', visibility: 'public', deletedAt: null };
     if (category) filter.category = category;
+    if (organizer) filter.organizer = organizer;
+    if (typeof isFeatured === 'boolean') filter.isFeatured = isFeatured;
+    if (typeof isTrending === 'boolean') filter.isTrending = isTrending;
+    if (excludeId) filter._id = { $ne: excludeId };
     if (search) { const re = new RegExp(search, 'i'); filter.$or = [{ title: re }, { description: re }]; }
     if (startDate) filter.startDate = { $gte: new Date(startDate) };
     if (endDate)   filter.endDate   = { $lte: new Date(endDate) };

@@ -10,7 +10,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatDate, formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
-import api from '@/lib/axios';
+import { bookingService, ticketsService } from '@/api';
+import { downloadBlob } from '@/utils/downloadFile';
 
 const TicketCard = ({ ticket, onDownload }) => (
   <Card className="overflow-hidden border-2 border-border">
@@ -66,11 +67,11 @@ const TicketDownloadPage = () => {
     (async () => {
       try {
         const [tickRes, bookRes] = await Promise.allSettled([
-          api.get(`/bookings/${bookingId}/tickets`),
-          api.get(`/bookings/${bookingId}`),
+          bookingService.getTickets(bookingId),
+          bookingService.getByRef(bookingId),
         ]);
-        if (tickRes.status === 'fulfilled') { const d = tickRes.value.data?.data || tickRes.value.data; setTickets(d?.tickets || d || []); }
-        if (bookRes.status === 'fulfilled') setBooking(bookRes.value.data?.data || bookRes.value.data);
+        if (tickRes.status === 'fulfilled') setTickets(tickRes.value?.tickets || tickRes.value || []);
+        if (bookRes.status === 'fulfilled') setBooking(bookRes.value);
       } catch { toast.error('Failed to load tickets'); }
       finally { setLoading(false); }
     })();
@@ -78,17 +79,15 @@ const TicketDownloadPage = () => {
 
   const downloadTicket = async (ticket) => {
     try {
-      const res = await api.get(`/tickets/${ticket._id}/download`, { responseType: 'blob' });
-      const url = URL.createObjectURL(res.data);
-      const a = document.createElement('a'); a.href = url; a.download = `ticket-${ticket.code || ticket._id}.pdf`; a.click();
+      const blob = await ticketsService.download(ticket.code || ticket._id);
+      downloadBlob(blob, `ticket-${ticket.code || ticket._id}.pdf`);
     } catch { toast.error('Download failed'); }
   };
 
   const downloadAll = async () => {
     try {
-      const res = await api.get(`/bookings/${bookingId}/invoice`, { responseType: 'blob' });
-      const url = URL.createObjectURL(res.data);
-      const a = document.createElement('a'); a.href = url; a.download = `all-tickets-${bookingId}.pdf`; a.click();
+      const blob = await bookingService.getInvoice(bookingId);
+      downloadBlob(blob, `all-tickets-${bookingId}.pdf`);
     } catch { toast.error('Download failed'); }
   };
 

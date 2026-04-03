@@ -1,16 +1,65 @@
 'use strict';
-const User = require('../users/user.model');
+
+const Organizer = require('./organizer.model');
+
+const basePopulate = 'firstName lastName email avatar phone role isActive createdAt updatedAt';
+
 class OrganizerRepository {
-  async findAll(query={}) {
-    const filter = { role: 'organizer', deletedAt: null };
-    const page=Number(query.page||1), limit=Number(query.limit||20);
+  async findAll(query = {}) {
+    const filter = { deletedAt: null, isActive: true };
+    const page = Number(query.page || 1);
+    const limit = Number(query.limit || 20);
+
+    if (query.verificationStatus) {
+      filter.verificationStatus = query.verificationStatus;
+    }
+
+    if (query.search) {
+      filter.displayName = new RegExp(query.search, 'i');
+    }
+
     const [organizers, total] = await Promise.all([
-      User.find(filter).select('-password').sort('-createdAt').skip((page-1)*limit).limit(limit).lean(),
-      User.countDocuments(filter),
+      Organizer.find(filter)
+        .populate('user', basePopulate)
+        .sort('-createdAt')
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+      Organizer.countDocuments(filter),
     ]);
-    return { organizers, pagination: { total, page, limit, totalPages: Math.ceil(total/limit) } };
+
+    return {
+      organizers,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
-  async findById(id) { return User.findOne({ _id: id, role: 'organizer', deletedAt: null }).select('-password').exec(); }
-  async updateById(id, data) { return User.findByIdAndUpdate(id, { $set: data }, { new: true }).select('-password').exec(); }
+
+  async findById(id) {
+    return Organizer.findOne({ _id: id, deletedAt: null })
+      .populate('user', basePopulate)
+      .exec();
+  }
+
+  async findBySlug(slug) {
+    return Organizer.findOne({ slug, deletedAt: null, isActive: true })
+      .populate('user', basePopulate)
+      .exec();
+  }
+
+  async findByUserId(userId) {
+    return Organizer.findOne({ user: userId, deletedAt: null })
+      .populate('user', basePopulate)
+      .exec();
+  }
+
+  async create(data) {
+    return new Organizer(data).save();
+  }
 }
+
 module.exports = new OrganizerRepository();

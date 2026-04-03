@@ -10,7 +10,8 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { formatDate, formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
-import api from '@/lib/axios';
+import { paymentsService } from '@/api';
+import { getApiErrorMessage } from '@/api/client';
 
 const Row = ({ label, value, icon: Icon, mono }) => (
   <div className="flex items-start gap-3 py-3 border-b border-border last:border-0">
@@ -32,23 +33,21 @@ const PaymentDetailsPage = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await api.get(`/payments/${paymentId}`);
-        setPayment(res.data?.data || res.data);
+        setPayment(await paymentsService.getById(paymentId));
       } catch { toast.error('Payment not found'); navigate(-1); }
       finally { setLoading(false); }
     })();
-  }, [paymentId]);
+  }, [navigate, paymentId]);
 
   const handleRefund = async () => {
     if (!confirm('Request a refund for this payment?')) return;
     setRefunding(true);
     try {
-      await api.post(`/payments/${paymentId}/refund`);
+      await paymentsService.requestRefund(paymentId);
       toast.success('Refund request submitted');
-      const res = await api.get(`/payments/${paymentId}`);
-      setPayment(res.data?.data || res.data);
+      setPayment(await paymentsService.getById(paymentId));
     } catch (e) {
-      toast.error(e.response?.data?.message || 'Refund request failed');
+      toast.error(getApiErrorMessage(e, 'Refund request failed'));
     } finally {
       setRefunding(false);
     }
@@ -101,8 +100,13 @@ const PaymentDetailsPage = () => {
       )}
 
       <div className="flex gap-3">
-        {payment?.booking?._id && (
-          <Link to={ROUTES.BOOKINGS.DETAIL(payment.booking._id)} className="flex-1">
+        {(payment?.booking?.bookingRef || payment?.booking?._id) && (
+          <Link
+            to={ROUTES.BOOKINGS.DETAIL(
+              payment.booking.bookingRef || payment.booking._id,
+            )}
+            className="flex-1"
+          >
             <Button variant="outline" className="w-full font-semibold"><Ticket className="h-4 w-4 mr-2" />View Booking</Button>
           </Link>
         )}

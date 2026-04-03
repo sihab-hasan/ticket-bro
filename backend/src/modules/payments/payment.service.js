@@ -1,11 +1,11 @@
 'use strict';
 const paymentRepository = require('./payment.repository');
+const bookingRepository = require('../bookings/booking.repository');
 const bookingService    = require('../bookings/booking.service');
 const { NotFoundError, BadRequestError } = require('../../common/errors/AppError');
 const logger = require('../../infrastructure/logger/logger');
-const env    = require('../../config/env');
 
-const getId = (u) => u?.id || u?._id?.toString() || u?.userId;
+const getId = (u) => u?.id || u?._id?.toString() || u?.userId || u?.user?._id?.toString();
 
 // ── Stripe helper (graceful fallback if not configured) ─────────────────────
 let stripe = null;
@@ -23,6 +23,20 @@ class PaymentService {
     const booking = await bookingService.getBookingByRef(bookingRef, { _id: userId, role: 'user' });
     if (!booking) throw new NotFoundError('Booking not found.');
     if (booking.paymentStatus === 'paid') throw new BadRequestError('Booking already paid.');
+
+    const existingPendingPayment = await paymentRepository.findPendingByBookingId(booking._id);
+    if (existingPendingPayment?.clientSecret && existingPendingPayment?.gatewayPaymentId) {
+      await bookingRepository.updateById(booking._id, {
+        payment: existingPendingPayment._id,
+        paymentStatus: 'pending',
+      });
+
+      return {
+        clientSecret: existingPendingPayment.clientSecret,
+        paymentId: existingPendingPayment._id,
+        gatewayPaymentId: existingPendingPayment.gatewayPaymentId,
+      };
+    }
 
     const amountCents = Math.round(booking.totalAmount * 100);
 
@@ -51,34 +65,78 @@ class PaymentService {
       clientSecret,
     });
 
+    await bookingRepository.updateById(booking._id, {
+      payment: payment._id,
+      paymentStatus: 'pending',
+    });
+
     logger.info(`PaymentIntent created: ${gatewayPaymentId} for booking ${bookingRef}`);
     return { clientSecret, paymentId: payment._id, gatewayPaymentId };
   }
 
-  async verifyPayment({ paymentIntentId, bookingRef }) {
+  async verifyPayment({ paymentIntentId, bookingRef, userId = null }) {
+    if (!paymentIntentId) {
+      throw new BadRequestError('Payment intent id is required.');
+    }
+
+    const payment = await paymentRepository.findByGatewayId(paymentIntentId);
+    if (!payment) {
+      throw new NotFoundError('Payment not found.');
+    }
+
+    if (userId && getId(payment.user) !== userId.toString()) {
+      throw new NotFoundError('Payment not found.');
+    }
+
+    const expectedBookingRef = bookingRef || payment.booking?.bookingRef;
+    if (!expectedBookingRef) {
+      throw new BadRequestError('Booking reference is required.');
+    }
+
+    if (payment.booking?.bookingRef && bookingRef && payment.booking.bookingRef !== bookingRef) {
+      throw new BadRequestError('Payment does not match the provided booking.');
+    }
+
+    const actor = userId ? { _id: userId, role: 'user' } : { role: 'admin' };
+    const booking = await bookingService.getBookingByRef(expectedBookingRef, actor);
+
+    if (payment.booking?._id && booking._id.toString() !== payment.booking._id.toString()) {
+      throw new BadRequestError('Payment does not match the provided booking.');
+    }
+
     let succeeded = true; // stub default
 
     if (stripe && paymentIntentId && !paymentIntentId.startsWith('pi_stub')) {
       try {
         const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
+        if (intent.metadata?.bookingRef && intent.metadata.bookingRef !== expectedBookingRef) {
+          throw new BadRequestError('Payment intent metadata does not match the booking reference.');
+        }
+        if (userId && intent.metadata?.userId && intent.metadata.userId !== userId.toString()) {
+          throw new BadRequestError('Payment intent metadata does not match the authenticated user.');
+        }
         succeeded = intent.status === 'succeeded';
       } catch (err) {
+        if (err.statusCode) throw err;
         logger.error(`Stripe verify failed: ${err.message}`);
         throw new BadRequestError('Payment verification failed.');
       }
     }
 
     if (succeeded) {
-      const payment = await paymentRepository.findByGatewayId(paymentIntentId);
-      if (payment) {
+      if (payment.status !== 'succeeded') {
         await paymentRepository.updateById(payment._id, { status: 'succeeded', paidAt: new Date() });
       }
-      if (bookingRef) {
-        await bookingService.confirmBooking(bookingRef);
+      if (booking.paymentStatus !== 'paid') {
+        await bookingService.confirmBooking(expectedBookingRef, payment._id);
       }
     }
 
-    return { status: succeeded ? 'succeeded' : 'failed' };
+    return {
+      status: succeeded ? 'succeeded' : 'failed',
+      bookingRef: expectedBookingRef,
+      paymentId: payment._id,
+    };
   }
 
   async getMyPayments(userId, query = {}) {

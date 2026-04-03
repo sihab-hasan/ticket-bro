@@ -4,23 +4,17 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import userService from "@/api/user.api";
 import { storageUtils } from "@/utils/storageUtils";
 
-// ── Helper — safely extract data from { status, message, data } ──────────────
-const extract = (res) => res.data?.data ?? res.data;
-
 // ── Thunks ────────────────────────────────────────────────────────────────────
 
 export const fetchProfile = createAsyncThunk(
   "user/fetchProfile",
   async (_, { rejectWithValue }) => {
     try {
-      const res = await userService.getMe();
-      const user = extract(res);
+      const user = await userService.getMe();
       storageUtils.setUser(user);
       return user;
     } catch (err) {
-      return rejectWithValue(
-        err.response?.data?.message || "Failed to load profile.",
-      );
+      return rejectWithValue(err.message || "Failed to load profile.");
     }
   },
 );
@@ -29,14 +23,11 @@ export const updateProfile = createAsyncThunk(
   "user/updateProfile",
   async (data, { rejectWithValue }) => {
     try {
-      const res = await userService.updateMe(data);
-      const user = extract(res);
+      const user = await userService.updateMe(data);
       storageUtils.setUser(user);
       return user;
     } catch (err) {
-      return rejectWithValue(
-        err.response?.data?.message || "Failed to update profile.",
-      );
+      return rejectWithValue(err.message || "Failed to update profile.");
     }
   },
 );
@@ -45,14 +36,11 @@ export const uploadAvatar = createAsyncThunk(
   "user/uploadAvatar",
   async (file, { rejectWithValue }) => {
     try {
-      const res = await userService.uploadAvatar(file);
-      const user = extract(res);
+      const user = await userService.uploadAvatar(file);
       storageUtils.setUser(user);
       return user;
     } catch (err) {
-      return rejectWithValue(
-        err.response?.data?.message || "Failed to upload avatar.",
-      );
+      return rejectWithValue(err.message || "Failed to upload avatar.");
     }
   },
 );
@@ -61,14 +49,11 @@ export const removeAvatar = createAsyncThunk(
   "user/removeAvatar",
   async (_, { rejectWithValue }) => {
     try {
-      const res = await userService.removeAvatar();
-      const user = extract(res);
+      const user = await userService.removeAvatar();
       storageUtils.setUser(user);
       return user;
     } catch (err) {
-      return rejectWithValue(
-        err.response?.data?.message || "Failed to remove avatar.",
-      );
+      return rejectWithValue(err.message || "Failed to remove avatar.");
     }
   },
 );
@@ -77,12 +62,9 @@ export const fetchSessions = createAsyncThunk(
   "user/fetchSessions",
   async (_, { rejectWithValue }) => {
     try {
-      const res = await userService.getSessions();
-      return extract(res) ?? [];
+      return (await userService.getSessions()) ?? [];
     } catch (err) {
-      return rejectWithValue(
-        err.response?.data?.message || "Failed to load sessions.",
-      );
+      return rejectWithValue(err.message || "Failed to load sessions.");
     }
   },
 );
@@ -94,9 +76,7 @@ export const revokeSession = createAsyncThunk(
       await userService.revokeSession(sessionId);
       return sessionId;
     } catch (err) {
-      return rejectWithValue(
-        err.response?.data?.message || "Failed to revoke session.",
-      );
+      return rejectWithValue(err.message || "Failed to revoke session.");
     }
   },
 );

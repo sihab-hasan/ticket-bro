@@ -11,7 +11,7 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { formatDate, formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
-import api from '@/lib/axios';
+import { paymentsService } from '@/api';
 
 const PaymentHistoryPage = () => {
   const [payments, setPayments] = useState([]);
@@ -21,9 +21,8 @@ const PaymentHistoryPage = () => {
   const fetch = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get('/payments', { params: filters });
-      const d = res.data?.data || res.data;
-      setPayments(d?.payments || d || []);
+      const data = await paymentsService.getMyPayments(filters);
+      setPayments(data.payments || []);
     } catch { toast.error('Failed to load payments'); }
     finally { setLoading(false); }
   }, [filters]);

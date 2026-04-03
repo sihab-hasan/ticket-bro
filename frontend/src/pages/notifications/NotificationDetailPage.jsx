@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDate } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
-import api from '@/lib/axios';
+import { notificationsService } from '@/api';
 
 const NotificationDetailPage = () => {
   const { notificationId: notifId } = useParams();
@@ -18,14 +18,13 @@ const NotificationDetailPage = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await api.get(`/notifications/${notifId}`);
-        const d = res.data?.data || res.data;
-        setNotif(d);
-        if (!d.isRead) await api.put(`/notifications/${notifId}/read`).catch(() => {});
+        const data = await notificationsService.getById(notifId);
+        setNotif(data);
+        if (!data.isRead) await notificationsService.markRead(notifId).catch(() => {});
       } catch { toast.error('Notification not found'); navigate(-1); }
       finally { setLoading(false); }
     })();
-  }, [notifId]);
+  }, [navigate, notifId]);
 
   const ICONS = { booking: '🎟️', payment: '💳', event: '📅', system: '⚙️', promo: '🎁', refund: '💰' };
 

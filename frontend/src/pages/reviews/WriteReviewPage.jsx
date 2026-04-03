@@ -12,7 +12,8 @@ import PageHeader from '@/components/shared/PageHeader';
 import { formatDate } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
-import api from '@/lib/axios';
+import { eventsService, reviewsService } from '@/api';
+import { getApiErrorMessage } from '@/api/client';
 
 const StarRating = ({ rating, onChange }) => (
   <div className="flex items-center gap-2">
@@ -37,22 +38,21 @@ const WriteReviewPage = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await api.get(`/events/${eventId}`);
-        setEvent(res.data?.data || res.data);
+        setEvent(await eventsService.getEventBySlug(eventId));
       } catch { toast.error('Event not found'); navigate(-1); }
       finally { setLoading(false); }
     })();
-  }, [eventId]);
+  }, [eventId, navigate]);
 
   const handleSubmit = async () => {
     if (form.rating === 0) return toast.error('Please select a rating');
     if (!form.comment.trim()) return toast.error('Please write a comment');
     setSubmitting(true);
     try {
-      await api.post(`/reviews/event/${eventId}`, form);
+      await reviewsService.create({ ...form, eventId: event?._id || eventId });
       setSubmitted(true);
     } catch (e) {
-      toast.error(e.response?.data?.message || 'Failed to submit review');
+      toast.error(getApiErrorMessage(e, 'Failed to submit review'));
     } finally {
       setSubmitting(false);
     }

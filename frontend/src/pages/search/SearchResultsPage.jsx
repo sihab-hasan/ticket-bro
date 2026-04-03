@@ -14,10 +14,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatDate, formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
-import api from '@/lib/axios';
+import { searchService } from '@/api';
 
 const EventCard = ({ event }) => (
-  <Link to={ROUTES.EVENT.DETAIL ? ROUTES.EVENT.DETAIL(event._id) : `#`} className="block no-underline">
+  <Link to={ROUTES.EVENT(event.slug || event._id)} className="block no-underline">
     <Card className="group hover:shadow-md transition-all overflow-hidden cursor-pointer">
       <div className="h-36 overflow-hidden bg-muted">
         {event.coverImage ? (
@@ -59,11 +59,10 @@ const SearchResultsPage = () => {
     setLoading(true);
     try {
       const params = { q, sort: s, page: p, limit: LIMIT, ...f };
-      const res = await api.get('/search', { params });
-      const d = res.data?.data || res.data;
-      if (p === 1) setResults(d?.events || d || []);
-      else setResults((prev) => [...prev, ...(d?.events || d || [])]);
-      setTotal(d?.total || 0);
+      const data = await searchService.search(params);
+      if (p === 1) setResults(data.results || []);
+      else setResults((prev) => [...prev, ...(data.results || [])]);
+      setTotal(data.total || data.pagination?.total || 0);
     } catch { toast.error('Search failed'); }
     finally { setLoading(false); }
   }, []);

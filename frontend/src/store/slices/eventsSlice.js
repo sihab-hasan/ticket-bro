@@ -20,11 +20,12 @@ export const fetchEvents = createAsyncThunk(
   async (params = {}, { rejectWithValue }) => {
     try {
       const raw = await eventsApi.getAllEvents(params);
-      return Array.isArray(raw)
-        ? raw.map(normaliseEvent)
-        : (raw?.events || []).map(normaliseEvent);
+      return {
+        events: (raw?.events || []).map(normaliseEvent),
+        pagination: raw?.pagination || {},
+      };
     } catch (err) {
-      return rejectWithValue(err?.response?.data?.message || err.message);
+      return rejectWithValue(err.message);
     }
   }
 );
@@ -37,7 +38,7 @@ export const fetchFeaturedEvents = createAsyncThunk(
       const raw = await eventsApi.getFeaturedEvents(limit);
       return Array.isArray(raw) ? raw.map(normaliseEvent) : [];
     } catch (err) {
-      return rejectWithValue(err?.response?.data?.message || err.message);
+      return rejectWithValue(err.message);
     }
   }
 );
@@ -50,7 +51,7 @@ export const fetchTrendingEvents = createAsyncThunk(
       const raw = await eventsApi.getTrendingEvents(limit);
       return Array.isArray(raw) ? raw.map(normaliseEvent) : [];
     } catch (err) {
-      return rejectWithValue(err?.response?.data?.message || err.message);
+      return rejectWithValue(err.message);
     }
   }
 );
@@ -63,7 +64,7 @@ export const fetchUpcomingEvents = createAsyncThunk(
       const raw = await eventsApi.getUpcomingEvents(limit);
       return Array.isArray(raw) ? raw.map(normaliseEvent) : [];
     } catch (err) {
-      return rejectWithValue(err?.response?.data?.message || err.message);
+      return rejectWithValue(err.message);
     }
   }
 );
@@ -76,7 +77,7 @@ export const fetchEventBySlug = createAsyncThunk(
       const raw = await eventsApi.getEventBySlug(slug);
       return normaliseEvent(raw);
     } catch (err) {
-      return rejectWithValue(err?.response?.data?.message || err.message);
+      return rejectWithValue(err.message);
     }
   }
 );
@@ -89,7 +90,7 @@ export const fetchRelatedEvents = createAsyncThunk(
       const raw = await eventsApi.getRelatedEvents(slug);
       return Array.isArray(raw) ? raw.map(normaliseEvent) : [];
     } catch (err) {
-      return rejectWithValue(err?.response?.data?.message || err.message);
+      return rejectWithValue(err.message);
     }
   }
 );
@@ -186,13 +187,8 @@ const eventsSlice = createSlice({
       })
       .addCase(fetchEvents.fulfilled, (state, { payload }) => {
         state.loading.events = false;
-        // API may return array OR { events, pagination }
-        if (Array.isArray(payload)) {
-          state.events = payload;
-        } else {
-          state.events     = payload.events || [];
-          state.pagination = { ...state.pagination, ...(payload.pagination || {}) };
-        }
+        state.events = payload.events || [];
+        state.pagination = { ...state.pagination, ...(payload.pagination || {}) };
       })
       .addCase(fetchEvents.rejected, (state, { payload }) => {
         state.loading.events = false;
