@@ -26,8 +26,8 @@ eventTypeSchema.index({ name: 1 });
 eventTypeSchema.index({ slug: 1 });
 
 // ── Slug auto-generation ───────────────────────────
-eventTypeSchema.pre('save', async function(next) {
-  if (!this.isModified('name') && this.slug) return next();
+eventTypeSchema.pre('save', async function() {
+  if (!this.isModified('name') && this.slug) return;
 
   let base = toSlug(this.name);
   let slug = base;
@@ -37,7 +37,6 @@ eventTypeSchema.pre('save', async function(next) {
     slug = `${base}-${i++}`;
   }
   this.slug = slug;
-  next();
 });
 
 // ── Statics ───────────────────────────────────────

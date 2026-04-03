@@ -23,8 +23,8 @@ categorySchema.index({ name: 1 });
 categorySchema.index({ slug: 1 });
 
 // ── Slug auto-generation ───────────────────────────
-categorySchema.pre('save', async function(next) {
-  if (!this.isModified('name') && this.slug) return next();
+categorySchema.pre('save', async function() {
+  if (!this.isModified('name') && this.slug) return;
 
   let base = toSlug(this.name);
   let slug = base;
@@ -34,7 +34,6 @@ categorySchema.pre('save', async function(next) {
     slug = `${base}-${i++}`;
   }
   this.slug = slug;
-  next();
 });
 
 // ── Virtuals ──────────────────────────────────────

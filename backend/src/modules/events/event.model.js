@@ -271,8 +271,8 @@ eventSchema.index({
 }, { weights: { title: 10, shortDescription: 5, description: 1, 'seo.keywords': 3 } });
 
 // ── Slug auto-generation ────────────────────────────────────────────────────
-eventSchema.pre('save', async function (next) {
-  if (!this.isModified('title') && this.slug) return next();
+eventSchema.pre('save', async function () {
+  if (!this.isModified('title') && this.slug) return;
   let base = toSlug(this.title);
   let slug = base;
   let i = 1;
@@ -280,18 +280,16 @@ eventSchema.pre('save', async function (next) {
     slug = `${base}-${i++}`;
   }
   this.slug = slug;
-  next();
 });
 
 // ── Auto-set lifecycle timestamps on status change ──────────────────────────
-eventSchema.pre('save', function (next) {
-  if (!this.isModified('status')) return next();
+eventSchema.pre('save', function () {
+  if (!this.isModified('status')) return;
   const now = new Date();
   if (this.status === EVENT_STATUS.PUBLISHED  && !this.publishedAt)  this.publishedAt  = now;
   if (this.status === EVENT_STATUS.CANCELLED  && !this.cancelledAt)  this.cancelledAt  = now;
   if (this.status === EVENT_STATUS.POSTPONED  && !this.postponedAt)  this.postponedAt  = now;
   if (this.status === EVENT_STATUS.COMPLETED  && !this.completedAt)  this.completedAt  = now;
-  next();
 });
 
 // ── Virtuals ────────────────────────────────────────────────────────────────

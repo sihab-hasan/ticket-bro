@@ -23,8 +23,8 @@ const organizerSchema = new mongoose.Schema({
 
 const toSlug = (str) => str.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '');
 
-organizerSchema.pre('save', async function(next) {
-  if (!this.isModified('displayName') && this.slug) return next();
+organizerSchema.pre('save', async function() {
+  if (!this.isModified('displayName') && this.slug) return;
   let base = toSlug(this.displayName);
   let slug = base;
   let i = 1;
@@ -32,7 +32,6 @@ organizerSchema.pre('save', async function(next) {
     slug = `${base}-${i++}`;
   }
   this.slug = slug;
-  next();
 });
 
 const Organizer = mongoose.model('Organizer', organizerSchema);
