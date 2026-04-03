@@ -16,6 +16,8 @@ export { default as promotionsService } from "./promotions.api";
 export { default as organizersService } from "./organizers.api";
 export { default as payoutsService } from "./payouts.api";
 export { default as adminService } from "./admin.api";
+export { default as moderatorService } from "./moderator.api";
+export { default as superAdminService } from "./super-admin.api";
 export { default as locationsService } from "./locations.api";
 export { default as tagsService } from "./tags.api";
 export { default as eventDetailsService } from "./event-details.api";

@@ -16,7 +16,7 @@ import { StatusBadge, ConfirmDialog } from '@/components/shared/StatusBadge';
 import { formatDate, formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
-import api from '@/lib/axios';
+import { adminService } from '@/api';
 
 const BookingManagementPage = () => {
   const { bookingId } = useParams();
@@ -37,9 +37,8 @@ const BookingManagementPage = () => {
     setLoading(true);
     try {
       const params = { page, limit: LIMIT, ...filters };
-      const res = await api.get('/admin/bookings', { params });
-      const d = res.data?.data || res.data;
-      setBookings(d?.bookings || d || []);
+      const d = await adminService.getBookings(params);
+      setBookings(d?.bookings || []);
       setTotal(d?.total || 0);
     } catch { toast.error('Failed to load bookings'); }
     finally { setLoading(false); }
@@ -51,8 +50,8 @@ const BookingManagementPage = () => {
   const openDrawer = async (id) => {
     setDrawerOpen(true); setDrawerLoading(true);
     try {
-      const res = await api.get(`/admin/bookings/${id}`);
-      setSelected(res.data?.data || res.data);
+      const data = await adminService.getBookingById(id);
+      setSelected(data);
     } catch { toast.error('Failed to load booking'); setDrawerOpen(false); }
     finally { setDrawerLoading(false); }
   };
@@ -65,7 +64,7 @@ const BookingManagementPage = () => {
   const handleCancel = async () => {
     setActionLoading(true);
     try {
-      await api.post(`/bookings/${confirmAction.booking._id}/cancel`);
+      await adminService.cancelBooking(confirmAction.booking.bookingRef || confirmAction.booking._id);
       toast.success('Booking cancelled and refund initiated');
       fetch(); setConfirmAction(null); closeDrawer();
     } catch { toast.error('Failed to cancel booking'); }
@@ -75,7 +74,7 @@ const BookingManagementPage = () => {
   const handleRefund = async () => {
     setActionLoading(true);
     try {
-      await api.post(`/payments/${confirmAction.booking.paymentId}/refund`);
+      await adminService.refundBooking(confirmAction.booking.bookingRef || confirmAction.booking._id);
       toast.success('Refund processed successfully');
       fetch(); setConfirmAction(null);
     } catch { toast.error('Failed to process refund'); }

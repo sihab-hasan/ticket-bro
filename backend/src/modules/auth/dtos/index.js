@@ -1,5 +1,7 @@
 'use strict';
 
+const { buildAccessProfile, deriveAccountStatus } = require('../../../common/utils/accessProfile');
+
 // ── Register DTO ──────────────────────────────────────────────────────────────
 class RegisterDTO {
   constructor(data) {
@@ -60,13 +62,16 @@ class TokenDTO {
 // ── User Response DTO ─────────────────────────────────────────────────────────
 class UserResponseDTO {
   constructor(user) {
+    const access = buildAccessProfile(user);
+
     this.id = user._id || user.id;
     this.firstName = user.firstName;
     this.lastName = user.lastName;
     this.fullName = user.fullName || `${user.firstName} ${user.lastName}`;
     this.email = user.email;
     this.phone = user.phone || null;
-    this.role = user.role;
+    this.role = access.role;
+    this.status = deriveAccountStatus(user);
     this.avatar = user.avatar || null;
     this.bio = user.bio || null;
     this.isEmailVerified = user.isEmailVerified;
@@ -75,6 +80,12 @@ class UserResponseDTO {
     this.lastLoginAt = user.lastLoginAt || null;
     this.createdAt = user.createdAt;
     this.updatedAt = user.updatedAt;
+    this.permissions = access.permissions;
+    this.allowedPanels = access.allowedPanels;
+    this.availablePanels = access.availablePanels;
+    this.defaultPanel = access.defaultPanel;
+    this.defaultPanelPath = access.defaultPanelPath;
+    this.access = access;
   }
 }
 

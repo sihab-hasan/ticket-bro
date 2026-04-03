@@ -50,10 +50,28 @@ const userSchema = new mongoose.Schema(
       },
       default: ROLES.USER,
     },
+    status: {
+      type: String,
+      enum: ['active', 'inactive', 'suspended', 'banned'],
+      default: 'active',
+      index: true,
+    },
     isActive: {
       type: Boolean,
       default: true,
       index: true,
+    },
+    statusReason: {
+      type: String,
+      trim: true,
+      maxlength: [500, 'Status reason cannot exceed 500 characters'],
+    },
+    statusUpdatedAt: {
+      type: Date,
+    },
+    statusUpdatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
     },
 
     // ── Email Verification ──────────────────────────────────────────────────────
@@ -190,6 +208,14 @@ userSchema.virtual('isLocked').get(function () {
   return !!(this.lockUntil && this.lockUntil > Date.now());
 });
 
+userSchema.virtual('isSuspended').get(function () {
+  return this.status === 'suspended';
+});
+
+userSchema.virtual('isBanned').get(function () {
+  return this.status === 'banned';
+});
+
 userSchema.virtual('age').get(function () {
   if (!this.dateOfBirth) return null;
   const today = new Date();
@@ -296,6 +322,18 @@ userSchema.pre(/^find/, function () {
   if (query.deletedAt === undefined) {
     this.where({ deletedAt: null });
   }
+});
+
+userSchema.pre('save', function (next) {
+  if (!this.isModified('status')) {
+    return next();
+  }
+
+  this.isActive = this.status === 'active';
+  if (!this.statusUpdatedAt) {
+    this.statusUpdatedAt = new Date();
+  }
+  next();
 });
 
 const User = mongoose.model('User', userSchema);

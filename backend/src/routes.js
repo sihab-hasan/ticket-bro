@@ -31,6 +31,8 @@ const promotionRoutes = require("./modules/promotions/promotion.routes");
 const analyticsRoutes = require("./modules/analytics/analytics.routes");
 const adminRoutes = require("./modules/admins/admin.routes");
 const auditRoutes = require("./modules/auditLogs/audit.routes");
+const moderatorRoutes = require('./modules/moderators/moderator.routes');
+const superAdminRoutes = require('./modules/superadmins/superadmin.routes');
 
 // ─── ROLES ───────────────────────────────────────────────────────────────────
 const { ROLES } = require("./common/constants/roles");
@@ -368,7 +370,9 @@ router.use("/users", authenticate, userRoutes);
 //   ADMIN
 //   Admin only — system management
 // ════════════════════════════════════════════════════════════════════════════
-router.use("/admin", authenticate, authorize(ROLES.ADMIN), adminRoutes);
+router.use("/moderator", moderatorRoutes);
+router.use("/admin", authenticate, authorize(ROLES.ADMIN, ROLES.SUPER_ADMIN), adminRoutes);
+router.use('/super-admin', superAdminRoutes);
 
 // GET    /admin/dashboard                         admin
 // GET    /admin/system/health                     admin
@@ -380,7 +384,7 @@ router.use("/admin", authenticate, authorize(ROLES.ADMIN), adminRoutes);
 //   AUDIT LOGS
 //   Admin only — read only
 // ════════════════════════════════════════════════════════════════════════════
-router.use("/audit", authenticate, authorize(ROLES.ADMIN), auditRoutes);
+router.use("/audit", authenticate, authorize(ROLES.ADMIN, ROLES.SUPER_ADMIN), auditRoutes);
 
 // GET    /audit                                   admin — all logs
 // GET    /audit/:id                               admin — single log

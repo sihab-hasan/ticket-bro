@@ -25,6 +25,7 @@ import {
   selectUser,
 } from "@/store/slices/authSlice";
 import authConfig from "@/config/auth.config";
+import { canUserAccessPanel } from "@/utils/access.utils";
 
 const Spinner = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -43,6 +44,7 @@ const ProtectedRoute = ({
   children,
   roles,
   allowedRoles,
+  requiredPanel,
   requireVerified = false,
 }) => {
   const location = useLocation();
@@ -80,6 +82,10 @@ const ProtectedRoute = ({
 
   // Role check
   if (requiredRoles?.length && user && !requiredRoles.includes(user.role)) {
+    return <Navigate to="/403" replace />;
+  }
+
+  if (requiredPanel && user && !canUserAccessPanel(user, requiredPanel)) {
     return <Navigate to="/403" replace />;
   }
 

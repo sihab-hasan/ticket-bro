@@ -3,7 +3,12 @@
 const { verifyAccessToken, extractBearerToken } = require('../../common/utils/tokenGenerator');
 const authRepository = require('./auth.repository');
 const { UnauthorizedError, ForbiddenError } = require('../../common/errors/AppError');
-const { ROLES, hasMinimumRole, hasPermission } = require('../../common/constants/roles');
+const {
+  ROLES,
+  normalizeRole,
+  hasMinimumRole,
+  hasPermission,
+} = require('../../common/constants/roles');
 const asyncHandler = require('../../common/utils/asyncHandler');
 
 /**
@@ -74,10 +79,14 @@ const optionalAuth = asyncHandler(async (req, res, next) => {
  * Usage: restrictTo(ROLES.ADMIN, ROLES.SUPER_ADMIN)
  */
 const restrictTo = (...roles) => {
+  const allowedRoles = roles.flat().map((role) => normalizeRole(role));
+
   return (req, res, next) => {
     if (!req.user) throw new UnauthorizedError('Authentication required.');
-    if (!roles.includes(req.user.role)) {
-      throw new ForbiddenError(`Access denied. Required roles: ${roles.join(', ')}`);
+    const userRole = normalizeRole(req.user.role);
+
+    if (!allowedRoles.includes(userRole)) {
+      throw new ForbiddenError(`Access denied. Required roles: ${allowedRoles.join(', ')}`);
     }
     next();
   };

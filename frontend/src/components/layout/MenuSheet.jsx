@@ -44,7 +44,7 @@ import { Link } from "react-router-dom";
 import {
   User, Settings, Ticket, Calendar, CreditCard,
   Heart, PlusCircle, Camera, LayoutDashboard, BarChart3,
-  Users, ChevronRight, Search, Tag, TrendingUp,
+  Users, Shield, Server, FileText, ChevronRight, Search, Tag, TrendingUp,
   Info, Mail, HelpCircle, LogOut,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -53,6 +53,13 @@ import {
   DropdownMenuGroup, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuShortcut,
 } from "@/components/ui/dropdown-menu";
+import { PANELS } from "@/config/panels.config";
+import { PANEL_ICON_BY_ID } from "@/config/panel-navigation.config";
+import {
+  canUserAccessPanel,
+  getUserAvailablePanels,
+  hasUserPermission,
+} from "@/utils/access.utils";
 
 // ════════════════════════════════════════════════════════════════════
 //  1. ROLE CONSTANTS
@@ -60,6 +67,8 @@ import {
 export const Role = {
   ADMIN:     "admin",
   ORGANIZER: "organizer",
+  MODERATOR: "moderator",
+  SUPER_ADMIN: "super_admin",
   USER:      "user",
 };
 
@@ -103,46 +112,97 @@ export const SUPPORT_ITEMS = [
 // Auth-only sections, role-gated.
 // Returns array of { id, label, items[] } — only sections the user can see.
 export const buildUserSections = (user) => {
-  const isOrgOrAdmin = user?.role === Role.ORGANIZER || user?.role === Role.ADMIN;
-  const isAdmin      = user?.role === Role.ADMIN;
+  const workspaces = getUserAvailablePanels(user)
+    .filter((panel) => panel?.id && panel?.path)
+    .map((panel) => ({
+      icon: PANEL_ICON_BY_ID[panel.id] || LayoutDashboard,
+      label: panel.label,
+      to: panel.path,
+      highlight: panel.id === user?.defaultPanel,
+    }));
 
-  return [
-    // ── Admin (admin only) ──────────────────────────────────────────
-    ...(isAdmin ? [{
-      id:    "admin",
-      label: "Admin",
-      items: [
-        { icon: LayoutDashboard, label: "Admin Dashboard",  to: "/admin/dashboard" },
-        { icon: Users,           label: "User Management",  to: "/admin/users"     },
-      ],
-    }] : []),
+  const sections = [];
 
-    // ── Organizer (organizer + admin) ───────────────────────────────
-    ...(isOrgOrAdmin ? [{
-      id:    "organizer",
+  if (workspaces.length > 1) {
+    sections.push({
+      id: "workspaces",
+      label: "Workspaces",
+      items: workspaces,
+    });
+  }
+
+  if (canUserAccessPanel(user, PANELS.ORGANIZER)) {
+    sections.push({
+      id: "organizer",
       label: "Organizer",
       items: [
-        { icon: LayoutDashboard, label: "Dashboard",    to: "/organizer/dashboard"               },
-        { icon: Calendar,        label: "My Events",    to: "/organizer/events"                  },
-        { icon: BarChart3,       label: "Revenue",      to: "/organizer/revenue"                 },
-        { icon: PlusCircle,      label: "Create Event", to: "/organizer/events/create", highlight: true },
+        { icon: LayoutDashboard, label: "Dashboard", to: "/organizer/dashboard" },
+        { icon: Calendar, label: "My Events", to: "/organizer/events" },
+        { icon: BarChart3, label: "Revenue", to: "/organizer/revenue" },
+        ...(hasUserPermission(user, "event:create")
+          ? [
+              {
+                icon: PlusCircle,
+                label: "Create Event",
+                to: "/organizer/events/create",
+                highlight: true,
+              },
+            ]
+          : []),
       ],
-    }] : []),
+    });
+  }
 
-    // ── Account (all authenticated users) ──────────────────────────
-    {
-      id:    "account",
-      label: "Account",
+  if (canUserAccessPanel(user, PANELS.MODERATOR)) {
+    sections.push({
+      id: "moderation",
+      label: "Moderation",
       items: [
-        { icon: Ticket,     label: "My Tickets", to: "/bookings"         },
-        { icon: Calendar,   label: "Calendar",   to: "/calendar"         },
-        { icon: CreditCard, label: "Payments",   to: "/payments/history" },
-        { icon: Heart,      label: "Favorites",  to: "/favorites"        },
-        { icon: User,       label: "Profile",    to: "/profile"          },
-        { icon: Settings,   label: "Settings",   to: "/settings"         },
+        { icon: Shield, label: "Moderator Dashboard", to: "/moderator/dashboard" },
+        { icon: FileText, label: "Reports Queue", to: "/moderator/reports" },
+        { icon: Users, label: "User Actions", to: "/moderator/users" },
       ],
-    },
-  ];
+    });
+  }
+
+  if (canUserAccessPanel(user, PANELS.ADMIN)) {
+    sections.push({
+      id: "admin",
+      label: "Admin",
+      items: [
+        { icon: LayoutDashboard, label: "Admin Dashboard", to: "/admin/dashboard" },
+        { icon: Users, label: "User Management", to: "/admin/users" },
+        { icon: Server, label: "System Security", to: "/admin/system/security" },
+      ],
+    });
+  }
+
+  if (canUserAccessPanel(user, PANELS.SUPER_ADMIN)) {
+    sections.push({
+      id: "governance",
+      label: "Super Admin",
+      items: [
+        { icon: Server, label: "Super Admin Dashboard", to: "/super-admin/dashboard" },
+        { icon: Users, label: "Role Management", to: "/super-admin/roles" },
+        { icon: FileText, label: "Audit Center", to: "/super-admin/audit" },
+      ],
+    });
+  }
+
+  sections.push({
+    id: "account",
+    label: "Account",
+    items: [
+      { icon: Ticket, label: "My Tickets", to: "/bookings" },
+      { icon: Calendar, label: "Calendar", to: "/calendar" },
+      { icon: CreditCard, label: "Payments", to: "/payments/history" },
+      { icon: Heart, label: "Favorites", to: "/favorites" },
+      { icon: User, label: "Profile", to: "/profile" },
+      { icon: Settings, label: "Settings", to: "/settings" },
+    ],
+  });
+
+  return sections;
 };
 
 // ════════════════════════════════════════════════════════════════════

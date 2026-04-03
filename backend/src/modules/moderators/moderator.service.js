@@ -1,262 +1,248 @@
-// ============================================================
-//  MODERATOR SERVICE — Full Complete
-//  src/modules/moderators/moderator.service.js
-// ============================================================
+'use strict';
 
-const User = require("../users/user.model");
-const AuditLog = require("../auditLogs/audit.model");
+const User = require('../users/user.model');
+const Event = require('../events/event.model');
+const Report = require('../reports/report.model');
+const AuditLog = require('../auditLogs/audit.model');
+const userService = require('../users/user.service');
+const { ROLES, normalizeRole } = require('../../common/constants/roles');
+const {
+  BadRequestError,
+  ForbiddenError,
+  NotFoundError,
+} = require('../../common/errors/AppError');
+
+const getId = (user) => user?.id || user?._id?.toString() || user?.userId?.toString();
 
 class ModeratorService {
-  // ─── SUSPEND USER ──────────────────────────────────────────
-  async suspendUser(moderatorId, targetUserId, reason, meta = {}) {
-    const target = await User.findById(targetUserId);
-    if (!target) {
-      const err = new Error("User not found");
-      err.statusCode = 404;
-      throw err;
-    }
-
-    // Cannot suspend staff — only admins/superadmins can do that
-    const targetRoles = target.roles;
-    const isStaff = targetRoles.some((r) =>
-      ["moderator", "admin", "superadmin"].includes(r),
-    );
-    if (isStaff) {
-      const err = new Error("Moderators cannot suspend staff members");
-      err.statusCode = 403;
-      throw err;
-    }
-
-    const previousStatus = target.status;
-
-    await User.findByIdAndUpdate(targetUserId, {
-      $set: {
-        status: "suspended",
-        statusReason: reason,
-        statusUpdatedBy: moderatorId,
-        statusUpdatedAt: new Date(),
-      },
-    });
-
-    // Revoke all sessions
-    const RefreshToken = require("../../infrastructure/tokens/RefreshToken");
-    await RefreshToken.revokeAllForUser(targetUserId, "admin_revoke");
-
-    await AuditLog.create({
-      action: "user_suspended",
-      module: "moderators",
-      performedBy: moderatorId,
-      performedByRole: "moderator",
-      targetUser: targetUserId,
-      targetEntity: "user",
-      previousValue: { status: previousStatus },
-      newValue: { status: "suspended", reason },
-      reason,
-      ip: meta.ip,
-      timestamp: new Date(),
-    });
-
-    return { message: "User suspended successfully" };
-  }
-
-  // ─── UNSUSPEND USER ────────────────────────────────────────
-  async unsuspendUser(moderatorId, targetUserId, meta = {}) {
-    const target = await User.findById(targetUserId);
-    if (!target) {
-      const err = new Error("User not found");
-      err.statusCode = 404;
-      throw err;
-    }
-
-    await User.findByIdAndUpdate(targetUserId, {
-      $set: {
-        status: "active",
-        statusReason: "",
-        statusUpdatedBy: moderatorId,
-        statusUpdatedAt: new Date(),
-      },
-    });
-
-    await AuditLog.create({
-      action: "user_unsuspended",
-      module: "moderators",
-      performedBy: moderatorId,
-      targetUser: targetUserId,
-      previousValue: { status: "suspended" },
-      newValue: { status: "active" },
-      ip: meta.ip,
-      timestamp: new Date(),
-    });
-
-    return { message: "User unsuspended successfully" };
-  }
-
-  // ─── WARN USER ─────────────────────────────────────────────
-  async warnUser(moderatorId, targetUserId, warning, meta = {}) {
-    const target = await User.findById(targetUserId);
-    if (!target) {
-      const err = new Error("User not found");
-      err.statusCode = 404;
-      throw err;
-    }
-
-    // Store warning in metadata
-    const warnings = JSON.parse(target.metadata?.get("warnings") || "[]");
-    warnings.push({
-      issuedBy: moderatorId,
-      reason: warning,
-      issuedAt: new Date(),
-    });
-
-    await User.findByIdAndUpdate(targetUserId, {
-      $set: { "metadata.warnings": JSON.stringify(warnings) },
-    });
-
-    await AuditLog.create({
-      action: "user_warned",
-      module: "moderators",
-      performedBy: moderatorId,
-      targetUser: targetUserId,
-      newValue: { warning },
-      ip: meta.ip,
-      timestamp: new Date(),
-    });
-
-    // TODO: send warning notification to user
-
-    return { message: "Warning issued to user" };
-  }
-
-  // ─── GET REPORTS QUEUE ─────────────────────────────────────
-  async getReportsQueue(filters = {}, pagination = {}) {
-    const Report = require("../reports/report.model");
-
-    const { status = "open", entityType } = filters;
-    const { page = 1, limit = 20 } = pagination;
-
-    const query = { status };
-    if (entityType) query.entityType = entityType;
-
-    const [reports, total] = await Promise.all([
-      Report.find(query)
-        .populate("reportedBy", "username profile.avatar")
-        .populate("reportedUser", "username profile.avatar")
-        .sort({ createdAt: 1 }) // oldest first
-        .skip((page - 1) * limit)
-        .limit(limit),
-      Report.countDocuments(query),
+  async getDashboard() {
+    const [openReports, pendingEvents, suspendedUsers, warningCount] = await Promise.all([
+      Report.countDocuments({ status: { $in: ['open', 'under_review'] } }),
+      Event.countDocuments({ deletedAt: null, status: 'pending' }),
+      User.countDocuments({ deletedAt: null, status: 'suspended' }),
+      AuditLog.countDocuments({ action: 'user.warned' }),
     ]);
 
     return {
-      reports,
-      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+      openReports,
+      pendingEvents,
+      suspendedUsers,
+      warningsIssued: warningCount,
     };
   }
 
-  // ─── RESOLVE REPORT ────────────────────────────────────────
-  async resolveReport(moderatorId, reportId, resolution, meta = {}) {
-    const Report = require("../reports/report.model");
-
-    const report = await Report.findById(reportId);
-    if (!report) {
-      const err = new Error("Report not found");
-      err.statusCode = 404;
-      throw err;
+  async getUsers({ page = 1, limit = 20, search, status } = {}) {
+    const filter = { deletedAt: null };
+    if (status) filter.status = status;
+    if (search) {
+      const re = new RegExp(search, 'i');
+      filter.$or = [{ firstName: re }, { lastName: re }, { email: re }];
     }
 
-    await Report.findByIdAndUpdate(reportId, {
-      $set: {
-        status: "resolved",
-        reviewedBy: moderatorId,
-        reviewedAt: new Date(),
-        resolution: resolution.decision,
-        resolutionNote: resolution.note,
-        actionTaken: resolution.action,
+    const skip = (Number(page) - 1) * Number(limit);
+    const [users, total] = await Promise.all([
+      User.find(filter)
+        .select('firstName lastName email avatar role status statusReason statusUpdatedAt createdAt')
+        .sort({ updatedAt: -1 })
+        .skip(skip)
+        .limit(Number(limit))
+        .lean(),
+      User.countDocuments(filter),
+    ]);
+
+    return {
+      users,
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / Number(limit)),
+      },
+    };
+  }
+
+  async suspendUser(moderator, targetUserId, reason) {
+    if (!reason) {
+      throw new BadRequestError('Reason is required.');
+    }
+
+    const target = await User.findOne({ _id: targetUserId, deletedAt: null }).lean();
+    if (!target) {
+      throw new NotFoundError('User not found.');
+    }
+
+    if ([ROLES.MODERATOR, ROLES.ADMIN, ROLES.SUPER_ADMIN].includes(normalizeRole(target.role))) {
+      throw new ForbiddenError('Moderators cannot suspend staff members.');
+    }
+
+    return userService.setUserStatus(targetUserId, 'suspended', moderator, reason);
+  }
+
+  async unsuspendUser(moderator, targetUserId) {
+    return userService.setUserStatus(targetUserId, 'active', moderator);
+  }
+
+  async warnUser(moderator, targetUserId, warning) {
+    if (!warning) {
+      throw new BadRequestError('Warning message is required.');
+    }
+
+    const target = await User.findOne({ _id: targetUserId, deletedAt: null }).lean();
+    if (!target) {
+      throw new NotFoundError('User not found.');
+    }
+
+    await AuditLog.create({
+      userId: getId(moderator),
+      userEmail: moderator.email,
+      userRole: moderator.role,
+      action: 'user.warned',
+      resource: 'user',
+      resourceId: targetUserId,
+      metadata: {
+        targetUserId,
+        warning,
       },
     });
 
-    await AuditLog.create({
-      action: "report_resolved",
-      module: "moderators",
-      performedBy: moderatorId,
-      targetId: reportId,
-      targetEntity: "report",
-      newValue: resolution,
-      ip: meta.ip,
-      timestamp: new Date(),
-    });
-
-    return { message: "Report resolved" };
+    return { targetUserId, warning };
   }
 
-  // ─── REVIEW EVENT ──────────────────────────────────────────
-  async approveEvent(moderatorId, eventId, meta = {}) {
-    const Event = require("../events/event.model");
+  async getReportsQueue({ page = 1, limit = 20, status, entityType } = {}) {
+    const filter = {};
+    if (status) filter.status = status;
+    if (entityType) filter.entityType = entityType;
+    if (!status) filter.status = { $in: ['open', 'under_review'] };
 
-    await Event.findByIdAndUpdate(eventId, {
-      $set: {
-        status: "published",
-        approvedBy: moderatorId,
-        approvedAt: new Date(),
-      },
-    });
-
-    await AuditLog.create({
-      action: "event_approved",
-      module: "moderators",
-      performedBy: moderatorId,
-      targetId: eventId,
-      targetEntity: "event",
-      ip: meta.ip,
-      timestamp: new Date(),
-    });
-
-    return { message: "Event approved and published" };
-  }
-
-  async rejectEvent(moderatorId, eventId, reason, meta = {}) {
-    const Event = require("../events/event.model");
-
-    await Event.findByIdAndUpdate(eventId, {
-      $set: {
-        status: "rejected",
-        rejectedBy: moderatorId,
-        rejectionReason: reason,
-      },
-    });
-
-    await AuditLog.create({
-      action: "event_rejected",
-      module: "moderators",
-      performedBy: moderatorId,
-      targetId: eventId,
-      targetEntity: "event",
-      newValue: { reason },
-      ip: meta.ip,
-      timestamp: new Date(),
-    });
-
-    return { message: "Event rejected" };
-  }
-
-  // ─── GET PENDING EVENTS ────────────────────────────────────
-  async getPendingEvents(pagination = {}) {
-    const Event = require("../events/event.model");
-    const { page = 1, limit = 20 } = pagination;
-
-    const [events, total] = await Promise.all([
-      Event.find({ status: "pending_approval" })
-        .populate("organizerId", "username organizerProfile.organizationName")
+    const skip = (Number(page) - 1) * Number(limit);
+    const [reports, total] = await Promise.all([
+      Report.find(filter)
+        .populate('reportedBy', 'firstName lastName email')
         .sort({ createdAt: 1 })
-        .skip((page - 1) * limit)
-        .limit(limit),
-      Event.countDocuments({ status: "pending_approval" }),
+        .skip(skip)
+        .limit(Number(limit))
+        .lean(),
+      Report.countDocuments(filter),
+    ]);
+
+    return {
+      reports: reports.map((report) => ({
+        ...report,
+        type: report.entityType,
+        reporter: report.reportedBy,
+        targetId: report.entityId,
+        priority:
+          report.reason === 'fraud'
+            ? 'high'
+            : ['spam', 'fake', 'misleading'].includes(report.reason)
+            ? 'medium'
+            : 'low',
+      })),
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / Number(limit)),
+      },
+    };
+  }
+
+  async resolveReport(moderator, reportId, resolution) {
+    const report = await Report.findByIdAndUpdate(
+      reportId,
+      {
+        $set: {
+          status: resolution.status || 'resolved',
+          reviewedBy: getId(moderator),
+          reviewedAt: new Date(),
+          resolution: resolution.decision || resolution.status || 'resolved',
+          resolutionNote: resolution.note || null,
+          actionTaken: resolution.action || 'none',
+        },
+      },
+      { new: true },
+    ).lean();
+
+    if (!report) {
+      throw new NotFoundError('Report not found.');
+    }
+
+    return report;
+  }
+
+  async getPendingEvents({ page = 1, limit = 20 } = {}) {
+    const skip = (Number(page) - 1) * Number(limit);
+    const [events, total] = await Promise.all([
+      Event.find({ deletedAt: null, status: 'pending' })
+        .populate('organizer', 'firstName lastName email avatar')
+        .populate('category', 'name slug')
+        .sort({ createdAt: 1 })
+        .skip(skip)
+        .limit(Number(limit))
+        .lean({ virtuals: true }),
+      Event.countDocuments({ deletedAt: null, status: 'pending' }),
     ]);
 
     return {
       events,
-      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / Number(limit)),
+      },
     };
+  }
+
+  async approveEvent(moderator, eventId) {
+    const event = await Event.findByIdAndUpdate(
+      eventId,
+      {
+        $set: {
+          status: 'published',
+          publishedAt: new Date(),
+          moderatedBy: getId(moderator),
+          moderatedAt: new Date(),
+          rejectionReason: '',
+        },
+      },
+      { new: true },
+    )
+      .populate('organizer', 'firstName lastName email avatar')
+      .lean({ virtuals: true });
+
+    if (!event) {
+      throw new NotFoundError('Event not found.');
+    }
+
+    return event;
+  }
+
+  async rejectEvent(moderator, eventId, reason) {
+    if (!reason) {
+      throw new BadRequestError('Rejection reason is required.');
+    }
+
+    const event = await Event.findByIdAndUpdate(
+      eventId,
+      {
+        $set: {
+          status: 'rejected',
+          rejectionReason: reason,
+          moderatedBy: getId(moderator),
+          moderatedAt: new Date(),
+        },
+      },
+      { new: true },
+    )
+      .populate('organizer', 'firstName lastName email avatar')
+      .lean({ virtuals: true });
+
+    if (!event) {
+      throw new NotFoundError('Event not found.');
+    }
+
+    return event;
   }
 }
 

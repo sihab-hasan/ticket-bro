@@ -87,7 +87,9 @@ class UserController {
 
   // ── GET /users/:userId ───────────────────────────────────────────────────────
   getUserById = catchAsync(async (req, res) => {
-    const user = await userService.getUserById(req.params.userId);
+    const user = await userService.getUserById(req.params.userId, {
+      includeInactive: true,
+    });
     sendSuccess(res, 200, 'User fetched successfully.', user);
   });
 
@@ -105,19 +107,19 @@ class UserController {
 
   // ── PATCH /users/:userId/activate ────────────────────────────────────────────
   activateUser = catchAsync(async (req, res) => {
-    const user = await userService.setUserActive(req.params.userId, true);
+    const user = await userService.setUserActive(req.params.userId, true, req.user, req.body.reason);
     sendSuccess(res, 200, 'User activated successfully.', user);
   });
 
   // ── PATCH /users/:userId/deactivate ──────────────────────────────────────────
   deactivateUser = catchAsync(async (req, res) => {
-    const user = await userService.setUserActive(req.params.userId, false);
+    const user = await userService.setUserActive(req.params.userId, false, req.user, req.body.reason);
     sendSuccess(res, 200, 'User deactivated successfully.', user);
   });
 
   // ── PATCH /users/:userId/role ─────────────────────────────────────────────────
   changeUserRole = catchAsync(async (req, res) => {
-    const user = await userService.changeRole(req.params.userId, req.body.role);
+    const user = await userService.changeRole(req.params.userId, req.body.role, req.user);
     sendSuccess(res, 200, 'User role updated successfully.', user);
   });
 }

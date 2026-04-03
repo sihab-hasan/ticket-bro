@@ -1,64 +1,63 @@
-// ============================================================
-//  MODERATOR ROUTES — Full Complete
-//  src/modules/moderators/moderator.routes.js
-// ============================================================
+'use strict';
 
-const express = require("express");
-const controller = require("./moderator.controller");
+const express = require('express');
+const controller = require('./moderator.controller');
 const {
-  verifyToken,
-  requireRole,
+  authenticate,
+  authorize,
   requirePermission,
-} = require("../auth/auth.middleware");
+} = require('../../common/middleware/auth.middleware');
+const { ROLES } = require('../../common/constants/roles');
+const { PERMISSIONS } = require('../../common/constants/permissions');
 
 const router = express.Router();
 
-router.use(verifyToken);
-router.use(requireRole("moderator", "admin", "superadmin"));
+router.use(authenticate);
+router.use(authorize(ROLES.MODERATOR, ROLES.ADMIN, ROLES.SUPER_ADMIN));
 
-// ─── USER MODERATION ─────────────────────────────────────────
+router.get('/dashboard', controller.getDashboard);
+router.get('/users', controller.getUsers);
+
 router.post(
-  "/users/:userId/suspend",
-  requirePermission("moderator:suspend_user"),
+  '/users/:userId/suspend',
+  requirePermission(PERMISSIONS.USER_BLOCK),
   controller.suspendUser,
 );
 router.post(
-  "/users/:userId/unsuspend",
-  requirePermission("moderator:suspend_user"),
+  '/users/:userId/unsuspend',
+  requirePermission(PERMISSIONS.USER_BLOCK),
   controller.unsuspendUser,
 );
 router.post(
-  "/users/:userId/warn",
-  requirePermission("moderator:warn_user"),
+  '/users/:userId/warn',
+  requirePermission(PERMISSIONS.REPORT_UPDATE),
   controller.warnUser,
 );
 
-// ─── REPORTS ─────────────────────────────────────────────────
 router.get(
-  "/reports",
-  requirePermission("moderator:view_reports"),
+  '/reports',
+  requirePermission(PERMISSIONS.REPORT_READ),
   controller.getReportsQueue,
 );
 router.put(
-  "/reports/:reportId/resolve",
-  requirePermission("moderator:resolve_report"),
+  '/reports/:reportId/resolve',
+  requirePermission(PERMISSIONS.REPORT_RESOLVE),
   controller.resolveReport,
 );
 
-// ─── EVENT REVIEW ─────────────────────────────────────────────
 router.get(
-  "/events/pending",
-  requirePermission("moderator:review_events"),
+  '/events/pending',
+  requirePermission(PERMISSIONS.EVENT_APPROVE),
   controller.getPendingEvents,
 );
 router.post(
-  "/events/:eventId/approve",
-  requirePermission("moderator:approve_event"),
+  '/events/:eventId/approve',
+  requirePermission(PERMISSIONS.EVENT_APPROVE),
   controller.approveEvent,
 );
 router.post(
-  "/events/:eventId/reject",
-  requirePermission("moderator:reject_event"),
+  '/events/:eventId/reject',
+  requirePermission(PERMISSIONS.EVENT_REJECT),
   controller.rejectEvent,
 );
 
