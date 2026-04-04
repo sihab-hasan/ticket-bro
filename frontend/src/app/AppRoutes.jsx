@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
 // frontend/src/app/AppRoutes.jsx
 //
 // ╔══════════════════════════════════════════════════════════════╗
@@ -28,6 +27,7 @@ import OrganizerLayout from "@/components/layout/OrganizerLayout";
 import AdminLayout from "@/components/layout/AdminLayout";
 import ModeratorLayout from "@/components/layout/ModeratorLayout";
 import SuperAdminLayout from "@/components/layout/SuperAdminLayout";
+import MessagingLayout from "@/components/layout/MessagingLayout";
 
 // ── Critical path — eager ─────────────────────────────────────────────────────
 import BrowsePage from "@/pages/browse/BrowseAllPage";
@@ -156,9 +156,6 @@ const AdminAnalyticsDashboard = lazy(
   () => import("@/pages/admin/AnalyticsDashboard"),
 );
 const AdminReportsPage = lazy(() => import("@/pages/admin/ReportsPage"));
-const AdminReviewsManagementPage = lazy(
-  () => import("@/pages/admin/ReviewsManagementPage"),
-);
 const AdminPromotionsPage = lazy(() => import("@/pages/admin/PromotionsPage"));
 const AdminSystemSettingsPage = lazy(
   () => import("@/pages/admin/SystemSettingsPage"),
@@ -281,8 +278,8 @@ export const ROUTES = {
   },
 
   REVIEWS: {
-    ROOT: "/reviews",
-    WRITE: "/reviews/write",
+    EVENT: (eventId) => `/reviews/event/${eventId}`,
+    WRITE: (eventId) => `/reviews/write/${eventId}`,
   },
 
   ORGANIZER: {
@@ -320,7 +317,6 @@ export const ROUTES = {
     PAYMENT: (id) => `/admin/payments/${id}`,
     ANALYTICS: "/admin/analytics",
     REPORTS: "/admin/reports",
-    REVIEWS: "/admin/reviews",
     PROMOTIONS: "/admin/promotions",
     SYSTEM_SETTINGS: "/admin/system/settings",
     SYSTEM_SECURITY: "/admin/system/security",
@@ -365,7 +361,6 @@ const AppRoutes = () => (
 
         {/* All Events page — only route that uses /browse */}
         <Route path="/browse" element={<BrowsePage />} />
-        <Route path="/reviews" element={<ReviewsPage />} />
 
         {/* Category → SubCategory → EventType → EventDetails (no /browse/ prefix) */}
         <Route path="/:categorySlug" element={<CategoryPage />} />
@@ -445,18 +440,27 @@ const AppRoutes = () => (
       />
 
       {/* ══════════════════════════════════════════════════════════
+          PROTECTED — Messaging (full-height, no footer)
+      ══════════════════════════════════════════════════════════ */}
+      <Route element={<ProtectedRoute />}>
+        <Route element={<MessagingLayout />}>
+          <Route path="/messages" element={<InboxPage />}>
+            <Route path="conversation/:conversationId" element={<ConversationPage />} />
+          </Route>
+          <Route path="/messages/chat/:userId" element={<ChatPage />} />
+        </Route>
+      </Route>
+
+      {/* ══════════════════════════════════════════════════════════
           PROTECTED — Any authenticated user + UserLayout
       ══════════════════════════════════════════════════════════ */}
-      <Route element={<ProtectedRoute requireVerified />}>
+      <Route element={<ProtectedRoute />}>
         <Route element={<UserLayout />}>
           <Route path="/profile">
             <Route index element={<ProfilePage />} />
             <Route path="edit" element={<EditProfilePage />} />
             <Route path="change-password" element={<ChangePasswordPage />} />
-            <Route
-              path="notifications"
-              element={<NotificationSettingsPage />}
-            />
+            <Route path="notifications" element={<NotificationSettingsPage />} />
           </Route>
 
           <Route path="/bookings">
@@ -471,10 +475,7 @@ const AppRoutes = () => (
             <Route path="seats/:eventId" element={<SeatSelectionPage />} />
             <Route path="book/:ticketId" element={<TicketBookingPage />} />
             <Route path="payment/:bookingId" element={<TicketPaymentPage />} />
-            <Route
-              path="confirm/:bookingId"
-              element={<TicketConfirmationPage />}
-            />
+            <Route path="confirm/:bookingId" element={<TicketConfirmationPage />} />
             <Route path="download/:ticketId" element={<TicketDownloadPage />} />
           </Route>
 
@@ -486,24 +487,15 @@ const AppRoutes = () => (
             <Route path="details/:paymentId" element={<PaymentDetailsPage />} />
           </Route>
 
-          <Route path="/messages">
-            <Route index element={<InboxPage />} />
-            <Route
-              path="conversation/:conversationId"
-              element={<ConversationPage />}
-            />
-            <Route path="chat/:userId" element={<ChatPage />} />
-          </Route>
-
           <Route path="/notifications">
             <Route index element={<NotificationsPage />} />
-            <Route
-              path=":notificationId"
-              element={<NotificationDetailPage />}
-            />
+            <Route path=":notificationId" element={<NotificationDetailPage />} />
           </Route>
 
-          <Route path="/reviews/write" element={<WriteReviewPage />} />
+          <Route path="/reviews">
+            <Route path="event/:eventId" element={<ReviewsPage />} />
+            <Route path="write/:eventId" element={<WriteReviewPage />} />
+          </Route>
         </Route>
       </Route>
 
@@ -512,7 +504,7 @@ const AppRoutes = () => (
       ══════════════════════════════════════════════════════════ */}
       <Route
         element={
-          <ProtectedRoute requiredPanel="organizer" requireVerified />
+          <ProtectedRoute requiredPanel="organizer" />
         }
       >
         <Route element={<OrganizerLayout />}>
@@ -548,7 +540,7 @@ const AppRoutes = () => (
       ══════════════════════════════════════════════════════════ */}
       <Route
         element={
-          <ProtectedRoute requiredPanel="admin" requireVerified />
+          <ProtectedRoute requiredPanel="admin" />
         }
       >
         <Route element={<AdminLayout />}>
@@ -579,7 +571,6 @@ const AppRoutes = () => (
             </Route>
             <Route path="analytics" element={<AdminAnalyticsDashboard />} />
             <Route path="reports" element={<AdminReportsPage />} />
-            <Route path="reviews" element={<AdminReviewsManagementPage />} />
             <Route path="promotions" element={<AdminPromotionsPage />} />
             <Route path="system">
               <Route path="settings" element={<AdminSystemSettingsPage />} />
@@ -594,7 +585,7 @@ const AppRoutes = () => (
       {/* ══════════════════════════════════════════════════════════
           PROTECTED — Moderator + Admin + Super Admin
       ══════════════════════════════════════════════════════════ */}
-      <Route element={<ProtectedRoute requiredPanel="moderator" requireVerified />}>
+      <Route element={<ProtectedRoute requiredPanel="moderator" />}>
         <Route element={<ModeratorLayout />}>
           <Route path="/moderator">
             <Route
@@ -612,7 +603,7 @@ const AppRoutes = () => (
       {/* ══════════════════════════════════════════════════════════
           PROTECTED — Super Admin only
       ══════════════════════════════════════════════════════════ */}
-      <Route element={<ProtectedRoute requiredPanel="super_admin" requireVerified />}>
+      <Route element={<ProtectedRoute requiredPanel="super_admin" />}>
         <Route element={<SuperAdminLayout />}>
           <Route path="/super-admin">
             <Route

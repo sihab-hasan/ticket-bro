@@ -79,6 +79,12 @@ export const PANEL_NAVIGATION = {
       section: "Setup",
       items: [
         {
+          label: "Messages",
+          href: "/messages",
+          icon: MessageSquare,
+          description: "Chat with attendees and answer questions",
+        },
+        {
           label: "Settings",
           href: "/organizer/settings",
           icon: Settings,
@@ -175,12 +181,6 @@ export const PANEL_NAVIGATION = {
           href: "/admin/payments",
           icon: CreditCard,
           description: "Review payments, payouts, and settlement issues",
-        },
-        {
-          label: "Reviews",
-          href: "/admin/reviews",
-          icon: MessageSquare,
-          description: "Moderate app-wide user feedback",
         },
         {
           label: "Promotions",

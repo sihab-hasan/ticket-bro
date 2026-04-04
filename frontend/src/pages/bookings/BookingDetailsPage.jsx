@@ -51,9 +51,8 @@ const BookingDetailsPage = () => {
     <div className="p-4 sm:p-6 space-y-4"><Skeleton className="h-8 w-48" /><Skeleton className="h-64 w-full rounded-2xl" /><Skeleton className="h-48 w-full rounded-2xl" /></div>
   );
 
-  const totalTickets = Array.isArray(booking?.items) ? booking.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0) : (booking?.totalTickets || booking?.quantity || 0);
-  const canCancel = booking?.status === 'confirmed' && booking?.event?.startDate && new Date(booking.event.startDate) > new Date();
-  const canReview = booking?.status === 'confirmed' && booking?.event?.endDate && new Date(booking.event.endDate) < new Date();
+  const canCancel = booking?.status === 'confirmed' && new Date(booking?.event?.startDate) > new Date();
+  const canReview = booking?.status === 'confirmed' && new Date(booking?.event?.endDate) < new Date();
 
   return (
     <div className="p-4 sm:p-6 space-y-5 font-sans max-w-2xl mx-auto">
@@ -75,7 +74,7 @@ const BookingDetailsPage = () => {
         </div>
         <div className="text-right">
           <p className="text-xl font-extrabold font-heading text-green-600">{formatPrice(booking?.totalAmount)}</p>
-          <p className="text-xs text-muted-foreground">{totalTickets} ticket{totalTickets > 1 ? 's' : ''}</p>
+          <p className="text-xs text-muted-foreground">{booking?.quantity || 1} ticket{(booking?.quantity || 1) > 1 ? 's' : ''}</p>
         </div>
       </div>
 
@@ -89,17 +88,7 @@ const BookingDetailsPage = () => {
           <InfoRow label="Event" value={booking?.event?.title} icon={Calendar} />
           <InfoRow label="Date & Time" value={formatDate(booking?.event?.startDate)} icon={Calendar} />
           <InfoRow label="Venue" value={[booking?.event?.venue?.name, booking?.event?.venue?.city].filter(Boolean).join(', ')} icon={MapPin} />
-          {/* Display ticket types summary. If multiple types, show count or label. */}
-          <InfoRow
-            label="Ticket Type"
-            value={(() => {
-              if (Array.isArray(booking?.items)) {
-                const unique = Array.from(new Set(booking.items.map((it) => it.ticketTypeName))).filter(Boolean);
-                return unique.length === 1 ? `${unique[0]} × ${totalTickets}` : `${unique.length} types`; }
-              return booking?.ticketType?.name;
-            })()}
-            icon={Ticket}
-          />
+          <InfoRow label="Ticket Type" value={booking?.ticketType?.name} icon={Ticket} />
           <InfoRow label="Organizer" value={booking?.event?.organizer?.name} icon={User} />
         </CardContent>
       </Card>
@@ -124,6 +113,16 @@ const BookingDetailsPage = () => {
         <Button variant="outline" onClick={handleDownload} className="flex-1">
           <Download className="h-4 w-4 mr-2" /> Download Invoice
         </Button>
+        {booking?.event?.organizerUserId && (
+          <Link
+            to={`${ROUTES.MESSAGES.CHAT(booking.event.organizerUserId)}${booking?.event?._id ? `?eventId=${booking.event._id}` : ''}`}
+            className="flex-1"
+          >
+            <Button variant="outline" className="w-full border-primary/30 text-primary hover:bg-primary/5">
+              <MessageSquare className="h-4 w-4 mr-2" /> Message Organizer
+            </Button>
+          </Link>
+        )}
         {canCancel && (
           <Link to={ROUTES.BOOKINGS.CANCEL(bookingId)} className="flex-1">
             <Button variant="outline" className="w-full border-red-500/30 text-red-500 hover:bg-red-500/5">
@@ -132,9 +131,9 @@ const BookingDetailsPage = () => {
           </Link>
         )}
         {canReview && (
-          <Link to={ROUTES.REVIEWS.WRITE} className="flex-1">
+          <Link to={ROUTES.REVIEWS.WRITE(booking?.event?.slug || booking?.event?._id)} className="flex-1">
             <Button className="w-full font-bold">
-              <Star className="h-4 w-4 mr-2" /> Leave App Review
+              <Star className="h-4 w-4 mr-2" /> Write Review
             </Button>
           </Link>
         )}

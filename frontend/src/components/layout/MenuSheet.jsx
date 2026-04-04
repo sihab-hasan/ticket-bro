@@ -45,7 +45,7 @@ import {
   User, Settings, Ticket, Calendar, CreditCard,
   Heart, PlusCircle, Camera, LayoutDashboard, BarChart3,
   Users, Shield, Server, FileText, ChevronRight, Search, Tag, TrendingUp,
-  Info, Mail, HelpCircle, LogOut,
+  Info, Mail, HelpCircle, LogOut, MessageSquare,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge }                               from "@/components/ui/badge";
@@ -193,8 +193,9 @@ export const buildUserSections = (user) => {
     id: "account",
     label: "Account",
     items: [
-      { icon: Ticket, label: "My Tickets", to: "/bookings" },
-      { icon: Calendar, label: "Calendar", to: "/calendar" },
+      { icon: Ticket,        label: "My Tickets",  to: "/bookings"          },
+      { icon: MessageSquare, label: "Messages",    to: "/messages"          },
+      { icon: Calendar,      label: "Calendar",    to: "/calendar"          },
       { icon: CreditCard, label: "Payments", to: "/payments/history" },
       { icon: Heart, label: "Favorites", to: "/favorites" },
       { icon: User, label: "Profile", to: "/profile" },
