@@ -30,6 +30,8 @@ const PREFS = [
   ]},
 ];
 
+const DEFAULT_PREF_VALUES = { soundEnabled: true };
+
 const NotificationSettingsPage = () => {
   const [prefs, setPrefs] = useState({});
   const [loading, setLoading] = useState(true);
@@ -39,7 +41,7 @@ const NotificationSettingsPage = () => {
     (async () => {
       try {
         const data = await notificationsService.getPreferences();
-        setPrefs(data || {});
+        setPrefs({ ...DEFAULT_PREF_VALUES, ...(data || {}) });
       } catch {} finally { setLoading(false); }
     })();
   }, []);
@@ -80,6 +82,19 @@ const NotificationSettingsPage = () => {
           </CardContent>
         </Card>
       ))}
+
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-sm font-bold">General</CardTitle></CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between py-1">
+            <div className="pr-4">
+              <p className="text-sm font-semibold">Notification sound</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Play a short sound for important alerts</p>
+            </div>
+            <Switch checked={!!prefs.soundEnabled} onCheckedChange={() => toggle('soundEnabled')} />
+          </div>
+        </CardContent>
+      </Card>
 
       <Button onClick={handleSave} disabled={saving} className="w-full font-bold">
         {saving ? 'Saving…' : <><Save className="h-4 w-4 mr-2" />Save Preferences</>}

@@ -15,33 +15,38 @@ import { formatDate, formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
 import { searchService } from '@/api';
+import { getEventImage, getEventLocationLabel, getEventPriceLabel } from '@/utils/event-card';
 
-const EventCard = ({ event }) => (
-  <Link to={ROUTES.EVENT(event.slug || event._id)} className="block no-underline">
-    <Card className="group hover:shadow-md transition-all overflow-hidden cursor-pointer">
-      <div className="h-36 overflow-hidden bg-muted">
-        {event.coverImage ? (
-          <img src={event.coverImage} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center"><Ticket className="h-8 w-8 text-muted-foreground/30" /></div>
-        )}
-      </div>
-      <CardContent className="p-4">
-        <p className="text-sm font-bold font-heading line-clamp-1 group-hover:text-primary transition-colors">{event.title}</p>
-        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-          <span className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="h-3 w-3" />{formatDate(event.startDate, { dateStyle: 'medium', timeStyle: undefined })}</span>
-          {event.venue?.city && <span className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" />{event.venue.city}</span>}
+const EventCard = ({ event }) => {
+  const imageSrc = getEventImage(event);
+  const locationLabel = getEventLocationLabel(event);
+  const priceLabel = getEventPriceLabel(event);
+
+  return (
+    <Link to={ROUTES.EVENT(event.slug || event._id)} className="block no-underline">
+      <Card className="group hover:shadow-md transition-all overflow-hidden cursor-pointer">
+        <div className="h-36 overflow-hidden bg-muted">
+          {imageSrc ? (
+            <img src={imageSrc} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center"><Ticket className="h-8 w-8 text-muted-foreground/30" /></div>
+          )}
         </div>
-        <div className="flex items-center justify-between mt-2.5">
-          {event.avgRating > 0 && <div className="flex items-center gap-1"><Star className="h-3 w-3 fill-yellow-400 text-yellow-400" /><span className="text-xs font-semibold">{event.avgRating.toFixed(1)}</span></div>}
-          <p className="text-sm font-bold text-primary ml-auto">
-            {event.lowestPrice === 0 ? 'FREE' : event.lowestPrice ? `From ${formatPrice(event.lowestPrice)}` : 'See prices'}
-          </p>
-        </div>
-      </CardContent>
-    </Card>
-  </Link>
-);
+        <CardContent className="p-4">
+          <p className="text-sm font-bold font-heading line-clamp-1 group-hover:text-primary transition-colors">{event.title}</p>
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+            <span className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="h-3 w-3" />{formatDate(event.startDate, { dateStyle: 'medium', timeStyle: undefined })}</span>
+            {locationLabel && <span className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" />{locationLabel}</span>}
+          </div>
+          <div className="flex items-center justify-between mt-2.5">
+            {event.avgRating > 0 && <div className="flex items-center gap-1"><Star className="h-3 w-3 fill-yellow-400 text-yellow-400" /><span className="text-xs font-semibold">{event.avgRating.toFixed(1)}</span></div>}
+            <p className="text-sm font-bold text-primary ml-auto">{priceLabel}</p>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
+  );
+};
 
 const SearchResultsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();

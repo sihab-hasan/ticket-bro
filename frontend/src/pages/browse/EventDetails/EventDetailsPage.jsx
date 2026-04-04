@@ -1,6 +1,13 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { AlertCircle, ChevronLeft, Loader2 } from "lucide-react";
+import { useSelector } from "react-redux";
+import {
+  AlertCircle,
+  ChevronLeft,
+  ExternalLink,
+  Loader2,
+  RefreshCcw,
+} from "lucide-react";
 import Container from "@/components/layout/Container";
 import Breadcrumb from "@/components/shared/common/Breadcrumb";
 import eventsService from "@/api/events.api";
@@ -9,6 +16,7 @@ import {
   normalizeEvent,
   normalizeTicketType,
 } from "@/utils/browse.utils";
+import { ROUTES } from "@/app/AppRoutes";
 import {
   EventAboutSection,
   EventAgendaSection,
@@ -23,6 +31,9 @@ import {
   EventTicketsSection,
   EventVenueSection,
 } from "@/components/browse/event";
+
+const SAVED_EVENTS_STORAGE_KEY = "ticket-bro:saved-events";
+const STAFF_ROLES = new Set(["moderator", "admin", "super_admin"]);
 
 const EventLoading = () => (
   <div className="flex min-h-screen items-center justify-center bg-background">
@@ -89,23 +100,202 @@ const EventNotFound = () => {
   );
 };
 
+const EventLoadError = ({ onRetry }) => {
+  const navigate = useNavigate();
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="flex max-w-md flex-col items-center gap-4 rounded-3xl border border-border p-8 text-center shadow-sm">
+        <div
+          className="flex h-14 w-14 items-center justify-center rounded-2xl border border-border"
+          style={{ background: "var(--secondary)" }}
+        >
+          <AlertCircle size={24} className="text-muted-foreground" />
+        </div>
+        <div>
+          <h2
+            className="mb-1 text-xl font-bold text-foreground"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
+            We couldn't load this event
+          </h2>
+          <p
+            className="text-sm text-muted-foreground"
+            style={{ fontFamily: "var(--font-sans)" }}
+          >
+            Please refresh and try again. If the problem continues, the event
+            may still be updating.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <button
+            onClick={onRetry}
+            className="inline-flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold"
+            style={{
+              background: "var(--foreground)",
+              color: "var(--background)",
+              fontFamily: "var(--font-sans)",
+            }}
+          >
+            <RefreshCcw size={14} /> Retry
+          </button>
+          <button
+            onClick={() => navigate(-1)}
+            className="inline-flex h-10 items-center gap-2 rounded-xl border border-border px-4 text-sm font-semibold hover:bg-accent"
+            style={{ fontFamily: "var(--font-sans)" }}
+          >
+            <ChevronLeft size={14} /> Go Back
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Divider = () => <div className="border-t border-border" />;
+
+const getSavedEvents = () => {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(
+      window.localStorage.getItem(SAVED_EVENTS_STORAGE_KEY) || "[]",
+    );
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+const persistSavedEvents = (items) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(SAVED_EVENTS_STORAGE_KEY, JSON.stringify(items));
+};
+
+const getOrganizerId = (event) =>
+  event?.organizer?._id ||
+  event?.organizer?.id ||
+  event?.organizerProfile?.user ||
+  event?.organizerProfile?.owner ||
+  null;
+
+const getPreviewBanner = (event, user) => {
+  if (!event) {
+    return null;
+  }
+
+  const userId = user?._id || user?.id || null;
+  const organizerId = getOrganizerId(event);
+  const isOwner = Boolean(
+    userId && organizerId && String(userId) === String(organizerId),
+  );
+  const isStaff = STAFF_ROLES.has(user?.role);
+  const canManage = isOwner || isStaff;
+
+  const sharedCta = canManage
+    ? {
+        label: isStaff
+          ? "Open admin manager"
+          : "Continue editing",
+        href:
+          isStaff && event.id
+            ? ROUTES.ADMIN.EVENT(event.id)
+            : ROUTES.ORGANIZER.EDIT_EVENT(event.slug || event.id),
+      }
+    : null;
+
+  switch (event.status) {
+    case "draft":
+      return {
+        tone: "muted",
+        title: "Draft preview",
+        description:
+          "This event is still a draft. Attendees cannot see or book it until it is submitted and approved.",
+        cta: sharedCta,
+      };
+    case "pending":
+      return {
+        tone: "warning",
+        title: "Pending review",
+        description:
+          "This event has been submitted for review. Ticket sales stay disabled until it is approved and published.",
+        cta: sharedCta,
+      };
+    case "rejected":
+      return {
+        tone: "danger",
+        title: "Needs changes",
+        description:
+          event.rejectionReason
+            ? `Review note: ${event.rejectionReason}`
+            : "This event was sent back for changes before it can go live.",
+        cta: sharedCta,
+      };
+    case "cancelled":
+      return {
+        tone: "danger",
+        title: "Event cancelled",
+        description:
+          "This event has been cancelled. New bookings are unavailable.",
+        cta: sharedCta,
+      };
+    case "postponed":
+      return {
+        tone: "warning",
+        title: "Event postponed",
+        description:
+          "This event has been postponed. Check back for updated date and venue details.",
+        cta: sharedCta,
+      };
+    case "completed":
+      return {
+        tone: "muted",
+        title: "Event completed",
+        description:
+          "This event has already finished. Ticket purchases are closed.",
+        cta: sharedCta,
+      };
+    default:
+      return null;
+  }
+};
+
+const bannerToneClass = {
+  muted: "border-border bg-secondary/70 text-foreground",
+  warning: "border-amber-500/25 bg-amber-500/10 text-foreground",
+  danger: "border-red-500/25 bg-red-500/10 text-foreground",
+};
 
 const EventDetailsPage = () => {
   const { eventSlug } = useParams();
   const ticketsRef = useRef(null);
+  const shareTimerRef = useRef(null);
+  const user = useSelector((state) => state.auth?.user);
+
   const [saved, setSaved] = useState(false);
-  const [shared, setShared] = useState(false);
+  const [flashMessage, setFlashMessage] = useState("");
+  const [reloadToken, setReloadToken] = useState(0);
   const [state, setState] = useState({
     event: null,
     relatedEvents: [],
     reviews: [],
     isLoading: true,
     notFound: false,
+    loadError: false,
   });
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0 });
+  }, [eventSlug]);
+
+  useEffect(() => {
+    const savedEvents = getSavedEvents();
+    setSaved(savedEvents.includes(eventSlug));
   }, [eventSlug]);
 
   useEffect(() => {
@@ -118,11 +308,42 @@ const EventDetailsPage = () => {
         reviews: [],
         isLoading: true,
         notFound: false,
+        loadError: false,
       });
 
-      const [eventResult, ticketsResult, relatedResult, reviewsResult] =
+      let rawEvent = null;
+
+      try {
+        rawEvent = await eventsService.getEventDetails(eventSlug);
+      } catch {
+        try {
+          rawEvent = await eventsService.getEventBySlug(eventSlug);
+        } catch (error) {
+          if (cancelled) {
+            return;
+          }
+
+          const status = error?.response?.status;
+          setState({
+            event: null,
+            relatedEvents: [],
+            reviews: [],
+            isLoading: false,
+            notFound: status === 404,
+            loadError: status !== 404,
+          });
+          return;
+        }
+      }
+
+      if (cancelled) {
+        return;
+      }
+
+      const event = normalizeEvent(rawEvent);
+
+      const [ticketsResult, relatedResult, reviewsResult] =
         await Promise.allSettled([
-          eventsService.getEventDetails(eventSlug),
           eventsService.getTicketTypes(eventSlug),
           eventsService.getRelatedEvents(eventSlug),
           eventsService.getEventReviews(eventSlug, {
@@ -136,38 +357,31 @@ const EventDetailsPage = () => {
         return;
       }
 
-      if (eventResult.status !== "fulfilled" || !eventResult.value) {
-        setState({
-          event: null,
-          relatedEvents: [],
-          reviews: [],
-          isLoading: false,
-          notFound: true,
-        });
-        return;
-      }
-
-      const event = normalizeEvent(eventResult.value);
       const tickets =
         ticketsResult.status === "fulfilled"
           ? (ticketsResult.value || []).map((ticket) =>
               normalizeTicketType(ticket, event.currency),
             )
           : [];
+
       const hydratedEvent = {
         ...event,
         tickets,
       };
+
       const relatedEvents =
         relatedResult.status === "fulfilled"
           ? (relatedResult.value || []).map(normalizeEvent)
           : [];
-      const reviews =
+
+      const reviewItems =
         reviewsResult.status === "fulfilled"
-          ? (reviewsResult.value?.reviews || reviewsResult.value || []).map((review) =>
-              normalizeBrowseReview(review, hydratedEvent),
-            )
+          ? reviewsResult.value?.reviews || reviewsResult.value || []
           : [];
+
+      const reviews = reviewItems.map((review) =>
+        normalizeBrowseReview(review, hydratedEvent),
+      );
 
       setState({
         event: hydratedEvent,
@@ -175,34 +389,76 @@ const EventDetailsPage = () => {
         reviews,
         isLoading: false,
         notFound: false,
+        loadError: false,
       });
 
-      eventsService.trackEventView(eventSlug).catch(() => null);
+      if (hydratedEvent.status === "published") {
+        eventsService.trackEventView(eventSlug).catch(() => null);
+      }
     };
 
     loadEvent();
 
     return () => {
       cancelled = true;
+      if (shareTimerRef.current) {
+        window.clearTimeout(shareTimerRef.current);
+      }
     };
-  }, [eventSlug]);
+  }, [eventSlug, reloadToken]);
 
-  const { event, relatedEvents, reviews, isLoading, notFound } = state;
+  const { event, relatedEvents, reviews, isLoading, notFound, loadError } =
+    state;
 
-  const handleSave = () => setSaved((current) => !current);
+  const previewBanner = useMemo(
+    () => getPreviewBanner(event, user),
+    [event, user],
+  );
 
-  const handleShare = () => {
-    const url = window.location.href;
+  const setTimedFlash = (message) => {
+    setFlashMessage(message);
+    if (shareTimerRef.current) {
+      window.clearTimeout(shareTimerRef.current);
+    }
+    shareTimerRef.current = window.setTimeout(() => setFlashMessage(""), 2200);
+  };
 
-    if (navigator.share) {
-      navigator.share({ title: event?.title, url }).catch(() => {});
+  const handleSave = () => {
+    const savedEvents = getSavedEvents();
+
+    if (saved) {
+      const next = savedEvents.filter((value) => value !== eventSlug);
+      persistSavedEvents(next);
+      setSaved(false);
+      setTimedFlash("Removed from saved events");
       return;
     }
 
-    navigator.clipboard?.writeText(url).then(() => {
-      setShared(true);
-      setTimeout(() => setShared(false), 2000);
-    });
+    const next = Array.from(new Set([...savedEvents, eventSlug]));
+    persistSavedEvents(next);
+    setSaved(true);
+    setTimedFlash("Saved for later");
+  };
+
+  const handleShare = async () => {
+    const url = window.location.href;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: event?.title, url });
+        setTimedFlash("Share sheet opened");
+        return;
+      } catch {
+        // Fall back to clipboard below.
+      }
+    }
+
+    try {
+      await navigator.clipboard?.writeText(url);
+      setTimedFlash("Link copied to clipboard");
+    } catch {
+      setTimedFlash("Copy the page URL from your address bar");
+    }
   };
 
   const scrollToTickets = () => {
@@ -210,6 +466,9 @@ const EventDetailsPage = () => {
   };
 
   if (isLoading) return <EventLoading />;
+  if (loadError) {
+    return <EventLoadError onRetry={() => setReloadToken((current) => current + 1)} />;
+  }
   if (notFound || !event) return <EventNotFound />;
 
   return (
@@ -225,6 +484,40 @@ const EventDetailsPage = () => {
         </Container>
       </div>
 
+      {previewBanner && (
+        <Container>
+          <div
+            className={`mt-4 flex flex-col gap-3 rounded-2xl border px-4 py-4 shadow-sm ${bannerToneClass[previewBanner.tone]}`}
+          >
+            <div>
+              <p
+                className="text-sm font-bold"
+                style={{ fontFamily: "var(--font-heading)" }}
+              >
+                {previewBanner.title}
+              </p>
+              <p
+                className="mt-1 text-sm text-muted-foreground"
+                style={{ fontFamily: "var(--font-sans)" }}
+              >
+                {previewBanner.description}
+              </p>
+            </div>
+            {previewBanner.cta && (
+              <div>
+                <Link
+                  to={previewBanner.cta.href}
+                  className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-xs font-semibold hover:bg-background"
+                  style={{ fontFamily: "var(--font-sans)" }}
+                >
+                  {previewBanner.cta.label} <ExternalLink size={12} />
+                </Link>
+              </div>
+            )}
+          </div>
+        </Container>
+      )}
+
       <EventHeroSection
         event={event}
         saved={saved}
@@ -234,7 +527,7 @@ const EventDetailsPage = () => {
       />
 
       <Container>
-        <div className="grid grid-cols-1 gap-8 py-8 xl:grid-cols-[1fr_400px] xl:gap-12 xl:py-12">
+        <div className="grid grid-cols-1 gap-8 py-8 xl:grid-cols-[minmax(0,1fr)_400px] xl:gap-12 xl:py-12">
           <div className="flex min-w-0 flex-col gap-10">
             <EventAboutSection event={event} />
             <Divider />
@@ -314,6 +607,13 @@ const EventDetailsPage = () => {
                   { label: "Event Type", value: event.eventType?.name || "-" },
                   { label: "Timezone", value: event.timezone || "Asia/Dhaka" },
                   { label: "Currency", value: event.currency || "BDT" },
+                  {
+                    label: "Visibility",
+                    value:
+                      event.visibility?.charAt(0)?.toUpperCase() +
+                        event.visibility?.slice(1) ||
+                      "Public",
+                  },
                 ].map(({ label, value }) => (
                   <div
                     key={label}
@@ -342,12 +642,12 @@ const EventDetailsPage = () => {
       <EventRelatedSection event={event} events={relatedEvents} />
       <EventStickyBar event={event} onBook={scrollToTickets} />
 
-      {shared && (
+      {flashMessage && (
         <div
           className="fixed bottom-24 right-4 rounded-lg border border-border px-3 py-2 text-xs text-foreground shadow-lg"
           style={{ background: "var(--card)", fontFamily: "var(--font-sans)" }}
         >
-          Link copied to clipboard
+          {flashMessage}
         </div>
       )}
     </div>

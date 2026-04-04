@@ -1,8 +1,9 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Calendar, ChevronRight, MapPin, Star } from "lucide-react";
+import { Calendar, ChevronRight, MapPin, Star, Ticket } from "lucide-react";
 import Container from "@/components/layout/Container";
 import { fmtDateShort } from "./shared/EventShared.jsx";
+import { getEventImage, getEventLocationLabel, getEventPriceLabel, getEventUrl } from "@/utils/event-card";
 
 const EventRelatedSection = ({ event, events = [] }) => {
   const related = events.filter((item) => item.slug !== event.slug).slice(0, 4);
@@ -39,7 +40,10 @@ const EventRelatedSection = ({ event, events = [] }) => {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {related.map((item) => {
-              const href = `/${item.category?.slug}/${item.subcategory?.slug}/${item.eventType?.slug}/${item.slug}`;
+              const href = getEventUrl(item);
+              const imageSrc = getEventImage(item);
+              const locationLabel = getEventLocationLabel(item);
+              const priceLabel = getEventPriceLabel(item);
 
               return (
                 <Link
@@ -49,14 +53,20 @@ const EventRelatedSection = ({ event, events = [] }) => {
                   style={{ background: "var(--card)" }}
                 >
                   <div className="relative h-40 shrink-0 overflow-hidden bg-muted">
-                    <img
-                      src={item.coverImage}
-                      alt={item.title}
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
-                      onError={(image) => {
-                        image.target.style.opacity = "0.3";
-                      }}
-                    />
+                    {imageSrc ? (
+                      <img
+                        src={imageSrc}
+                        alt={item.title}
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
+                        onError={(image) => {
+                          image.currentTarget.style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground/30">
+                        <Ticket className="h-8 w-8" />
+                      </div>
+                    )}
                     {item.isFeatured && (
                       <span
                         className="absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold"
@@ -90,7 +100,7 @@ const EventRelatedSection = ({ event, events = [] }) => {
                       style={{ fontFamily: "var(--font-sans)" }}
                     >
                       <MapPin size={10} />
-                      {item.location?.name || item.location?.city}
+                      {locationLabel}
                     </p>
                     <div className="mt-1 flex items-center justify-between">
                       <div className="flex items-center gap-0.5">
@@ -109,9 +119,7 @@ const EventRelatedSection = ({ event, events = [] }) => {
                         className="text-sm font-bold text-foreground"
                         style={{ fontFamily: "var(--font-heading)" }}
                       >
-                        {item.isFree
-                          ? "Free"
-                          : `Taka ${Number(item.minPrice || 0).toLocaleString()}`}
+                        {priceLabel}
                       </span>
                     </div>
                   </div>

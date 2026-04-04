@@ -1178,6 +1178,8 @@ class AdminService {
       status: query.status === 'pending_review' ? 'pending' : query.status,
       search: query.search,
       category: query.category,
+      from: query.from,
+      to: query.to,
       sort: query.sort || '-createdAt',
     });
 
@@ -1193,13 +1195,41 @@ class AdminService {
     return serializeEventForAdmin(event);
   }
 
-  async updateEvent(identifier, data) {
+  async updateEvent(identifier, data, actor) {
     const existingEvent = await this._resolveEvent(identifier);
     const patch = {};
 
     if (data.status) {
       patch.status = data.status === 'pending_review' ? 'pending' : data.status;
-      if (patch.status === 'published') patch.publishedAt = new Date();
+
+      if (patch.status === 'published') {
+        patch.publishedAt = new Date();
+        patch.moderatedAt = new Date();
+        patch.moderatedBy = getId(actor);
+        patch.rejectionReason = '';
+      }
+
+      if (patch.status === 'rejected') {
+        patch.moderatedAt = new Date();
+        patch.moderatedBy = getId(actor);
+        patch.rejectionReason = data.reason || data.rejectionReason || '';
+      }
+
+      if (patch.status === 'cancelled') {
+        patch.cancelledAt = new Date();
+      }
+    }
+
+    if (typeof data.isFeatured === 'boolean') {
+      patch.isFeatured = data.isFeatured;
+    }
+
+    if (typeof data.isTrending === 'boolean') {
+      patch.isTrending = data.isTrending;
+    }
+
+    if (data.visibility) {
+      patch.visibility = data.visibility;
     }
 
     const updated = await Event.findByIdAndUpdate(

@@ -47,15 +47,15 @@ const NotificationDetailPage = () => {
             </div>
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed">{notif.message}</p>
-          {notif.metadata && Object.keys(notif.metadata).length > 0 && (
+          {((notif.metadata && Object.keys(notif.metadata).length > 0) || (notif.data && Object.keys(notif.data).length > 0)) && (
             <div className="p-3 rounded-xl bg-muted/50 text-xs space-y-1">
-              {Object.entries(notif.metadata).map(([k, v]) => (
+              {Object.entries(notif.metadata || notif.data || {}).map(([k, v]) => (
                 <div key={k} className="flex justify-between"><span className="text-muted-foreground capitalize">{k.replace(/([A-Z])/g, ' $1')}</span><span className="font-semibold">{String(v)}</span></div>
               ))}
             </div>
           )}
-          {notif.actionUrl && (
-            <Link to={notif.actionUrl}>
+          {(notif.actionUrl || notif.link) && (
+            <Link to={notif.actionUrl || notif.link}>
               <Button className="w-full font-bold"><ExternalLink className="h-4 w-4 mr-2" />{notif.actionLabel || 'View Details'}</Button>
             </Link>
           )}

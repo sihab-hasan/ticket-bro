@@ -1,21 +1,18 @@
 /**
  * EventVenueSection.jsx
  * Venue details + embedded map
- * Fields: event.location (locationSchema): name, address, city, state, country,
- *         coordinates.coordinates [lng,lat], onlineUrl, onlinePlatform, streamPassword
  */
 import React, { useState } from "react";
 import {
-  MapPin,
-  Navigation,
+  Check,
   Copy,
   ExternalLink,
-  Wifi,
   Globe,
-  Check,
-  Info,
+  MapPin,
+  Navigation,
+  Wifi,
 } from "lucide-react";
-import { SectionHeading, InfoRow } from "./shared/EventShared.jsx";
+import { SectionHeading } from "./shared/EventShared.jsx";
 
 const EventVenueSection = ({ event }) => {
   const [copied, setCopied] = useState(false);
@@ -26,33 +23,48 @@ const EventVenueSection = ({ event }) => {
   const latLng = loc.latLng;
   const address =
     loc.addressLabel ||
-    [loc.name, loc.address, loc.city, loc.country].filter(Boolean).join(", ");
-  const mapsUrl = `https://maps.google.com/?q=${encodeURIComponent(address)}`;
-  const embedUrl = latLng
-    ? `https://maps.google.com/maps?q=${latLng.lat},${latLng.lng}&z=15&output=embed`
-    : `https://maps.google.com/maps?q=${encodeURIComponent(address)}&output=embed`;
+    [loc.name, loc.address, loc.city, loc.state, loc.country]
+      .filter(Boolean)
+      .join(", ");
+  const hasMapLocation = Boolean(latLng || address);
+  const mapsUrl = hasMapLocation
+    ? `https://maps.google.com/?q=${encodeURIComponent(
+        latLng ? `${latLng.lat},${latLng.lng}` : address,
+      )}`
+    : null;
+  const embedUrl = hasMapLocation
+    ? latLng
+      ? `https://maps.google.com/maps?q=${latLng.lat},${latLng.lng}&z=15&output=embed`
+      : `https://maps.google.com/maps?q=${encodeURIComponent(address)}&output=embed`
+    : null;
 
-  const copyAddress = () => {
-    navigator.clipboard.writeText(address).then(() => {
+  const copyAddress = async () => {
+    if (!address) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(address);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    });
+    } catch {
+      setCopied(false);
+    }
   };
 
   return (
     <div className="flex flex-col gap-5">
       <SectionHeading>
-        {isOnline ? "Online Event" : "Venue"}
+        {isOnline && !isHybrid ? "Online Event" : "Venue"}
         <span className="text-xs font-normal text-muted-foreground">
           {loc.typeLabel ||
             (isOnline ? "Online" : isHybrid ? "Hybrid" : "In Person")}
         </span>
       </SectionHeading>
 
-      {/* Online details */}
-      {isOnline && (
+      {(isOnline || isHybrid) && (
         <div
-          className="p-4 rounded-xl border border-border flex flex-col gap-3"
+          className="flex flex-col gap-3 rounded-xl border border-border p-4"
           style={{ background: "var(--card)" }}
         >
           <div className="flex items-center gap-2.5">
@@ -62,13 +74,15 @@ const EventVenueSection = ({ event }) => {
                 className="text-sm font-bold text-foreground"
                 style={{ fontFamily: "var(--font-heading)" }}
               >
-                {loc.onlinePlatform || "Online"}
+                {loc.onlinePlatform || "Online access"}
               </p>
               <p
                 className="text-xs text-muted-foreground"
                 style={{ fontFamily: "var(--font-sans)" }}
               >
-                Link will be sent after ticket purchase
+                {loc.onlineUrl
+                  ? "Use the event link below to join when access opens."
+                  : "Join details will be shared before the event starts."}
               </p>
             </div>
           </div>
@@ -80,31 +94,44 @@ const EventVenueSection = ({ event }) => {
               className="flex items-center gap-1.5 text-xs font-semibold text-foreground hover:underline"
               style={{ fontFamily: "var(--font-sans)" }}
             >
-              <Globe size={12} />
-              Join Event Link <ExternalLink size={11} />
+              <Globe size={12} /> Open event link <ExternalLink size={11} />
             </a>
           )}
         </div>
       )}
 
-      {/* Physical map */}
       {!isOnline && (
         <>
-          <div
-            className="rounded-xl overflow-hidden border border-border bg-muted"
-            style={{ height: 240 }}
-          >
-            <iframe
-              title="Event venue"
-              src={embedUrl}
-              className="w-full h-full border-0"
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-            />
-          </div>
+          {hasMapLocation ? (
+            <div
+              className="overflow-hidden rounded-xl border border-border bg-muted"
+              style={{ height: 240 }}
+            >
+              <iframe
+                title="Event venue"
+                src={embedUrl}
+                className="h-full w-full border-0"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            </div>
+          ) : (
+            <div
+              className="flex items-start gap-3 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground"
+              style={{ background: "var(--card)", fontFamily: "var(--font-sans)" }}
+            >
+              <MapPin size={16} className="mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold text-foreground">Venue details coming soon</p>
+                <p className="mt-1">
+                  The organizer has not published the exact venue or map yet.
+                </p>
+              </div>
+            </div>
+          )}
 
           <div
-            className="flex flex-col gap-3 p-4 rounded-xl border border-border"
+            className="flex flex-col gap-3 rounded-xl border border-border p-4"
             style={{ background: "var(--card)" }}
           >
             <div>
@@ -112,50 +139,53 @@ const EventVenueSection = ({ event }) => {
                 className="text-sm font-bold text-foreground"
                 style={{ fontFamily: "var(--font-heading)" }}
               >
-                {loc.name || "Venue"}
+                {loc.name || (isHybrid ? "Physical venue" : "Venue")}
               </p>
               <p
-                className="text-xs text-muted-foreground mt-0.5"
+                className="mt-0.5 text-xs text-muted-foreground"
                 style={{ fontFamily: "var(--font-sans)" }}
               >
-                {address}
+                {address || "The organizer will share the final address soon."}
               </p>
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <a
-                href={mapsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-border hover:bg-accent transition-colors"
-                style={{ fontFamily: "var(--font-sans)" }}
-              >
-                <Navigation size={11} /> Get Directions
-              </a>
-              <button
-                onClick={copyAddress}
-                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-border hover:bg-accent transition-colors"
-                style={{ fontFamily: "var(--font-sans)" }}
-              >
-                {copied ? (
-                  <>
-                    <Check size={11} className="text-foreground" /> Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy size={11} /> Copy Address
-                  </>
-                )}
-              </button>
-              <a
-                href={mapsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                style={{ fontFamily: "var(--font-sans)" }}
-              >
-                Open in Maps <ExternalLink size={10} />
-              </a>
-            </div>
+            {hasMapLocation && mapsUrl && (
+              <div className="flex flex-wrap items-center gap-2">
+                <a
+                  href={mapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-accent"
+                  style={{ fontFamily: "var(--font-sans)" }}
+                >
+                  <Navigation size={11} /> Get Directions
+                </a>
+                <button
+                  onClick={copyAddress}
+                  disabled={!address}
+                  className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                  style={{ fontFamily: "var(--font-sans)" }}
+                >
+                  {copied ? (
+                    <>
+                      <Check size={11} className="text-foreground" /> Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={11} /> Copy Address
+                    </>
+                  )}
+                </button>
+                <a
+                  href={mapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                  style={{ fontFamily: "var(--font-sans)" }}
+                >
+                  Open in Maps <ExternalLink size={10} />
+                </a>
+              </div>
+            )}
           </div>
         </>
       )}

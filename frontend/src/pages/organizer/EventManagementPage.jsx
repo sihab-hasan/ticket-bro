@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
+  ArrowRight,
   Calendar,
   Edit,
   MoreHorizontal,
@@ -54,6 +55,7 @@ const EventManagementPage = () => {
   const [filters, setFilters] = useState({ search: '', status: '' });
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [actionKey, setActionKey] = useState('');
 
   const fetchEvents = useCallback(async () => {
     setLoading(true);
@@ -92,6 +94,23 @@ const EventManagementPage = () => {
       toast.error(getApiErrorMessage(error, 'Failed to delete event'));
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleSubmitForReview = async (row) => {
+    const eventKey = getEventKey(row);
+    if (!eventKey) return;
+
+    setActionKey(`submit:${eventKey}`);
+
+    try {
+      await eventsService.publishEvent(eventKey);
+      toast.success('Event submitted for review');
+      fetchEvents();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Failed to submit draft for review'));
+    } finally {
+      setActionKey('');
     }
   };
 
@@ -176,7 +195,7 @@ const EventManagementPage = () => {
           <DropdownMenuItem asChild>
             <Link to={ROUTES.ORGANIZER.EDIT_EVENT(eventKey)}>
               <Edit className="h-4 w-4 mr-2" />
-              Edit Event
+              {row.status === 'draft' ? 'Continue Draft' : 'Edit Event'}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
@@ -185,6 +204,15 @@ const EventManagementPage = () => {
               Manage Tickets
             </Link>
           </DropdownMenuItem>
+          {['draft', 'rejected'].includes(row.status) && (
+            <DropdownMenuItem
+              onClick={() => handleSubmitForReview(row)}
+              disabled={actionKey === `submit:${eventKey}`}
+            >
+              <ArrowRight className="h-4 w-4 mr-2" />
+              {actionKey === `submit:${eventKey}` ? 'Submitting...' : 'Submit for Review'}
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => setDeleteConfirm(row)}
@@ -259,7 +287,7 @@ const EventManagementPage = () => {
         open={!!deleteConfirm}
         onOpenChange={() => setDeleteConfirm(null)}
         title="Delete Event?"
-        description="This will permanently delete the event and deactivate its ticket types."
+        description="This will soft-delete the event, cancel it, and deactivate its ticket types."
         confirmLabel="Delete Event"
         onConfirm={handleDelete}
         loading={deleting}
