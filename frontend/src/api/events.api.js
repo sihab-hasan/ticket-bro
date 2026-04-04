@@ -18,15 +18,6 @@ const pickEvents = (payload) => {
   };
 };
 
-const pickReviews = (payload) => {
-  const result = pickPaginated("reviews")(payload);
-  return {
-    reviews: result.items,
-    pagination: result.pagination,
-    total: result.total,
-  };
-};
-
 export const getAllEvents = (params) =>
   get(ENDPOINTS.EVENTS.LIST, { params, select: pickEvents });
 
@@ -65,9 +56,6 @@ export const getEventTickets = (slug) =>
   get(ENDPOINTS.EVENTS.TICKETS(slug), {
     select: pickList("ticketTypes"),
   });
-
-export const getEventReviews = (slug, params) =>
-  get(ENDPOINTS.EVENTS.REVIEWS(slug), { params, select: pickReviews });
 
 export const getRelatedEvents = (slug) =>
   get(ENDPOINTS.EVENTS.RELATED(slug), {
@@ -287,7 +275,6 @@ export default {
   getEventById,
   getEventDetails,
   getEventTickets,
-  getEventReviews,
   getRelatedEvents,
   getTicketTypes,
   getSeatSections,

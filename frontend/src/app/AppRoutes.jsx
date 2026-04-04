@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 // frontend/src/app/AppRoutes.jsx
 //
 // ╔══════════════════════════════════════════════════════════════╗
@@ -155,6 +156,9 @@ const AdminAnalyticsDashboard = lazy(
   () => import("@/pages/admin/AnalyticsDashboard"),
 );
 const AdminReportsPage = lazy(() => import("@/pages/admin/ReportsPage"));
+const AdminReviewsManagementPage = lazy(
+  () => import("@/pages/admin/ReviewsManagementPage"),
+);
 const AdminPromotionsPage = lazy(() => import("@/pages/admin/PromotionsPage"));
 const AdminSystemSettingsPage = lazy(
   () => import("@/pages/admin/SystemSettingsPage"),
@@ -277,8 +281,8 @@ export const ROUTES = {
   },
 
   REVIEWS: {
-    EVENT: (eventId) => `/reviews/event/${eventId}`,
-    WRITE: (eventId) => `/reviews/write/${eventId}`,
+    ROOT: "/reviews",
+    WRITE: "/reviews/write",
   },
 
   ORGANIZER: {
@@ -316,6 +320,7 @@ export const ROUTES = {
     PAYMENT: (id) => `/admin/payments/${id}`,
     ANALYTICS: "/admin/analytics",
     REPORTS: "/admin/reports",
+    REVIEWS: "/admin/reviews",
     PROMOTIONS: "/admin/promotions",
     SYSTEM_SETTINGS: "/admin/system/settings",
     SYSTEM_SECURITY: "/admin/system/security",
@@ -360,6 +365,7 @@ const AppRoutes = () => (
 
         {/* All Events page — only route that uses /browse */}
         <Route path="/browse" element={<BrowsePage />} />
+        <Route path="/reviews" element={<ReviewsPage />} />
 
         {/* Category → SubCategory → EventType → EventDetails (no /browse/ prefix) */}
         <Route path="/:categorySlug" element={<CategoryPage />} />
@@ -497,10 +503,7 @@ const AppRoutes = () => (
             />
           </Route>
 
-          <Route path="/reviews">
-            <Route path="event/:eventId" element={<ReviewsPage />} />
-            <Route path="write/:eventId" element={<WriteReviewPage />} />
-          </Route>
+          <Route path="/reviews/write" element={<WriteReviewPage />} />
         </Route>
       </Route>
 
@@ -576,6 +579,7 @@ const AppRoutes = () => (
             </Route>
             <Route path="analytics" element={<AdminAnalyticsDashboard />} />
             <Route path="reports" element={<AdminReportsPage />} />
+            <Route path="reviews" element={<AdminReviewsManagementPage />} />
             <Route path="promotions" element={<AdminPromotionsPage />} />
             <Route path="system">
               <Route path="settings" element={<AdminSystemSettingsPage />} />

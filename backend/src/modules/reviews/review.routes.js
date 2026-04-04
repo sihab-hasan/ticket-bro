@@ -1,17 +1,41 @@
 'use strict';
 const express = require('express');
 const router = express.Router();
-const { authenticate, authorize } = require('../../common/middleware/auth.middleware');
-const { ROLES } = require('../../common/constants/roles');
-let _c; const c = () => { if (!_c) _c = require('./review.controller'); return _c; };
+
+const { authenticate } = require('../../common/middleware/auth.middleware');
+const { validateRequest } = require('../../common/middleware/validation.middleware');
+const {
+  createReviewSchema,
+  reviewIdParamsSchema,
+  reviewListQuerySchema,
+  updateReviewSchema,
+} = require('./review.validation');
+
+let _controller;
+const controller = () => {
+  if (!_controller) {
+    _controller = require('./review.controller');
+  }
+  return _controller;
+};
 
 // Public reads
-router.get('/event/:slug',         (req,res,next) => c().getEventReviews(req,res,next));
-router.get('/event/:slug/summary', (req,res,next) => c().getReviewSummary(req,res,next));
+router.get('/', validateRequest(reviewListQuerySchema, 'query'), (req, res, next) =>
+  controller().getReviews(req, res, next));
+router.get('/summary', (req, res, next) => controller().getReviewSummary(req, res, next));
 
-// Auth required
-router.post('/',          authenticate, (req,res,next) => c().createReview(req,res,next));
-router.get('/my',         authenticate, (req,res,next) => c().getMyReviews(req,res,next));
-router.put('/:id',        authenticate, (req,res,next) => c().updateReview(req,res,next));
-router.delete('/:id',     authenticate, (req,res,next) => c().deleteReview(req,res,next));
+// Authenticated user actions
+router.post('/', authenticate, validateRequest(createReviewSchema), (req, res, next) =>
+  controller().createReview(req, res, next));
+router.get('/my', authenticate, (req, res, next) => controller().getMyReview(req, res, next));
+router.put('/:id',
+  authenticate,
+  validateRequest(reviewIdParamsSchema, 'params'),
+  validateRequest(updateReviewSchema),
+  (req, res, next) => controller().updateReview(req, res, next));
+router.delete('/:id',
+  authenticate,
+  validateRequest(reviewIdParamsSchema, 'params'),
+  (req, res, next) => controller().deleteReview(req, res, next));
+
 module.exports = router;

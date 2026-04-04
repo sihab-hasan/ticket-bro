@@ -54,6 +54,15 @@ const pickPromotions = (payload) => {
   };
 };
 
+const pickReviews = (payload) => {
+  const result = pickPaginated("reviews")(payload);
+  return {
+    reviews: result.items,
+    pagination: result.pagination,
+    total: result.total,
+  };
+};
+
 const adminService = {
   getDashboard: () => get(ENDPOINTS.ADMIN.DASHBOARD),
   getDashboardStats: () => get(ENDPOINTS.ADMIN.DASHBOARD_STATS),
@@ -101,6 +110,14 @@ const adminService = {
   refundPayment: (id, data) =>
     post(ENDPOINTS.ADMIN.PAYMENT_REFUND(id), data || {}, { select: pickEntity("payment") }),
 
+  getReviews: (params) =>
+    get(ENDPOINTS.ADMIN.REVIEWS, { params, select: pickReviews }),
+  flagReview: (id, flagged = true) =>
+    put(ENDPOINTS.ADMIN.REVIEW_FLAG(id), { flagged }, {
+      select: pickEntity("review"),
+    }),
+  deleteReview: (id) => del(ENDPOINTS.ADMIN.REVIEW(id)),
+
   getAnalyticsOverview: (params) =>
     get(ENDPOINTS.ADMIN.ANALYTICS_OVERVIEW, { params }),
   getAnalyticsRevenue: (params) =>
@@ -146,4 +163,3 @@ const adminService = {
 };
 
 export default adminService;
-

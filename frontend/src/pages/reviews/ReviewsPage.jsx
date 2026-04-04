@@ -1,135 +1,237 @@
-// pages/reviews/ReviewsPage.jsx
-import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Star, ThumbsUp, MessageSquare, RefreshCw } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Progress } from '@/components/ui/progress';
-import { Skeleton } from '@/components/ui/skeleton';
-import PageHeader from '@/components/shared/PageHeader';
-import { formatDate } from '@/utils/formatters';
-import { toast } from '@/components/shared/common';
-import { ROUTES } from '@/app/AppRoutes';
-import { reviewsService } from '@/api';
+import React, { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { MessageSquare, RefreshCw, Star, ThumbsUp } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import PageHeader from "@/components/shared/PageHeader";
+import { formatDate } from "@/utils/formatters";
+import { toast } from "@/components/shared/common";
+import { ROUTES } from "@/app/AppRoutes";
+import { reviewsService } from "@/api";
 
-const Stars = ({ rating, size = 'sm' }) => (
+const Stars = ({ rating, size = "sm" }) => (
   <div className="flex items-center gap-0.5">
-    {[1,2,3,4,5].map((i) => (
-      <Star key={i} className={`${size === 'sm' ? 'h-3.5 w-3.5' : 'h-5 w-5'} ${i <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}`} />
+    {[1, 2, 3, 4, 5].map((value) => (
+      <Star
+        key={value}
+        className={`${
+          size === "sm" ? "h-3.5 w-3.5" : "h-5 w-5"
+        } ${
+          value <= rating
+            ? "fill-yellow-400 text-yellow-400"
+            : "text-muted-foreground/30"
+        }`}
+      />
     ))}
   </div>
 );
 
 const ReviewsPage = () => {
-  const { eventId } = useParams();
-  const [data, setData] = useState(null);
+  const navigate = useNavigate();
+  const [summary, setSummary] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
 
-  const fetch = async (p = 1) => {
-    setLoading(p === 1);
+  const loadReviews = useCallback(async (targetPage = 1) => {
+    const isFirstPage = targetPage === 1;
+    if (isFirstPage) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
+
     try {
-      const [reviewsData, summary] = await Promise.all([
-        reviewsService.getByEvent(eventId, { page: p, limit: 10 }),
-        p === 1 ? reviewsService.getSummary(eventId) : Promise.resolve(data || null),
+      const [reviewsData, summaryData] = await Promise.all([
+        reviewsService.getAll({
+          page: targetPage,
+          limit: 10,
+          sort: "-createdAt",
+        }),
+        isFirstPage ? reviewsService.getSummary() : Promise.resolve(null),
       ]);
 
-      if (p === 1) {
-        setData({
-          ...summary,
-          reviews: reviewsData.reviews || [],
-          totalReviews:
-            summary?.totalReviews ||
-            reviewsData.total ||
-            reviewsData.pagination?.total ||
-            0,
-        });
-        setReviews(reviewsData.reviews || []);
+      const nextReviews = reviewsData?.reviews || [];
+      const pagination = reviewsData?.pagination || {};
+
+      if (isFirstPage) {
+        setSummary(summaryData || null);
+        setReviews(nextReviews);
       } else {
-        setReviews((prev) => [...prev, ...(reviewsData.reviews || [])]);
+        setReviews((current) => [...current, ...nextReviews]);
       }
 
-      setHasMore((reviewsData.pagination?.page || p) < (reviewsData.pagination?.totalPages || 1));
-      setPage(p);
-    } catch { toast.error('Failed to load reviews'); }
-    finally { setLoading(false); }
-  };
+      setPage(targetPage);
+      setHasMore(
+        Number(pagination.page || targetPage) < Number(pagination.totalPages || 1),
+      );
+    } catch {
+      toast.error("Failed to load reviews");
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, []);
 
-  useEffect(() => { fetch(1); }, [eventId]);
+  useEffect(() => {
+    loadReviews(1);
+  }, [loadReviews]);
 
-  const ratingDist = data?.ratingDistribution || [];
+  const averageRating = Number(summary?.averageRating || 0);
+  const totalReviews = Number(summary?.totalReviews || 0);
+  const ratingDistribution = summary?.ratingDistribution || [];
 
   return (
-    <div className="p-4 sm:p-6 space-y-5 font-sans max-w-2xl mx-auto">
-      <PageHeader title="Reviews" subtitle={data?.event?.title}
-        actions={[{ label: 'Write Review', icon: Star, onClick: () => {}, variant: 'default' }]}
+    <div className="mx-auto max-w-3xl space-y-5 p-4 font-sans sm:p-6">
+      <PageHeader
+        title="Reviews"
+        subtitle="App-wide feedback from the Ticket Bro community"
+        actions={[
+          {
+            label: "Refresh",
+            icon: RefreshCw,
+            onClick: () => loadReviews(1),
+            variant: "outline",
+          },
+          {
+            label: "Write Review",
+            icon: Star,
+            onClick: () => navigate(ROUTES.REVIEWS.WRITE),
+          },
+        ]}
       />
 
-      {/* Summary */}
-      {data && (
-        <Card>
-          <CardContent className="p-5 flex flex-col sm:flex-row gap-5">
-            <div className="text-center sm:border-r sm:border-border sm:pr-5">
-              <p className="text-4xl font-extrabold font-heading">{data.avgRating?.toFixed(1)}</p>
-              <Stars rating={Math.round(data.avgRating || 0)} size="lg" />
-              <p className="text-xs text-muted-foreground mt-1">{data.totalReviews} reviews</p>
-            </div>
-            <div className="flex-1 space-y-2">
-              {[5,4,3,2,1].map((star) => {
-                const count = ratingDist.find((r) => r.rating === star)?.count || 0;
-                const pct = data.totalReviews ? (count / data.totalReviews) * 100 : 0;
-                return (
-                  <div key={star} className="flex items-center gap-2">
-                    <span className="text-xs w-4 text-right shrink-0">{star}</span>
-                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 shrink-0" />
-                    <Progress value={pct} className="h-2 flex-1" />
-                    <span className="text-xs text-muted-foreground w-8 text-right shrink-0">{count}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Reviews list */}
-      {loading ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-2xl" />) :
-        reviews.length === 0 ? (
-          <Card><CardContent className="flex flex-col items-center py-16"><MessageSquare className="h-10 w-10 text-muted-foreground/30 mb-3" /><p className="text-sm text-muted-foreground">No reviews yet</p></CardContent></Card>
-        ) : (
-          <div className="space-y-4">
-            {reviews.map((r) => (
-              <Card key={r._id}>
-                <CardContent className="p-5">
-                  <div className="flex items-start gap-3">
-                    <Avatar className="h-9 w-9 shrink-0"><AvatarFallback className="text-xs font-bold bg-primary/10 text-primary">{r.user?.firstName?.[0]}{r.user?.lastName?.[0]}</AvatarFallback></Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-bold">{r.user?.firstName} {r.user?.lastName}</p>
-                        <span className="text-[11px] text-muted-foreground shrink-0">{formatDate(r.createdAt, { dateStyle: 'medium', timeStyle: undefined })}</span>
-                      </div>
-                      <Stars rating={r.rating} />
-                      {r.title && <p className="text-sm font-semibold mt-2">{r.title}</p>}
-                      {r.comment && <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{r.comment}</p>}
-                      {r.helpfulCount > 0 && (
-                        <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
-                          <ThumbsUp className="h-3 w-3" />{r.helpfulCount} found this helpful
-                        </div>
-                      )}
+      {loading ? (
+        <div className="space-y-4">
+          <Skeleton className="h-40 rounded-2xl" />
+          {Array.from({ length: 3 }).map((_, index) => (
+            <Skeleton key={index} className="h-32 rounded-2xl" />
+          ))}
+        </div>
+      ) : (
+        <>
+          <Card>
+            <CardContent className="flex flex-col gap-5 p-5 sm:flex-row">
+              <div className="text-center sm:border-r sm:border-border sm:pr-5">
+                <p className="text-4xl font-extrabold font-heading">
+                  {averageRating.toFixed(1)}
+                </p>
+                <Stars rating={Math.round(averageRating)} size="lg" />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {totalReviews} review{totalReviews === 1 ? "" : "s"}
+                </p>
+              </div>
+              <div className="flex-1 space-y-2">
+                {[5, 4, 3, 2, 1].map((rating) => {
+                  const count =
+                    ratingDistribution.find((item) => item.rating === rating)
+                      ?.count || 0;
+                  const percent = totalReviews ? (count / totalReviews) * 100 : 0;
+                  return (
+                    <div key={rating} className="flex items-center gap-2">
+                      <span className="w-4 shrink-0 text-right text-xs">
+                        {rating}
+                      </span>
+                      <Star className="h-3 w-3 shrink-0 fill-yellow-400 text-yellow-400" />
+                      <Progress value={percent} className="h-2 flex-1" />
+                      <span className="w-8 shrink-0 text-right text-xs text-muted-foreground">
+                        {count}
+                      </span>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-            {hasMore && (
-              <Button variant="outline" className="w-full font-semibold" onClick={() => fetch(page + 1)}>Load More</Button>
-            )}
-          </div>
-        )
-      }
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+          {reviews.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center py-16 text-center">
+                <MessageSquare className="mb-3 h-10 w-10 text-muted-foreground/30" />
+                <p className="text-sm font-semibold">No reviews yet</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Be the first person to rate the Ticket Bro experience.
+                </p>
+                <Button
+                  className="mt-4 font-bold"
+                  onClick={() => navigate(ROUTES.REVIEWS.WRITE)}
+                >
+                  <Star className="mr-2 h-4 w-4" />
+                  Write Review
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {reviews.map((review) => (
+                <Card key={review._id}>
+                  <CardContent className="p-5">
+                    <div className="flex items-start gap-3">
+                      <Avatar className="h-9 w-9 shrink-0">
+                        <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary">
+                          {review.user?.firstName?.[0]}
+                          {review.user?.lastName?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-bold">
+                            {review.user?.firstName} {review.user?.lastName}
+                          </p>
+                          <span className="shrink-0 text-[11px] text-muted-foreground">
+                            {formatDate(review.createdAt, {
+                              dateStyle: "medium",
+                              timeStyle: undefined,
+                            })}
+                          </span>
+                        </div>
+                        <Stars rating={review.rating} />
+                        {review.title ? (
+                          <p className="mt-2 text-sm font-semibold">
+                            {review.title}
+                          </p>
+                        ) : null}
+                        {review.body ? (
+                          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                            {review.body}
+                          </p>
+                        ) : null}
+                        {review.event?.title ? (
+                          <p className="mt-2 text-[11px] text-muted-foreground">
+                            Legacy event context: {review.event.title}
+                          </p>
+                        ) : null}
+                        {Number(review.helpful || 0) > 0 ? (
+                          <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+                            <ThumbsUp className="h-3 w-3" />
+                            {review.helpful} found this helpful
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+
+              {hasMore ? (
+                <Button
+                  variant="outline"
+                  className="w-full font-semibold"
+                  disabled={loadingMore}
+                  onClick={() => loadReviews(page + 1)}
+                >
+                  {loadingMore ? "Loading..." : "Load More"}
+                </Button>
+              ) : null}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 };

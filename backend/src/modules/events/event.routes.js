@@ -43,7 +43,6 @@ router.get('/admin/all',
 router.get('/:slug',            validateRequest(eventSlugParamsSchema, 'params'), optionalAuth, cache('2m'),  (req, res, next) => ctrl().getEventBySlug(req, res, next));
 router.get('/:slug/details',    validateRequest(eventSlugParamsSchema, 'params'), optionalAuth, cache('1m'),  (req, res, next) => ctrl().getEventDetails(req, res, next));
 router.get('/:slug/tickets',    validateRequest(eventSlugParamsSchema, 'params'), optionalAuth, cache('1m'),  (req, res, next) => ctrl().getEventTickets(req, res, next));
-router.get('/:slug/reviews',    validateRequest(eventSlugParamsSchema, 'params'), optionalAuth, (req, res, next) => ctrl().getEventReviews(req, res, next));
 router.get('/:slug/related',    validateRequest(eventSlugParamsSchema, 'params'), optionalAuth, validateRequest(relatedEventsQuerySchema, 'query'), cache('5m'),  (req, res, next) => ctrl().getRelatedEvents(req, res, next));
 router.get('/:slug/ticket-types', validateRequest(eventSlugParamsSchema, 'params'), optionalAuth, (req, res, next) => ctrl().getTicketTypes(req, res, next));
 router.get('/:slug/seat-sections', validateRequest(eventSlugParamsSchema, 'params'), optionalAuth, (req, res, next) => ctrl().getSeatSections(req, res, next));
