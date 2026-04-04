@@ -8,12 +8,32 @@ import {
   pickPaginated,
 } from "@/api/client";
 
+const normalizeNotification = (notification = {}) => ({
+  ...notification,
+  id: notification?._id || notification?.id,
+  metadata: notification?.metadata || notification?.data || {},
+  actionUrl: notification?.actionUrl || notification?.link || "",
+});
+
 const pickNotifications = (payload) => {
   const result = pickPaginated("notifications")(payload);
   return {
-    notifications: result.items,
+    notifications: (result.items || []).map(normalizeNotification),
     pagination: result.pagination,
     total: result.total,
+  };
+};
+
+const normalizePreferences = (payload = {}) => {
+  const source = payload?.preferences || payload || {};
+  return {
+    ...source,
+    soundEnabled: source?.soundEnabled ?? true,
+    doNotDisturb: source?.doNotDisturb || {
+      enabled: false,
+      startTime: "22:00",
+      endTime: "08:00",
+    },
   };
 };
 
@@ -25,23 +45,31 @@ const notificationsService = {
     }),
   getById: (id) =>
     get(ENDPOINTS.NOTIFICATIONS.DETAIL(id), {
-      select: pickEntity("notification"),
+      select: (payload) => normalizeNotification(pickEntity("notification")(payload)),
     }),
-  getUnreadCount: () => get(ENDPOINTS.NOTIFICATIONS.UNREAD),
+  getUnreadCount: () =>
+    get(ENDPOINTS.NOTIFICATIONS.UNREAD, {
+      select: (payload) => payload?.count ?? 0,
+    }),
   markRead: (id) => put(ENDPOINTS.NOTIFICATIONS.MARK_READ(id), {}),
   markAllRead: () => put(ENDPOINTS.NOTIFICATIONS.MARK_ALL, {}),
   deleteOne: (id) => del(ENDPOINTS.NOTIFICATIONS.DELETE(id)),
   clearAll: () => del(ENDPOINTS.NOTIFICATIONS.CLEAR),
-  getPreferences: () => get(ENDPOINTS.NOTIFICATIONS.PREFERENCES),
+  getPreferences: () =>
+    get(ENDPOINTS.NOTIFICATIONS.PREFERENCES, {
+      select: normalizePreferences,
+    }),
   updatePreferences: (data) =>
-    put(ENDPOINTS.NOTIFICATIONS.PREFERENCES, data),
+    put(ENDPOINTS.NOTIFICATIONS.PREFERENCES, data, {
+      select: normalizePreferences,
+    }),
   subscribePush: (subscription) =>
     post(ENDPOINTS.NOTIFICATIONS.PUSH_SUBSCRIBE, subscription),
   unsubscribePush: () => del(ENDPOINTS.NOTIFICATIONS.PUSH_UNSUBSCRIBE),
 };
 
 export const pushNotificationService = {
-  isSupported: () => "Notification" in window && "serviceWorker" in navigator,
+  isSupported: () => typeof window !== "undefined" && "Notification" in window && "serviceWorker" in navigator,
   requestPermission: async () => {
     if (!pushNotificationService.isSupported()) {
       return "unsupported";

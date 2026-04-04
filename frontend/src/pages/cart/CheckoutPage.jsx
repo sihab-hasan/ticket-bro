@@ -1,7 +1,7 @@
 // pages/cart/CheckoutPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Lock, ShoppingBag, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Lock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,10 +16,12 @@ import { ROUTES } from '@/app/AppRoutes';
 import { cartService } from '@/api';
 import { getApiErrorMessage } from '@/api/client';
 
+const EMPTY_CART = { items: [], subtotal: 0, discount: 0, discountAmount: 0, itemCount: 0 };
+
 const CheckoutPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [cart, setCart] = useState(null);
+  const [cart, setCart] = useState(EMPTY_CART);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('card');
@@ -32,13 +34,21 @@ const CheckoutPage = () => {
   useEffect(() => {
     (async () => {
       try {
-        const d = await cartService.getCart();
-        if (!d?.items?.length) { toast.error('Your cart is empty'); navigate(ROUTES.CART.ROOT); return; }
-        setCart(d);
-      } catch { navigate(ROUTES.CART.ROOT); }
-      finally { setLoading(false); }
+        const data = await cartService.getCart();
+        if (!data?.items?.length) {
+          toast.error('Your cart is empty');
+          navigate(ROUTES.CART.ROOT, { replace: true });
+          return;
+        }
+        setCart(data);
+      } catch (error) {
+        toast.error(getApiErrorMessage(error, 'Failed to load checkout'));
+        navigate(ROUTES.CART.ROOT, { replace: true });
+      } finally {
+        setLoading(false);
+      }
     })();
-  }, []);
+  }, [navigate]);
 
   const setField = (key, val) => setContact((f) => ({ ...f, [key]: val }));
 
@@ -46,15 +56,20 @@ const CheckoutPage = () => {
     if (!contact.firstName || !contact.email) return toast.error('Contact details required');
     setProcessing(true);
     try {
-      const d = await cartService.checkout({ paymentMethod, contact });
-      const bookingRef = d?.bookingRef || d?.booking?.bookingRef || d?._id;
+      const data = await cartService.checkout({ paymentMethod, contact });
+      const bookingRef = data?.bookingRef || data?.booking?.bookingRef || data?.booking?._id || data?._id;
 
-      if (d?.paymentIntentId) {
-        // Handle payment intent redirect if needed
-        navigate(ROUTES.TICKETS.PAYMENT(`checkout`) + `?intentId=${d.paymentIntentId}`);
-      } else {
-        navigate(ROUTES.TICKETS.CONFIRM(bookingRef));
+      if (data?.paymentIntentId) {
+        navigate(ROUTES.TICKETS.PAYMENT('checkout') + `?intentId=${data.paymentIntentId}`);
+        return;
       }
+
+      if (bookingRef) {
+        navigate(ROUTES.TICKETS.CONFIRM(bookingRef));
+        return;
+      }
+
+      toast.success('Checkout is ready, but payment flow is not configured yet.');
     } catch (e) {
       toast.error(getApiErrorMessage(e, 'Checkout failed'));
     } finally {
@@ -65,10 +80,10 @@ const CheckoutPage = () => {
   if (loading) return <div className="p-4 space-y-4 max-w-lg mx-auto">{[1,2,3].map((i) => <Skeleton key={i} className="h-36 rounded-2xl" />)}</div>;
 
   const items = cart?.items || [];
-  const subtotal = items.reduce((s, i) => s + i.totalPrice, 0);
-  const discount = cart?.discount || 0;
-  const serviceFee = subtotal * 0.05;
-  const total = subtotal - discount + serviceFee;
+  const subtotal = Number(cart?.subtotal ?? items.reduce((s, i) => s + Number(i?.totalPrice || 0), 0));
+  const discount = Number(cart?.discount ?? cart?.discountAmount ?? 0);
+  const serviceFee = subtotal > 0 ? subtotal * 0.05 : 0;
+  const total = Math.max(0, subtotal - discount + serviceFee);
 
   return (
     <div className="p-4 sm:p-6 max-w-lg mx-auto space-y-5 font-sans">
@@ -80,18 +95,17 @@ const CheckoutPage = () => {
         </div>
       </div>
 
-      {/* Order review */}
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-sm font-bold">Order Review</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          {items.map((item, i) => (
-            <div key={i} className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted shrink-0">
-                {item.event?.coverImage && <img src={item.event.coverImage} alt="" className="w-full h-full object-cover" />}
+          {items.map((item) => (
+            <div key={item._id} className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted shrink-0 flex items-center justify-center">
+                {item.event?.coverImage ? <img src={item.event.coverImage} alt={item.event?.title || 'Event cover'} className="w-full h-full object-cover" /> : <span className="text-xs font-bold text-muted-foreground">{item.event?.title?.charAt(0)?.toUpperCase() || 'E'}</span>}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold truncate">{item.event?.title}</p>
-                <p className="text-[11px] text-muted-foreground">{item.ticketType?.name} × {item.quantity}</p>
+                <p className="text-xs font-semibold truncate">{item.event?.title || 'Event'}</p>
+                <p className="text-[11px] text-muted-foreground">{item.ticketType?.name || item.ticketTypeName || 'Ticket'} × {item.quantity}</p>
               </div>
               <p className="text-sm font-bold shrink-0">{formatPrice(item.totalPrice)}</p>
             </div>
@@ -107,7 +121,6 @@ const CheckoutPage = () => {
         </CardContent>
       </Card>
 
-      {/* Contact */}
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-sm font-bold">Contact Details</CardTitle></CardHeader>
         <CardContent className="space-y-3">
@@ -120,7 +133,6 @@ const CheckoutPage = () => {
         </CardContent>
       </Card>
 
-      {/* Payment method */}
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-sm font-bold">Payment Method</CardTitle></CardHeader>
         <CardContent>
@@ -135,7 +147,7 @@ const CheckoutPage = () => {
         </CardContent>
       </Card>
 
-      <Button onClick={handleCheckout} disabled={processing} className="w-full h-12 font-bold text-base">
+      <Button onClick={handleCheckout} disabled={processing || !items.length} className="w-full h-12 font-bold text-base">
         {processing ? (
           <><span className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />Processing…</>
         ) : (

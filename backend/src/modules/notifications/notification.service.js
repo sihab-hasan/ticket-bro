@@ -15,6 +15,12 @@ class NotificationService {
     return notificationRepository.findByUserId({ userId, ...query });
   }
 
+  async getNotificationById(notifId, userId) {
+    const notification = await notificationRepository.findByIdForUser(notifId, getId(userId));
+    if (!notification) throw new NotFoundError('Notification not found.');
+    return { notification };
+  }
+
   async getUnreadCount(userId) {
     const count = await notificationRepository.countUnread(userId);
     return { count };

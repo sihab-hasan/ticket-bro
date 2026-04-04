@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
-  Calendar, Eye, CheckCircle2, XCircle, MoreHorizontal,
+  Calendar, Eye, CheckCircle2, XCircle, MoreHorizontal, Star,
   MapPin, Users, Ticket, DollarSign, RefreshCw, Download,
   Clock, Globe, Building,
 } from 'lucide-react';
@@ -24,6 +24,7 @@ import { formatDate, formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
 import { adminService } from '@/api';
+import { getApiErrorMessage } from '@/api/client';
 
 const STATUS_OPTS = [
   { label: 'Published', value: 'published' },
@@ -40,7 +41,7 @@ const EventManagementPage = () => {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [filters, setFilters] = useState({ search: '', status: '', category: '' });
+  const [filters, setFilters] = useState({ search: '', status: '', category: '', from: '', to: '' });
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerLoading, setDrawerLoading] = useState(false);
@@ -56,11 +57,13 @@ const EventManagementPage = () => {
       if (filters.search) params.search = filters.search;
       if (filters.status) params.status = filters.status;
       if (filters.category) params.category = filters.category;
+      if (filters.from) params.from = filters.from;
+      if (filters.to) params.to = filters.to;
       const d = await adminService.getEvents(params);
       setEvents(d?.events || []);
       setTotal(d?.total || 0);
-    } catch {
-      toast.error('Failed to load events');
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Failed to load events'));
     } finally {
       setLoading(false);
     }
@@ -75,8 +78,8 @@ const EventManagementPage = () => {
     try {
       const data = await adminService.getEventBySlug(id);
       setSelectedEvent(data);
-    } catch {
-      toast.error('Failed to load event');
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Failed to load event'));
       setDrawerOpen(false);
     } finally {
       setDrawerLoading(false);
@@ -91,12 +94,29 @@ const EventManagementPage = () => {
 
   const handleStatusChange = async (id, status) => {
     try {
-      await adminService.updateEvent(id, { status });
-      toast.success(`Event ${status}`);
+      const updatedEvent = await adminService.updateEvent(id, { status });
+      toast.success(status === 'published' ? 'Event approved' : `Event ${status}`);
       fetchEvents();
-      if (selectedEvent?._id === id) setSelectedEvent((e) => ({ ...e, status }));
-    } catch {
-      toast.error('Failed to update event');
+      if (selectedEvent?._id === id) {
+        setSelectedEvent(updatedEvent || { ...selectedEvent, status });
+      }
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Failed to update event'));
+    }
+  };
+
+  const handleFeatureToggle = async (row) => {
+    try {
+      const updatedEvent = await adminService.updateEvent(row._id, {
+        isFeatured: !row.isFeatured,
+      });
+      toast.success(row.isFeatured ? 'Event removed from featured' : 'Event marked as featured');
+      setEvents((current) => current.map((item) => (item._id === row._id ? { ...item, isFeatured: !row.isFeatured } : item)));
+      if (selectedEvent?._id === row._id) {
+        setSelectedEvent(updatedEvent || { ...selectedEvent, isFeatured: !row.isFeatured });
+      }
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Failed to update featured status'));
     }
   };
 
@@ -108,8 +128,8 @@ const EventManagementPage = () => {
       fetchEvents();
       setConfirmAction(null);
       closeDrawer();
-    } catch {
-      toast.error('Failed to delete event');
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Failed to delete event'));
     } finally {
       setActionLoading(false);
     }
@@ -208,6 +228,9 @@ const EventManagementPage = () => {
             Cancel Event
           </DropdownMenuItem>
         )}
+        <DropdownMenuItem onClick={() => handleFeatureToggle(row)}>
+          <Star className="h-4 w-4 mr-2" /> {row.isFeatured ? 'Remove Feature' : 'Mark as Featured'}
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={() => setConfirmAction({ type: 'delete', event: row })}
@@ -239,7 +262,7 @@ const EventManagementPage = () => {
         ]}
         values={filters}
         onChange={(k, v) => { setFilters((f) => ({ ...f, [k]: v })); setPage(1); }}
-        onClear={() => { setFilters({ search: '', status: '', category: '' }); setPage(1); }}
+        onClear={() => { setFilters({ search: '', status: '', category: '', from: '', to: '' }); setPage(1); }}
       />
 
       <DataTable
@@ -339,7 +362,7 @@ const EventManagementPage = () => {
         open={!!confirmAction}
         onOpenChange={() => setConfirmAction(null)}
         title="Delete Event?"
-        description="This will permanently delete the event and all its associated data including bookings. This cannot be undone."
+        description="This will soft-delete the event, cancel it in the system, and hide it from normal listings."
         confirmLabel="Delete Event"
         onConfirm={handleDelete}
         loading={actionLoading}

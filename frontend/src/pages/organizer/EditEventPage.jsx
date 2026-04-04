@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save } from 'lucide-react';
-import { eventsService } from '@/api';
+import { ArrowLeft, ArrowRight, Save } from 'lucide-react';
+import { categoriesService, eventsService, subcategoriesService } from '@/api';
 import { getApiErrorMessage } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,36 +38,58 @@ const Field = ({ label, required, error, hint, children }) => (
 
 const toDateInput = (value) => (value ? value.split('T')[0] : '');
 const toTimeInput = (value) => (value ? value.split('T')[1]?.slice(0, 5) || '' : '');
-
-const buildDateTime = (date, time, fallback = '00:00') => {
-  if (!date) return undefined;
-  return `${date}T${time || fallback}:00`;
-};
+const buildDateTime = (date, time, fallback = '00:00') => (
+  date ? `${date}T${time || fallback}:00` : undefined
+);
 
 const EditEventPage = () => {
   const { eventId } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingMode, setSavingMode] = useState('');
   const [event, setEvent] = useState(null);
+  const [categories, setCategories] = useState([]);
+  const [subcategories, setSubcategories] = useState([]);
+  const [taxonomyLoading, setTaxonomyLoading] = useState(true);
   const [cancelConfirm, setCancelConfirm] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [errors, setErrors] = useState({});
   const [form, setForm] = useState({
     title: '',
     description: '',
+    category: '',
+    subcategory: '',
     isOnline: false,
     coverImage: '',
     startDate: '',
     startTime: '',
     endDate: '',
     endTime: '',
+    timezone: 'Asia/Dhaka',
     venueName: '',
     venueAddress: '',
     venueCity: '',
-    venueCountry: '',
+    venueCountry: 'Bangladesh',
     onlineLink: '',
     ageRestriction: 'all',
   });
+
+  useEffect(() => {
+    const fetchTaxonomy = async () => {
+      setTaxonomyLoading(true);
+      try {
+        const result = await categoriesService.getAll();
+        setCategories(result || []);
+      } catch (error) {
+        toast.error(getApiErrorMessage(error, 'Failed to load categories'));
+      } finally {
+        setTaxonomyLoading(false);
+      }
+    };
+
+    fetchTaxonomy();
+  }, []);
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -83,12 +105,15 @@ const EditEventPage = () => {
         setForm({
           title: currentEvent?.title || '',
           description: currentEvent?.description || '',
+          category: currentEvent?.category?._id || currentEvent?.category || '',
+          subcategory: currentEvent?.subcategory?._id || currentEvent?.subcategory || '',
           isOnline,
           coverImage: currentEvent?.coverImage || '',
           startDate: toDateInput(currentEvent?.startDate),
           startTime: toTimeInput(currentEvent?.startDate),
           endDate: toDateInput(currentEvent?.endDate),
           endTime: toTimeInput(currentEvent?.endDate),
+          timezone: currentEvent?.timezone || 'Asia/Dhaka',
           venueName: currentEvent?.location?.name || '',
           venueAddress: currentEvent?.location?.address || '',
           venueCity: currentEvent?.location?.city || '',
@@ -107,11 +132,86 @@ const EditEventPage = () => {
     fetchEvent();
   }, [eventId, navigate]);
 
-  const setValue = (key, value) =>
+  useEffect(() => {
+    const fetchSubcategories = async () => {
+      if (!form.category) {
+        setSubcategories([]);
+        return;
+      }
+
+      try {
+        const result = await subcategoriesService.getAll({ categoryId: form.category });
+        setSubcategories(result || []);
+      } catch (error) {
+        toast.error(getApiErrorMessage(error, 'Failed to load subcategories'));
+      }
+    };
+
+    fetchSubcategories();
+  }, [form.category]);
+
+  const setValue = (key, value) => {
     setForm((current) => ({ ...current, [key]: value }));
+    setErrors((current) => ({ ...current, [key]: undefined }));
+  };
+
+  const statusAllowsSubmission = useMemo(
+    () => ['draft', 'rejected'].includes(event?.status),
+    [event?.status],
+  );
+
+  const validateForReview = () => {
+    const nextErrors = {};
+
+    if (!form.title.trim()) nextErrors.title = 'Title is required';
+    if (!form.description.trim()) nextErrors.description = 'Description is required';
+    if (!form.category) nextErrors.category = 'Category is required';
+    if (!form.startDate) nextErrors.startDate = 'Start date is required';
+    if (!form.startTime) nextErrors.startTime = 'Start time is required';
+    if (!form.endDate) nextErrors.endDate = 'End date is required';
+    if (!form.endTime) nextErrors.endTime = 'End time is required';
+    if (!form.isOnline && !form.venueName.trim()) nextErrors.venueName = 'Venue name is required';
+    if (form.isOnline && !form.onlineLink.trim()) nextErrors.onlineLink = 'Online link is required';
+
+    if (
+      form.startDate && form.startTime && form.endDate && form.endTime
+      && new Date(`${form.endDate}T${form.endTime}:00`) <= new Date(`${form.startDate}T${form.startTime}:00`)
+    ) {
+      nextErrors.endTime = 'End date/time must be after start date/time';
+    }
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const buildPayload = () => ({
+    title: form.title.trim(),
+    description: form.description.trim(),
+    category: form.category || undefined,
+    subcategory: form.subcategory || undefined,
+    coverImage: form.coverImage.trim() || undefined,
+    startDate: buildDateTime(form.startDate, form.startTime),
+    endDate: buildDateTime(form.endDate, form.endTime, '23:59'),
+    timezone: form.timezone,
+    location: form.isOnline
+      ? {
+          type: 'online',
+          onlineUrl: form.onlineLink.trim() || undefined,
+        }
+      : {
+          type: 'physical',
+          name: form.venueName.trim() || undefined,
+          address: form.venueAddress.trim() || undefined,
+          city: form.venueCity.trim() || undefined,
+          country: form.venueCountry.trim() || undefined,
+        },
+    ageRestriction: form.ageRestriction,
+  });
 
   const handleSave = async () => {
+    const eventKey = event?.slug || eventId;
     if (!form.title.trim()) {
+      setErrors((current) => ({ ...current, title: 'Title is required' }));
       toast.error('Title is required');
       return;
     }
@@ -122,35 +222,38 @@ const EditEventPage = () => {
     }
 
     setSaving(true);
+    setSavingMode('save');
 
     try {
-      const updatedEvent = await eventsService.updateEvent(eventId, {
-        title: form.title.trim(),
-        description: form.description.trim(),
-        coverImage: form.coverImage || undefined,
-        startDate: buildDateTime(form.startDate, form.startTime),
-        endDate: buildDateTime(form.endDate, form.endTime, '23:59'),
-        location: form.isOnline
-          ? {
-              type: 'online',
-              onlineUrl: form.onlineLink || undefined,
-            }
-          : {
-              type: 'physical',
-              name: form.venueName || undefined,
-              address: form.venueAddress || undefined,
-              city: form.venueCity || undefined,
-              country: form.venueCountry || undefined,
-            },
-        ageRestriction: form.ageRestriction,
-      });
-
+      const updatedEvent = await eventsService.updateEvent(eventKey, buildPayload());
       setEvent(updatedEvent || event);
-      toast.success('Event updated successfully');
+      toast.success(event?.status === 'draft' ? 'Draft updated successfully' : 'Event updated successfully');
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Failed to save event'));
     } finally {
       setSaving(false);
+      setSavingMode('');
+    }
+  };
+
+  const handleSubmitForReview = async () => {
+    if (!validateForReview()) return;
+
+    const eventKey = event?.slug || eventId;
+    setSaving(true);
+    setSavingMode('review');
+
+    try {
+      const updatedEvent = await eventsService.updateEvent(eventKey, buildPayload());
+      const submittedEvent = await eventsService.publishEvent(updatedEvent?.slug || eventKey);
+      setEvent(submittedEvent || updatedEvent || event);
+      toast.success('Event submitted for review');
+      navigate(ROUTES.ORGANIZER.EVENTS);
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Failed to submit draft for review'));
+    } finally {
+      setSaving(false);
+      setSavingMode('');
     }
   };
 
@@ -198,6 +301,15 @@ const EditEventPage = () => {
         {event?.status && <StatusBadge status={event.status} />}
       </div>
 
+      {event?.rejectionReason && (
+        <Card className="border-amber-300 bg-amber-50/60">
+          <CardContent className="p-4">
+            <p className="text-sm font-semibold text-amber-700">Rejection feedback</p>
+            <p className="text-sm text-amber-900 mt-1">{event.rejectionReason}</p>
+          </CardContent>
+        </Card>
+      )}
+
       <Tabs defaultValue="details">
         <TabsList>
           <TabsTrigger value="details">Details</TabsTrigger>
@@ -209,14 +321,14 @@ const EditEventPage = () => {
         <TabsContent value="details" className="mt-4">
           <Card>
             <CardContent className="p-6 space-y-5">
-              <Field label="Event Title" required>
+              <Field label="Event Title" required error={errors.title}>
                 <Input
                   value={form.title}
                   onChange={(eventValue) => setValue('title', eventValue.target.value)}
                   className="h-9"
                 />
               </Field>
-              <Field label="Description">
+              <Field label="Description" error={errors.description}>
                 <Textarea
                   value={form.description}
                   onChange={(eventValue) =>
@@ -226,6 +338,47 @@ const EditEventPage = () => {
                   className="text-sm resize-none"
                 />
               </Field>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="Category" required error={errors.category}>
+                  <Select
+                    value={form.category}
+                    onValueChange={(value) => {
+                      setValue('category', value);
+                      setValue('subcategory', '');
+                    }}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder={taxonomyLoading ? 'Loading categories...' : 'Select category'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category._id} value={category._id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Subcategory">
+                  <Select
+                    value={form.subcategory || 'none'}
+                    onValueChange={(value) => setValue('subcategory', value === 'none' ? '' : value)}
+                    disabled={!form.category}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Select subcategory" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No subcategory</SelectItem>
+                      {subcategories.map((subcategory) => (
+                        <SelectItem key={subcategory._id} value={subcategory._id}>
+                          {subcategory.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </div>
               <Field label="Age Restriction">
                 <Select
                   value={form.ageRestriction}
@@ -261,7 +414,7 @@ const EditEventPage = () => {
           <Card>
             <CardContent className="p-6 space-y-5">
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Start Date" required>
+                <Field label="Start Date" required error={errors.startDate}>
                   <Input
                     type="date"
                     value={form.startDate}
@@ -271,7 +424,7 @@ const EditEventPage = () => {
                     className="h-9"
                   />
                 </Field>
-                <Field label="Start Time" required>
+                <Field label="Start Time" required error={errors.startTime}>
                   <Input
                     type="time"
                     value={form.startTime}
@@ -281,7 +434,7 @@ const EditEventPage = () => {
                     className="h-9"
                   />
                 </Field>
-                <Field label="End Date" required>
+                <Field label="End Date" required error={errors.endDate}>
                   <Input
                     type="date"
                     value={form.endDate}
@@ -291,7 +444,7 @@ const EditEventPage = () => {
                     className="h-9"
                   />
                 </Field>
-                <Field label="End Time" required>
+                <Field label="End Time" required error={errors.endTime}>
                   <Input
                     type="time"
                     value={form.endTime}
@@ -302,10 +455,34 @@ const EditEventPage = () => {
                   />
                 </Field>
               </div>
+              <Field label="Timezone">
+                <Select
+                  value={form.timezone}
+                  onValueChange={(value) => setValue('timezone', value)}
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[
+                      'Asia/Dhaka',
+                      'Asia/Kolkata',
+                      'Asia/Singapore',
+                      'America/New_York',
+                      'Europe/London',
+                      'UTC',
+                    ].map((timezone) => (
+                      <SelectItem key={timezone} value={timezone}>
+                        {timezone}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
               {!form.isOnline ? (
                 <>
                   <Separator />
-                  <Field label="Venue Name">
+                  <Field label="Venue Name" required error={errors.venueName}>
                     <Input
                       value={form.venueName}
                       onChange={(eventValue) =>
@@ -345,7 +522,7 @@ const EditEventPage = () => {
                   </div>
                 </>
               ) : (
-                <Field label="Streaming / Meeting Link">
+                <Field label="Streaming / Meeting Link" required error={errors.onlineLink}>
                   <Input
                     value={form.onlineLink}
                     onChange={(eventValue) =>
@@ -420,16 +597,16 @@ const EditEventPage = () => {
         </TabsContent>
       </Tabs>
 
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <Button
           variant="outline"
           onClick={() => navigate(ROUTES.ORGANIZER.EVENTS)}
           className="font-semibold"
         >
-          Discard
+          Back to Events
         </Button>
-        <Button onClick={handleSave} disabled={saving} className="font-bold flex-1">
-          {saving ? (
+        <Button onClick={handleSave} disabled={saving} className="font-bold flex-1 min-w-[180px]">
+          {saving && savingMode === 'save' ? (
             <>
               <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
               Saving...
@@ -437,10 +614,29 @@ const EditEventPage = () => {
           ) : (
             <>
               <Save className="h-4 w-4 mr-2" />
-              Save Changes
+              {event?.status === 'draft' ? 'Save Draft' : 'Save Changes'}
             </>
           )}
         </Button>
+        {statusAllowsSubmission && (
+          <Button
+            onClick={handleSubmitForReview}
+            disabled={saving}
+            className="font-bold flex-1 min-w-[200px]"
+          >
+            {saving && savingMode === 'review' ? (
+              <>
+                <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                Submitting...
+              </>
+            ) : (
+              <>
+                Submit for Review
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </>
+            )}
+          </Button>
+        )}
       </div>
 
       <ConfirmDialog

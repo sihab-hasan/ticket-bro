@@ -304,6 +304,9 @@ export const CartProvider = ({ children }) => {
     tax,
     total,
     summary,
+    itemCount: summary.itemCount,
+    uniqueItems: summary.uniqueItems,
+    shippingCost: shippingCost(),
     
     // Utilities
     isInCart,
