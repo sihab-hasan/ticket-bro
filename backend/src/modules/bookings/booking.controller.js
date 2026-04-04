@@ -2,6 +2,7 @@
 const asyncHandler = require('../../common/utils/asyncHandler');
 const { sendSuccess, sendCreated } = require('../../common/utils/apiResponse');
 const bookingService = require('./booking.service');
+const waitlistService = require('./waitlist.service');
 
 class BookingController {
   createBooking = asyncHandler(async (req, res) => {
@@ -50,6 +51,29 @@ class BookingController {
     const booking = await bookingService.checkIn(req.params.ref, req.user);
     sendSuccess(res, 'Checked in successfully.', { booking });
   });
+
+  joinWaitlist = asyncHandler(async (req, res) => {
+    const userId = req.user._id || req.user.id;
+    const entry = await waitlistService.join(userId, {
+      eventId: req.params.eventId,
+      ticketTypeId: req.body?.ticketTypeId,
+      quantity: req.body?.quantity || 1,
+    });
+    sendCreated(res, 'Joined waitlist.', { waitlist: entry });
+  });
+
+  leaveWaitlist = asyncHandler(async (req, res) => {
+    const userId = req.user._id || req.user.id;
+    const result = await waitlistService.leave(userId, req.params.eventId);
+    sendSuccess(res, 'Waitlist entry removed.', result);
+  });
+
+  getWaitlistStatus = asyncHandler(async (req, res) => {
+    const userId = req.user._id || req.user.id;
+    const result = await waitlistService.getPosition(userId, req.params.eventId);
+    sendSuccess(res, 'Waitlist status fetched.', result);
+  });
 }
+
 
 module.exports = new BookingController();

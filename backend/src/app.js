@@ -9,6 +9,7 @@ const compression = require("compression");
 const mongoSanitize = require("express-mongo-sanitize");
 const cookieParser = require("cookie-parser");
 const path = require("path");
+const fs = require("fs");
 
 const env = require("./config/env");
 const { globalLimiter } = require("./config/rateLimit.config");
@@ -23,22 +24,19 @@ const logger = require("./infrastructure/logger/logger");
 require("./modules/auth/strategies/passport");
 
 const app = express();
+const API_PREFIX = `${env.API_PREFIX}/${env.API_VERSION}`;
+const staticFrontendDir = env.STATIC_FRONTEND_DIR;
+const frontendIndexPath = path.join(staticFrontendDir, "index.html");
+const hasBuiltFrontend = fs.existsSync(frontendIndexPath);
 
 // ── Trust Proxy ───────────────────────────────────────────────────────────────
-// MUST be FIRST — before rate limiter, CORS, and cookieParser.
-// Without this, req.ip is the proxy IP (127.0.0.1 in all envs), which means:
-//   • All users share one rate-limit bucket → 5 failed logins = 429 for everyone
-//   • Secure cookies may not be set correctly behind a load balancer
-// In production: trust exactly 1 hop (the load balancer / reverse proxy).
-// In development: still set it so req.ip resolves to the real local IP.
-app.set('trust proxy', env.isProduction() ? 1 : false);
+app.set("trust proxy", env.isProduction() ? 1 : false);
 
 // ── Security Headers ──────────────────────────────────────────────────────────
 app.use(
   helmet({
     crossOriginEmbedderPolicy: false,
     contentSecurityPolicy: env.isProduction(),
-    // Allow cross-origin image loads (avatar images from different port in dev)
     crossOriginResourcePolicy: { policy: "cross-origin" },
   }),
 );
@@ -48,15 +46,11 @@ app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) {
-        return callback(null, true); // allow curl/postman
+        return callback(null, true);
       }
 
-      const allowedOrigins = [
-        env.FRONTEND_URL,
-        env.BACKEND_URL,
-      ];
+      const allowedOrigins = [env.FRONTEND_URL, env.BACKEND_URL];
 
-      // Allow localhost
       if (
         origin.startsWith("http://localhost") ||
         origin.startsWith("http://127.0.0.1")
@@ -64,17 +58,14 @@ app.use(
         return callback(null, true);
       }
 
-      // Allow LAN devices
       if (/^http:\/\/192\.168\.\d{1,3}\.\d{1,3}:5173$/.test(origin)) {
         return callback(null, true);
       }
 
-      // Allow ANY Cloudflare tunnel
       if (/\.trycloudflare\.com$/.test(new URL(origin).hostname)) {
         return callback(null, true);
       }
 
-      // Allow configured domains
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
@@ -94,11 +85,9 @@ app.use(
 );
 
 // ── Global Rate Limiting ──────────────────────────────────────────────────────
-// Applied AFTER trust proxy so req.ip is the real client IP.
 app.use(globalLimiter);
 
 // ── Webhook Raw Body ──────────────────────────────────────────────────────────
-const API_PREFIX = `${env.API_PREFIX}/${env.API_VERSION}`;
 app.use(`${API_PREFIX}/webhooks`, express.raw({ type: "application/json" }));
 
 // ── Body Parsing ──────────────────────────────────────────────────────────────
@@ -126,6 +115,7 @@ app.get("/health", (req, res) => {
     environment: env.NODE_ENV,
     version: process.env.npm_package_version || "1.0.0",
     uptime: process.uptime(),
+    frontendBuilt: hasBuiltFrontend,
   });
 });
 
@@ -141,6 +131,14 @@ app.use(
   },
   express.static(path.join(process.cwd(), "public/uploads")),
 );
+
+if (env.SERVE_STATIC_FRONTEND && hasBuiltFrontend) {
+  app.use(express.static(staticFrontendDir));
+
+  app.get(/^\/(?!api|uploads|health).*/, (req, res) => {
+    res.sendFile(frontendIndexPath);
+  });
+}
 
 // ── 404 Handler ───────────────────────────────────────────────────────────────
 app.use(notFound);

@@ -1,6 +1,7 @@
 'use strict';
 
 require('dotenv').config();
+const path = require('node:path');
 
 // ── Required env vars — app crashes at startup if any are missing ─────────────
 const requiredEnvVars = [
@@ -11,7 +12,7 @@ const requiredEnvVars = [
   'MONGODB_URI',
 ];
 
-const _isDev  = () => (process.env.NODE_ENV || 'development') === 'development';
+const _isDev = () => (process.env.NODE_ENV || 'development') === 'development';
 const _isProd = () => (process.env.NODE_ENV || 'development') === 'production';
 const _isTest = () => (process.env.NODE_ENV || 'development') === 'test';
 
@@ -74,8 +75,10 @@ const env = {
     'http://localhost:5000/api/v1/auth/oauth/facebook/callback',
 
   // URLs
-  FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
+  FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:5173',
   BACKEND_URL: process.env.BACKEND_URL || 'http://localhost:5000',
+  SERVE_STATIC_FRONTEND: process.env.SERVE_STATIC_FRONTEND === 'false' ? false : _isProd(),
+  STATIC_FRONTEND_DIR: process.env.STATIC_FRONTEND_DIR || path.join(process.cwd(), 'public/app'),
 
   // Rate Limiting
   RATE_LIMIT_WINDOW_MS: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 900000,
@@ -94,11 +97,10 @@ const env = {
   TWO_FACTOR_APP_NAME: process.env.TWO_FACTOR_APP_NAME || 'Ticket Bro',
 
   // Cookie — SECURE is forced true in production; developer opt-in for dev HTTPS
-  // FIX: COOKIE_SAME_SITE defaults to 'strict' (was 'lax' — allows CSRF on cross-site nav)
   COOKIE_SECRET: process.env.COOKIE_SECRET || 'cookie-secret',
   COOKIE_SECURE: _isProd() ? true : process.env.COOKIE_SECURE === 'true',
   COOKIE_HTTP_ONLY: process.env.COOKIE_HTTP_ONLY !== 'false',
-  COOKIE_SAME_SITE: process.env.COOKIE_SAME_SITE || 'strict',
+  COOKIE_SAME_SITE: process.env.COOKIE_SAME_SITE || (_isProd() ? 'none' : 'lax'),
 
   // Helpers
   isDevelopment: _isDev,

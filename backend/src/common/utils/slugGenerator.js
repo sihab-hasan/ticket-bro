@@ -78,7 +78,7 @@ class SlugGenerator {
    * Generate organizer slug
    */
   static async generateOrganizerSlug(name, organizerId = null) {
-    const Organizer = require("../../modules/organizers/organizerApplication.model");
+    const Organizer = require("../../modules/organizers/organizer.model");
     return this.generateUnique(name, Organizer, "slug", { organizerId });
   }
 

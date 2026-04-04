@@ -15,8 +15,10 @@
 // ║  Both systems share the same Redux store (authSlice) and useAuth ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
+const defaultWebOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173';
+
 const authConfig = {
-  apiBaseUrl: '/api/v1',  // Use relative path — goes through Vite proxy
+  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || '/api/v1',
   appName: import.meta.env.VITE_APP_NAME || 'Ticket Bro',
 
   routes: {
@@ -59,11 +61,11 @@ const authConfig = {
   oauth: {
     google: {
       redirectUri: import.meta.env.VITE_GOOGLE_REDIRECT_URI
-        || 'http://localhost:5173/auth/oauth-success',
+        || `${defaultWebOrigin}/auth/oauth-success`,
     },
     facebook: {
       redirectUri: import.meta.env.VITE_FACEBOOK_REDIRECT_URI
-        || 'http://localhost:5173/auth/oauth-success',
+        || `${defaultWebOrigin}/auth/oauth-success`,
     },
   },
 };

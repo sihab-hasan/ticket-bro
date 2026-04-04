@@ -20,6 +20,11 @@ router.get('/:ref/invoice',               (req,res,next) => c().getInvoice(req,r
 router.get('/organizer/all',
   authorize(ROLES.ORGANIZER, ROLES.ADMIN, ROLES.SUPER_ADMIN),
   (req,res,next) => c().getOrganizerBookings(req,res,next));
+
+// ── Waitlist routes ──
+router.post('/waitlist/:eventId', (req,res,next) => c().joinWaitlist(req,res,next));
+router.get('/waitlist/:eventId', (req,res,next) => c().getWaitlistStatus(req,res,next));
+router.delete('/waitlist/:eventId', (req,res,next) => c().leaveWaitlist(req,res,next));
 router.post('/organizer/:ref/checkin',
   authorize(ROLES.ORGANIZER, ROLES.ADMIN, ROLES.SUPER_ADMIN),
   (req,res,next) => c().checkIn(req,res,next));
