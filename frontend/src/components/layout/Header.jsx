@@ -22,7 +22,7 @@ import {
   Menu, Search, ShoppingBag, Sun, Moon, Monitor,
   MapPin, ChevronDown, Check, Locate, X,
   ChevronLeft, Calendar, ChevronRight,
-  PlusCircle, Tag, TrendingUp,
+  PlusCircle, Tag, TrendingUp, MessageSquare,
 } from "lucide-react";
 import { Button }    from "@/components/ui/button";
 import { Badge }     from "@/components/ui/badge";
@@ -41,6 +41,8 @@ import { useBrowse } from "@/hooks";
 import lightLogo     from "@/assets/images/ticket-bro-logo-light-mode.png";
 import darkLogo      from "@/assets/images/ticket-bro-logo-dark-mode.png";
 import UserMenu      from "@/components/layout/UserMenu";
+import { useSelector } from "react-redux";
+import { selectUnreadCount } from "@/store/slices/messagingSlice";
 
 /* ════════════════════════════════════════════════════════════════
    LOCATION SELECTOR
@@ -432,6 +434,7 @@ const Header = () => {
   const { setQuery }                         = useSearch();
   const { selectedLocation, changeLocation, locations } = useLocationCtx();
   const { navigationItems } = useBrowse();
+  const msgUnreadCount = useSelector(selectUnreadCount);
 
   // "Create Event" CTA — only for organizer / admin
   const canCreateEvent = isAuthenticated && hasPermission("event:create");
@@ -511,6 +514,19 @@ const Header = () => {
                 </Link>
               </Button>
 
+              {isAuthenticated && (
+                <Button variant="ghost" size="icon" className="relative h-8 w-8 xs:h-9 xs:w-9 shrink-0" asChild>
+                  <Link to="/messages" aria-label={msgUnreadCount > 0 ? `Messages, ${msgUnreadCount} unread` : "Messages"}>
+                    <MessageSquare className="h-4 w-4" />
+                    {msgUnreadCount > 0 && (
+                      <Badge className="absolute -top-0.5 -right-0.5 h-4 w-4 flex items-center justify-center p-0 bg-primary text-primary-foreground rounded-full text-[9px] font-bold">
+                        {msgUnreadCount > 9 ? "9+" : msgUnreadCount}
+                      </Badge>
+                    )}
+                  </Link>
+                </Button>
+              )}
+
               <ThemeSwitcher theme={theme} setThemeMode={setThemeMode} size="sm" />
             </div>
           </div>
@@ -583,6 +599,19 @@ const Header = () => {
             </Link>
 
             <ThemeSwitcher theme={theme} setThemeMode={setThemeMode} />
+
+            {isAuthenticated && (
+              <Button variant="ghost" size="icon" className="relative h-9 w-9 shrink-0" asChild>
+                <Link to="/messages" aria-label={msgUnreadCount > 0 ? `Messages, ${msgUnreadCount} unread` : "Messages"}>
+                  <MessageSquare className="h-4 w-4" />
+                  {msgUnreadCount > 0 && (
+                    <Badge className="absolute -top-0.5 -right-0.5 h-4 w-4 flex items-center justify-center p-0 bg-primary text-primary-foreground rounded-full text-[9px] font-bold">
+                      {msgUnreadCount > 9 ? "9+" : msgUnreadCount}
+                    </Badge>
+                  )}
+                </Link>
+              </Button>
+            )}
 
             {/* User menu — UserMenu decides auth/guest + role visibility */}
             <UserMenu mode="dropdown" />
