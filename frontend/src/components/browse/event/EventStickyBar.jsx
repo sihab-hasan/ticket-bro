@@ -1,10 +1,8 @@
 /**
- * EventStickyBar.jsx
  * Sticky bottom booking bar — appears on scroll
- * Fields: event.title, startDate, location, minPrice, isFree, canPurchase
  */
-import React, { useState, useEffect } from "react";
-import { Ticket, ChevronUp } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Ticket } from "lucide-react";
 import Container from "@/components/layout/Container";
 import { fmtDateShort, fmtTime } from "./shared/EventShared.jsx";
 
@@ -17,9 +15,21 @@ const EventStickyBar = ({ event, onBook }) => {
     return () => window.removeEventListener("scroll", handler);
   }, []);
 
-  const priceLabel = event.isFree
+  const purchaseEnabled = useMemo(() => {
+    if (!event) return false;
+    if (event.status !== "published") return false;
+    if (event.isPast || event.status === "completed") return false;
+    if (event.status === "cancelled" || event.status === "postponed") return false;
+    return event.canPurchase !== false;
+  }, [event]);
+
+  const priceLabel = event?.isFree
     ? "Free"
-    : `From ৳${event.minPrice?.toLocaleString()}`;
+    : `From ৳${Number(event?.minPrice || 0).toLocaleString()}`;
+
+  if (!purchaseEnabled) {
+    return null;
+  }
 
   return (
     <div
@@ -31,9 +41,9 @@ const EventStickyBar = ({ event, onBook }) => {
     >
       <Container>
         <div className="flex items-center justify-between gap-4 py-3">
-          <div className="min-w-0 hidden sm:block">
+          <div className="hidden min-w-0 sm:block">
             <p
-              className="text-sm font-bold text-foreground truncate"
+              className="truncate text-sm font-bold text-foreground"
               style={{ fontFamily: "var(--font-heading)" }}
             >
               {event.title}
@@ -42,14 +52,14 @@ const EventStickyBar = ({ event, onBook }) => {
               className="text-xs text-muted-foreground"
               style={{ fontFamily: "var(--font-sans)" }}
             >
-              {fmtDateShort(event.startDate)} · {fmtTime(event.startDate)} ·{" "}
-              {event.location?.name || event.location?.city}
+              {fmtDateShort(event.startDate)} · {fmtTime(event.startDate)} · {" "}
+              {event.location?.name || event.location?.city || "Venue TBA"}
             </p>
           </div>
-          <div className="flex items-center gap-3 shrink-0 ml-auto">
+          <div className="ml-auto flex shrink-0 items-center gap-3">
             <div className="text-right">
               <p
-                className="text-[10px] text-muted-foreground uppercase tracking-wide"
+                className="text-[10px] uppercase tracking-wide text-muted-foreground"
                 style={{ fontFamily: "var(--font-sans)" }}
               >
                 Price
@@ -63,7 +73,7 @@ const EventStickyBar = ({ event, onBook }) => {
             </div>
             <button
               onClick={onBook}
-              className="flex items-center gap-2 h-10 px-5 rounded-xl text-sm font-bold transition-all hover:opacity-90 active:scale-[0.98]"
+              className="flex h-10 items-center gap-2 rounded-xl px-5 text-sm font-bold transition-all hover:opacity-90 active:scale-[0.98]"
               style={{
                 background: "var(--foreground)",
                 color: "var(--background)",

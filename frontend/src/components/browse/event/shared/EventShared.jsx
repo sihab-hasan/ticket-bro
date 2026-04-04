@@ -172,11 +172,13 @@ export const PriceBadge = ({ isFree, minPrice, maxPrice, currency = "BDT" }) => 
 
 export const StatusBadge = ({ status }) => {
   const map = {
-    published:  { label: "On Sale",    bg: "bg-green-500/10 text-green-700 border-green-500/20" },
-    cancelled:  { label: "Cancelled",  bg: "bg-red-500/10   text-red-700   border-red-500/20"   },
-    postponed:  { label: "Postponed",  bg: "bg-amber-500/10 text-amber-700 border-amber-500/20" },
-    completed:  { label: "Past Event", bg: "bg-muted        text-muted-foreground border-border" },
-    draft:      { label: "Draft",      bg: "bg-muted        text-muted-foreground border-border" },
+    published:  { label: "On Sale",         bg: "bg-green-500/10 text-green-700 border-green-500/20" },
+    pending:    { label: "Pending Review",  bg: "bg-amber-500/10 text-amber-700 border-amber-500/20" },
+    rejected:   { label: "Needs Changes",   bg: "bg-red-500/10 text-red-700 border-red-500/20" },
+    cancelled:  { label: "Cancelled",       bg: "bg-red-500/10 text-red-700 border-red-500/20" },
+    postponed:  { label: "Postponed",       bg: "bg-amber-500/10 text-amber-700 border-amber-500/20" },
+    completed:  { label: "Past Event",      bg: "bg-muted text-muted-foreground border-border" },
+    draft:      { label: "Draft",           bg: "bg-muted text-muted-foreground border-border" },
   };
   const s = map[status] || map.draft;
   return (

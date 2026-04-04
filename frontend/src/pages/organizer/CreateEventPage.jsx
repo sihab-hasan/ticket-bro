@@ -87,7 +87,7 @@ const EMPTY_TICKET = {
   type: 'general',
 };
 
-const createErrors = (form) => {
+const createReviewErrors = (form) => {
   const errors = {};
 
   if (!form.title.trim()) errors.title = 'Title is required';
@@ -99,6 +99,9 @@ const createErrors = (form) => {
   if (!form.endTime) errors.endTime = 'End time is required';
   if (!form.isOnline && !form.venueName.trim()) {
     errors.venueName = 'Venue name is required';
+  }
+  if (form.isOnline && !form.onlineLink.trim()) {
+    errors.onlineLink = 'Online event link is required';
   }
 
   if (!form.tickets.length) {
@@ -115,13 +118,142 @@ const createErrors = (form) => {
     errors.tickets = 'Each ticket needs a name, price, and quantity';
   }
 
+  if (
+    form.startDate && form.startTime && form.endDate && form.endTime
+    && new Date(`${form.endDate}T${form.endTime}:00`) <= new Date(`${form.startDate}T${form.startTime}:00`)
+  ) {
+    errors.endTime = 'End date/time must be after start date/time';
+  }
+
   return errors;
+};
+
+const createDraftErrors = (form) => {
+  const errors = {};
+
+  if (!form.title.trim()) errors.title = 'Title is required to save a draft';
+  if (!form.description.trim()) errors.description = 'Description is required to save a draft';
+  if (!form.startDate) errors.startDate = 'Start date is required to save a draft';
+  if (!form.startTime) errors.startTime = 'Start time is required to save a draft';
+  if (!form.endDate) errors.endDate = 'End date is required to save a draft';
+  if (!form.endTime) errors.endTime = 'End time is required to save a draft';
+
+  if (
+    form.startDate && form.startTime && form.endDate && form.endTime
+    && new Date(`${form.endDate}T${form.endTime}:00`) <= new Date(`${form.startDate}T${form.startTime}:00`)
+  ) {
+    errors.endTime = 'End date/time must be after start date/time';
+  }
+
+  return errors;
+};
+
+const buildDateTime = (date, time) => (
+  date && time ? `${date}T${time}:00` : undefined
+);
+
+const buildLocationPayload = (form, status) => {
+  if (form.isOnline) {
+    if (!form.onlineLink.trim() && status === 'draft') {
+      return undefined;
+    }
+
+    return {
+      type: 'online',
+      onlineUrl: form.onlineLink.trim() || undefined,
+    };
+  }
+
+  const hasPhysicalLocation = [
+    form.venueName,
+    form.venueAddress,
+    form.venueCity,
+    form.venueCountry,
+  ].some((value) => value?.trim());
+
+  if (!hasPhysicalLocation && status === 'draft') {
+    return undefined;
+  }
+
+  return {
+    type: 'physical',
+    name: form.venueName.trim() || undefined,
+    address: form.venueAddress.trim() || undefined,
+    city: form.venueCity.trim() || undefined,
+    country: form.venueCountry.trim() || undefined,
+  };
+};
+
+const buildEventPayload = (form, status) => ({
+  title: form.title.trim(),
+  description: form.description.trim(),
+  category: form.category || undefined,
+  subcategory: form.subcategory || undefined,
+  startDate: buildDateTime(form.startDate, form.startTime),
+  endDate: buildDateTime(form.endDate, form.endTime),
+  timezone: form.timezone,
+  location: buildLocationPayload(form, status),
+  ageRestriction: form.ageRestriction,
+  isFree: form.isFree,
+  coverImage: form.coverImage.trim() || undefined,
+  status,
+});
+
+const getReviewTicketPayloads = (form) => (
+  form.isFree
+    ? [
+        {
+          name: form.tickets[0]?.name?.trim() || 'Free Admission',
+          type: 'general',
+          price: 0,
+          quantity: Number.parseInt(form.tickets[0]?.quantity || '0', 10),
+          description: form.tickets[0]?.description || undefined,
+          isActive: true,
+        },
+      ]
+    : form.tickets.map((ticket) => ({
+        name: ticket.name.trim(),
+        type: ticket.type,
+        price: Number.parseFloat(ticket.price),
+        quantity: Number.parseInt(ticket.quantity, 10),
+        description: ticket.description || undefined,
+        isActive: true,
+      }))
+);
+
+const getDraftTicketPayloads = (form) => {
+  if (form.isFree) {
+    if (!form.tickets[0]?.quantity) return [];
+
+    return [
+      {
+        name: form.tickets[0]?.name?.trim() || 'Free Admission',
+        type: 'general',
+        price: 0,
+        quantity: Number.parseInt(form.tickets[0]?.quantity || '0', 10),
+        description: form.tickets[0]?.description || undefined,
+        isActive: true,
+      },
+    ];
+  }
+
+  return form.tickets
+    .filter((ticket) => ticket.name.trim() && ticket.price !== '' && ticket.quantity)
+    .map((ticket) => ({
+      name: ticket.name.trim(),
+      type: ticket.type,
+      price: Number.parseFloat(ticket.price),
+      quantity: Number.parseInt(ticket.quantity, 10),
+      description: ticket.description || undefined,
+      isActive: true,
+    }));
 };
 
 const CreateEventPage = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [savingMode, setSavingMode] = useState('');
   const [errors, setErrors] = useState({});
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
@@ -188,7 +320,7 @@ const CreateEventPage = () => {
     setForm((current) => ({ ...current, [key]: value }));
 
   const validateCurrentStep = () => {
-    const nextErrors = createErrors(form);
+    const nextErrors = createReviewErrors(form);
     const scopedErrors = {};
 
     if (step === 0) {
@@ -213,8 +345,14 @@ const CreateEventPage = () => {
     return Object.keys(scopedErrors).length === 0;
   };
 
-  const validateAll = () => {
-    const nextErrors = createErrors(form);
+  const validateForReview = () => {
+    const nextErrors = createReviewErrors(form);
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const validateForDraft = () => {
+    const nextErrors = createDraftErrors(form);
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
@@ -247,58 +385,52 @@ const CreateEventPage = () => {
       ),
     }));
 
-  const handleSubmit = async (status = 'draft') => {
-    if (!validateAll()) return;
+  const handleSaveDraft = async () => {
+    if (!validateForDraft()) return;
 
     setSaving(true);
+    setSavingMode('draft');
 
     try {
-      const createdEvent = await eventsService.createEvent({
-        title: form.title.trim(),
-        description: form.description.trim(),
-        category: form.category,
-        subcategory: form.subcategory || undefined,
-        startDate: `${form.startDate}T${form.startTime}:00`,
-        endDate: `${form.endDate}T${form.endTime}:00`,
-        timezone: form.timezone,
-        location: form.isOnline
-          ? {
-              type: 'online',
-              onlineUrl: form.onlineLink || undefined,
-            }
-          : {
-              type: 'physical',
-              name: form.venueName || undefined,
-              address: form.venueAddress || undefined,
-              city: form.venueCity || undefined,
-              country: form.venueCountry || undefined,
-            },
-        ageRestriction: form.ageRestriction,
-        isFree: form.isFree,
-        coverImage: form.coverImage || undefined,
-        status,
-      });
+      const createdEvent = await eventsService.createEvent(buildEventPayload(form, 'draft'));
+      const eventKey = createdEvent?.slug || createdEvent?._id;
+      const ticketPayloads = getDraftTicketPayloads(form);
+
+      if (eventKey && ticketPayloads.length) {
+        try {
+          await Promise.all(
+            ticketPayloads.map((ticket) =>
+              eventsService.createTicketType(eventKey, ticket),
+            ),
+          );
+        } catch (ticketError) {
+          toast.success('Draft saved. Finish ticket setup from the event editor.');
+          navigate(ROUTES.ORGANIZER.EDIT_EVENT(eventKey));
+          return;
+        }
+      }
+
+      toast.success('Draft saved successfully');
+      navigate(ROUTES.ORGANIZER.EDIT_EVENT(eventKey));
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Failed to save draft'));
+    } finally {
+      setSaving(false);
+      setSavingMode('');
+    }
+  };
+
+  const handleSubmitForReview = async () => {
+    if (!validateForReview()) return;
+
+    setSaving(true);
+    setSavingMode('review');
+
+    try {
+      const createdEvent = await eventsService.createEvent(buildEventPayload(form, 'pending'));
 
       const eventKey = createdEvent?.slug || createdEvent?._id;
-      const ticketPayloads = form.isFree
-        ? [
-            {
-              name: form.tickets[0]?.name?.trim() || 'Free Admission',
-              type: 'general',
-              price: 0,
-              quantity: Number.parseInt(form.tickets[0]?.quantity || '0', 10),
-              description: form.tickets[0]?.description || undefined,
-              isActive: true,
-            },
-          ]
-        : form.tickets.map((ticket) => ({
-            name: ticket.name.trim(),
-            type: ticket.type,
-            price: Number.parseFloat(ticket.price),
-            quantity: Number.parseInt(ticket.quantity, 10),
-            description: ticket.description || undefined,
-            isActive: true,
-          }));
+      const ticketPayloads = getReviewTicketPayloads(form);
 
       try {
         await Promise.all(
@@ -317,16 +449,13 @@ const CreateEventPage = () => {
         return;
       }
 
-      toast.success(
-        status === 'draft'
-          ? 'Event saved as draft'
-          : 'Event submitted for review',
-      );
+      toast.success('Event submitted for review');
       navigate(ROUTES.ORGANIZER.EVENTS);
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Failed to create event'));
     } finally {
       setSaving(false);
+      setSavingMode('');
     }
   };
 
@@ -759,47 +888,51 @@ const CreateEventPage = () => {
         </CardContent>
       </Card>
 
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
+        <Button
+          variant="outline"
+          onClick={handleSaveDraft}
+          disabled={saving}
+          className="flex-1 font-semibold min-w-[160px]"
+        >
+          {saving && savingMode === 'draft' ? (
+            <>
+              <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+              Saving Draft...
+            </>
+          ) : (
+            'Save as Draft'
+          )}
+        </Button>
         {step > 0 && (
-          <Button variant="outline" onClick={back} className="flex-1 font-semibold">
+          <Button variant="outline" onClick={back} className="flex-1 font-semibold min-w-[140px]">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
         )}
-        {step < STEPS.length - 1 && (
-          <Button onClick={next} className="flex-1 font-bold">
+        {step < STEPS.length - 1 ? (
+          <Button onClick={next} className="flex-1 font-bold min-w-[160px]">
             Next
             <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
-        )}
-        {step === STEPS.length - 1 && (
-          <>
-            <Button
-              variant="outline"
-              onClick={() => handleSubmit('draft')}
-              disabled={saving}
-              className="flex-1 font-semibold"
-            >
-              Save as Draft
-            </Button>
-            <Button
-              onClick={() => handleSubmit('pending')}
-              disabled={saving}
-              className="flex-1 font-bold"
-            >
-              {saving ? (
-                <>
-                  <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
-                  Submitting...
-                </>
-              ) : (
-                <>
-                  Submit for Review
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </>
-              )}
-            </Button>
-          </>
+        ) : (
+          <Button
+            onClick={handleSubmitForReview}
+            disabled={saving}
+            className="flex-1 font-bold min-w-[180px]"
+          >
+            {saving && savingMode === 'review' ? (
+              <>
+                <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                Submitting...
+              </>
+            ) : (
+              <>
+                Submit for Review
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </>
+            )}
+          </Button>
         )}
       </div>
     </div>

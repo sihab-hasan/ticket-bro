@@ -1,6 +1,6 @@
 import React, { forwardRef, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, Clock, Shield, Ticket, Zap } from "lucide-react";
+import { Check, Clock, Info, Shield, Ticket, Zap } from "lucide-react";
 import { ROUTES } from "@/app/AppRoutes";
 import { CapacityBar } from "./shared/EventShared.jsx";
 
@@ -20,12 +20,94 @@ const formatTicketPrice = (ticket) => {
   return `${ticket.currency || "BDT"} ${ticket.price.toLocaleString()}`;
 };
 
+const getPurchaseState = (event, availableTickets) => {
+  if (!event) {
+    return {
+      canPurchase: false,
+      notice: "This event is not available right now.",
+      ctaLabel: "Not available",
+    };
+  }
+
+  if (event.status === "draft") {
+    return {
+      canPurchase: false,
+      notice: "This event is still in draft. Ticket sales have not opened yet.",
+      ctaLabel: "Draft preview",
+    };
+  }
+
+  if (event.status === "pending") {
+    return {
+      canPurchase: false,
+      notice: "This event is awaiting approval. Ticket sales will open after review.",
+      ctaLabel: "Pending approval",
+    };
+  }
+
+  if (event.status === "rejected") {
+    return {
+      canPurchase: false,
+      notice: "This event needs organizer updates before tickets can go live.",
+      ctaLabel: "Unavailable",
+    };
+  }
+
+  if (event.status === "cancelled") {
+    return {
+      canPurchase: false,
+      notice: "This event has been cancelled. New bookings are closed.",
+      ctaLabel: "Event cancelled",
+    };
+  }
+
+  if (event.status === "postponed") {
+    return {
+      canPurchase: false,
+      notice: "This event has been postponed. Please wait for an updated schedule.",
+      ctaLabel: "Postponed",
+    };
+  }
+
+  if (event.status === "completed" || event.isPast) {
+    return {
+      canPurchase: false,
+      notice: "This event has already ended. Tickets are no longer available.",
+      ctaLabel: "Event ended",
+    };
+  }
+
+  if (!availableTickets.length) {
+    return {
+      canPurchase: false,
+      notice: "Ticket inventory has not been published for this event yet.",
+      ctaLabel: "Tickets coming soon",
+    };
+  }
+
+  if (event.canPurchase === false) {
+    return {
+      canPurchase: false,
+      notice: "Ticket sales are temporarily unavailable for this event.",
+      ctaLabel: "Not available",
+    };
+  }
+
+  return {
+    canPurchase: true,
+    notice: null,
+    ctaLabel: "Continue to checkout",
+  };
+};
+
 const EventTicketsSection = forwardRef(({ event }, ref) => {
   const navigate = useNavigate();
   const tickets = useMemo(() => event.tickets || [], [event.tickets]);
   const availableTickets = useMemo(
     () =>
-      tickets.filter((ticket) => ticket.available !== false && ticket.isSoldOut !== true),
+      tickets.filter(
+        (ticket) => ticket.available !== false && ticket.isSoldOut !== true,
+      ),
     [tickets],
   );
   const [selected, setSelected] = useState(
@@ -50,14 +132,14 @@ const EventTicketsSection = forwardRef(({ event }, ref) => {
   const total = ticket ? ticket.price * qty : 0;
   const spotsLeft = event.spotsLeft;
   const soldPct = event.soldPercentage || 0;
-  const canPurchase = event.canPurchase !== false && availableTickets.length > 0;
+  const purchaseState = getPurchaseState(event, availableTickets);
 
   useEffect(() => {
     setQty((current) => Math.min(current, maxQty));
   }, [maxQty]);
 
   const handleCheckout = () => {
-    if (!event.slug || !ticket) {
+    if (!purchaseState.canPurchase || !event.slug || !ticket) {
       return;
     }
     navigate(ROUTES.TICKETS.SELECT(event.slug));
@@ -72,7 +154,7 @@ const EventTicketsSection = forwardRef(({ event }, ref) => {
         >
           Get Tickets
         </h3>
-        {spotsLeft != null && spotsLeft < 50 && (
+        {spotsLeft != null && purchaseState.canPurchase && spotsLeft < 50 && (
           <span
             className="flex items-center gap-1 text-[11px] font-semibold text-destructive"
             style={{ fontFamily: "var(--font-sans)" }}
@@ -85,27 +167,30 @@ const EventTicketsSection = forwardRef(({ event }, ref) => {
       <div>
         <CapacityBar soldPercentage={soldPct} />
         <p
-          className="text-[10px] text-muted-foreground mt-1"
+          className="mt-1 text-[10px] text-muted-foreground"
           style={{ fontFamily: "var(--font-sans)" }}
         >
           {soldPct}% sold
-          {spotsLeft != null &&
-            ` · ${spotsLeft.toLocaleString()} spots remaining`}
+          {spotsLeft != null && ` · ${spotsLeft.toLocaleString()} spots remaining`}
         </p>
       </div>
 
-      {!tickets.length ? (
+      {purchaseState.notice && (
         <div
-          className="rounded-xl border border-border p-4 text-sm text-muted-foreground"
-          style={{ background: "var(--secondary)" }}
+          className="flex items-start gap-2 rounded-xl border border-border p-3 text-sm text-muted-foreground"
+          style={{ background: "var(--secondary)", fontFamily: "var(--font-sans)" }}
         >
-          Ticket inventory has not been published for this event yet.
+          <Info size={15} className="mt-0.5 shrink-0 text-foreground" />
+          <p>{purchaseState.notice}</p>
         </div>
-      ) : (
+      )}
+
+      {!tickets.length ? null : (
         <div className="flex flex-col gap-2">
           {tickets.map((ticketOption) => {
             const isSelected = selected === ticketOption.id;
-            const isSoldOut = ticketOption.available === false || ticketOption.isSoldOut;
+            const isSoldOut =
+              ticketOption.available === false || ticketOption.isSoldOut;
             const availableCount = Number(ticketOption.availableCount || 0);
 
             return (
@@ -200,6 +285,7 @@ const EventTicketsSection = forwardRef(({ event }, ref) => {
               <button
                 onClick={() => setQty((current) => Math.max(1, current - 1))}
                 className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-base font-bold text-foreground transition-colors hover:bg-background"
+                disabled={!purchaseState.canPurchase}
               >
                 -
               </button>
@@ -212,6 +298,7 @@ const EventTicketsSection = forwardRef(({ event }, ref) => {
               <button
                 onClick={() => setQty((current) => Math.min(maxQty, current + 1))}
                 className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-base font-bold text-foreground transition-colors hover:bg-background"
+                disabled={!purchaseState.canPurchase}
               >
                 +
               </button>
@@ -239,7 +326,7 @@ const EventTicketsSection = forwardRef(({ event }, ref) => {
       )}
 
       <button
-        disabled={!canPurchase || !ticket}
+        disabled={!purchaseState.canPurchase || !ticket}
         onClick={handleCheckout}
         className="flex h-12 items-center justify-center gap-2 rounded-xl text-sm font-bold transition-all hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
         style={{
@@ -249,7 +336,7 @@ const EventTicketsSection = forwardRef(({ event }, ref) => {
         }}
       >
         <Ticket size={15} />
-        {!canPurchase ? "Not Available" : `Continue to Checkout`}
+        {purchaseState.ctaLabel}
       </button>
 
       <div className="flex flex-wrap items-center justify-center gap-4">

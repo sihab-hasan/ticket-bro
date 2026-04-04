@@ -215,7 +215,7 @@ class AdminController {
   });
 
   updateEvent = asyncHandler(async (req, res) => {
-    sendSuccess(res, 'Event updated.', await adminService.updateEvent(req.params.id, req.body));
+    sendSuccess(res, 'Event updated.', await adminService.updateEvent(req.params.id, req.body, req.user));
   });
 
   deleteEvent = asyncHandler(async (req, res) => {

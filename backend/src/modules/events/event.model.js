@@ -47,6 +47,24 @@ const recurrenceSchema = new mongoose.Schema({
 }, { _id: false });
 
 // ── Location Sub-Schema ─────────────────────────────────────────────────────
+// IMPORTANT:
+// Keep GeoJSON coordinates fully optional. The previous version defaulted
+// `coordinates.type` to "Point" even when no coordinate pair was provided,
+// which caused MongoDB 2dsphere index writes to fail during event creation.
+const geoPointSchema = new mongoose.Schema({
+  type: { type: String, enum: ['Point'], default: 'Point' },
+  coordinates: {
+    type: [Number],
+    default: undefined,
+    validate: {
+      validator(value) {
+        return value == null || (Array.isArray(value) && value.length === 2 && value.every(Number.isFinite));
+      },
+      message: 'GeoJSON coordinates must be [lng, lat].',
+    },
+  },
+}, { _id: false });
+
 const locationSchema = new mongoose.Schema({
   type:      { type: String, enum: ['online', 'physical', 'hybrid'], default: 'physical' },
   name:      { type: String, trim: true },
@@ -55,11 +73,9 @@ const locationSchema = new mongoose.Schema({
   state:     { type: String, trim: true },
   country:   { type: String, trim: true, default: 'Bangladesh' },
   zip:       { type: String, trim: true },
-  // GeoJSON point — enables $near / $geoWithin queries
-  coordinates: {
-    type:        { type: String, enum: ['Point'], default: 'Point' },
-    coordinates: { type: [Number], default: undefined }, // [lng, lat]
-  },
+  // GeoJSON point — enables $near / $geoWithin queries when a valid [lng, lat]
+  // pair is supplied. No point object is created unless coordinates are present.
+  coordinates: { type: geoPointSchema, default: undefined },
   onlineUrl:       { type: String, trim: true },
   onlinePlatform:  { type: String, trim: true }, // e.g. "Zoom", "Google Meet"
   streamPassword:  { type: String, trim: true }, // optional stream password
@@ -260,8 +276,18 @@ eventSchema.index({ 'location.city': 1, startDate: 1, status: 1 });
 eventSchema.index({ parentEvent: 1 });
 eventSchema.index({ visibility: 1, status: 1 });
 eventSchema.index({ createdAt: -1 }); // "new arrivals" sort
-// 2dsphere for geo-proximity queries  ($near / $geoWithin)
-eventSchema.index({ 'location.coordinates': '2dsphere' });
+// 2dsphere for geo-proximity queries ($near / $geoWithin)
+// Index only documents that actually contain a valid GeoJSON point.
+eventSchema.index(
+  { 'location.coordinates': '2dsphere' },
+  {
+    partialFilterExpression: {
+      'location.coordinates.type': 'Point',
+      'location.coordinates.coordinates.0': { $exists: true },
+      'location.coordinates.coordinates.1': { $exists: true },
+    },
+  },
+);
 // Full-text search
 eventSchema.index({
   title: 'text',
@@ -280,6 +306,26 @@ eventSchema.pre('save', async function () {
     slug = `${base}-${i++}`;
   }
   this.slug = slug;
+});
+
+
+// Remove incomplete GeoJSON points before validation/save so regular physical
+// events without map coordinates do not crash on the geo index.
+eventSchema.pre('validate', function () {
+  const point = this.location?.coordinates;
+  const coords = point?.coordinates;
+  const hasValidPair = Array.isArray(coords) && coords.length === 2 && coords.every(Number.isFinite);
+
+  if (!hasValidPair) {
+    if (this.location) {
+      this.location.coordinates = undefined;
+    }
+    return;
+  }
+
+  if (!point.type) {
+    this.location.coordinates.type = 'Point';
+  }
 });
 
 // ── Auto-set lifecycle timestamps on status change ──────────────────────────

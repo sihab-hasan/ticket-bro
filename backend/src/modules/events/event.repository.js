@@ -34,11 +34,18 @@ class EventRepository {
       .exec();
   }
 
-  async findAll({ status, category, organizer, page = 1, limit = 20, sort = '-createdAt', search } = {}) {
+  async findAll({ status, category, organizer, visibility, isFeatured, from, to, page = 1, limit = 20, sort = '-createdAt', search } = {}) {
     const filter = { deletedAt: null };
-    if (status)    filter.status   = status;
-    if (category)  filter.category = category;
+    if (status) filter.status = status;
+    if (category) filter.category = category;
     if (organizer) filter.organizer = organizer;
+    if (visibility) filter.visibility = visibility;
+    if (typeof isFeatured === 'boolean') filter.isFeatured = isFeatured;
+    if (from || to) {
+      filter.startDate = {};
+      if (from) filter.startDate.$gte = new Date(from);
+      if (to) filter.startDate.$lte = new Date(to);
+    }
     if (search) {
       const re = new RegExp(search, 'i');
       filter.$or = [{ title: re }, { description: re }];
@@ -85,6 +92,10 @@ class EventRepository {
 
   async updateById(id, data) {
     return Event.findByIdAndUpdate(id, { $set: data }, { new: true, runValidators: true }).exec();
+  }
+
+  async incrementViewCount(id) {
+    return Event.findByIdAndUpdate(id, { $inc: { viewCount: 1 } }, { new: true }).exec();
   }
 
   async softDeleteById(id) {

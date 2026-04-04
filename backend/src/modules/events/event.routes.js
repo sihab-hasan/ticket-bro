@@ -42,12 +42,13 @@ router.get('/admin/all',
 
 router.get('/:slug',            validateRequest(eventSlugParamsSchema, 'params'), optionalAuth, cache('2m'),  (req, res, next) => ctrl().getEventBySlug(req, res, next));
 router.get('/:slug/details',    validateRequest(eventSlugParamsSchema, 'params'), optionalAuth, cache('1m'),  (req, res, next) => ctrl().getEventDetails(req, res, next));
-router.get('/:slug/tickets',    validateRequest(eventSlugParamsSchema, 'params'), cache('1m'),  (req, res, next) => ctrl().getEventTickets(req, res, next));
-router.get('/:slug/reviews',    validateRequest(eventSlugParamsSchema, 'params'), (req, res, next) => ctrl().getEventReviews(req, res, next));
-router.get('/:slug/related',    validateRequest(eventSlugParamsSchema, 'params'), validateRequest(relatedEventsQuerySchema, 'query'), cache('5m'),  (req, res, next) => ctrl().getRelatedEvents(req, res, next));
-router.get('/:slug/ticket-types', validateRequest(eventSlugParamsSchema, 'params'), (req, res, next) => ctrl().getTicketTypes(req, res, next));
-router.get('/:slug/seat-sections', validateRequest(eventSlugParamsSchema, 'params'), (req, res, next) => ctrl().getSeatSections(req, res, next));
-router.get('/:slug/seat-map',   validateRequest(eventSlugParamsSchema, 'params'), cache('30s'), (req, res, next) => ctrl().getSeatMap(req, res, next));
+router.get('/:slug/tickets',    validateRequest(eventSlugParamsSchema, 'params'), optionalAuth, cache('1m'),  (req, res, next) => ctrl().getEventTickets(req, res, next));
+router.get('/:slug/reviews',    validateRequest(eventSlugParamsSchema, 'params'), optionalAuth, (req, res, next) => ctrl().getEventReviews(req, res, next));
+router.get('/:slug/related',    validateRequest(eventSlugParamsSchema, 'params'), optionalAuth, validateRequest(relatedEventsQuerySchema, 'query'), cache('5m'),  (req, res, next) => ctrl().getRelatedEvents(req, res, next));
+router.get('/:slug/ticket-types', validateRequest(eventSlugParamsSchema, 'params'), optionalAuth, (req, res, next) => ctrl().getTicketTypes(req, res, next));
+router.get('/:slug/seat-sections', validateRequest(eventSlugParamsSchema, 'params'), optionalAuth, (req, res, next) => ctrl().getSeatSections(req, res, next));
+router.get('/:slug/seat-map',   validateRequest(eventSlugParamsSchema, 'params'), optionalAuth, cache('30s'), (req, res, next) => ctrl().getSeatMap(req, res, next));
+router.post('/:slug/view',      validateRequest(eventSlugParamsSchema, 'params'), optionalAuth, (req, res, next) => ctrl().trackView(req, res, next));
 
 // ════════════════════════════════════════════════════════════════════════════════
 // ORGANIZER ROUTES

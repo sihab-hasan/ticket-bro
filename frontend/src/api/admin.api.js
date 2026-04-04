@@ -75,6 +75,8 @@ const adminService = {
   getEvents: (params) => get(ENDPOINTS.ADMIN.EVENTS, { params, select: pickEvents }),
   getEventBySlug: (slug) =>
     get(ENDPOINTS.ADMIN.EVENT(slug), { select: pickEntity("event") }),
+  updateEvent: (id, data) =>
+    patch(ENDPOINTS.ADMIN.EVENT(id), data, { select: pickEntity("event") }),
   approveEvent: (slug) =>
     patch(ENDPOINTS.ADMIN.EVENT(slug), { status: "published" }, { select: pickEntity("event") }),
   rejectEvent: (slug, data) =>

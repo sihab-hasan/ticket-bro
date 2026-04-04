@@ -10,7 +10,7 @@ const ticketTypes = ['general', 'vip', 'early_bird', 'group', 'backstage', 'onli
 
 const geoPointSchema = Joi.object({
   type: Joi.string().valid('Point').default('Point'),
-  coordinates: Joi.array().items(Joi.number().min(-180).max(180)).length(2),
+  coordinates: Joi.array().items(Joi.number().min(-180).max(180)).length(2).required(),
 });
 
 const locationSchema = Joi.object({

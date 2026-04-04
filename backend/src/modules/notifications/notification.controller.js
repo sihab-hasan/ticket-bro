@@ -6,6 +6,7 @@ const getId = (u) => u?._id || u?.id || u?.userId;
 
 class NotificationController {
   getNotifications = asyncHandler(async (req, res) => { sendSuccess(res, 'Notifications fetched.', await notificationService.getNotifications(getId(req.user), req.query)); });
+  getNotificationById = asyncHandler(async (req, res) => { sendSuccess(res, 'Notification fetched.', await notificationService.getNotificationById(req.params.id, req.user)); });
   getUnreadCount   = asyncHandler(async (req, res) => { sendSuccess(res, 'Unread count.', await notificationService.getUnreadCount(getId(req.user))); });
   getPreferences   = asyncHandler(async (req, res) => { sendSuccess(res, 'Preferences fetched.', await notificationService.getPreferences(getId(req.user))); });
   updatePreferences= asyncHandler(async (req, res) => { sendSuccess(res, 'Preferences updated.', await notificationService.updatePreferences(getId(req.user), req.body)); });

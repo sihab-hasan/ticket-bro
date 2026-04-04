@@ -7,6 +7,7 @@ import React, {
   useCallback,
   useRef,
 } from "react";
+import notificationsService from "@/api/notifications.api";
 import useAuth from "./AuthContext";
 
 const NotificationContext = createContext(null);
@@ -199,7 +200,23 @@ const DEFAULT_PREFERENCES = {
     sms: false,
     whatsapp: false,
   },
+  soundEnabled: true,
+  doNotDisturb: {
+    enabled: false,
+    startTime: "22:00",
+    endTime: "08:00",
+  },
 };
+
+const mergePreferences = (incoming = {}) => ({
+  ...DEFAULT_PREFERENCES,
+  ...incoming,
+  soundEnabled: incoming?.soundEnabled ?? DEFAULT_PREFERENCES.soundEnabled,
+  doNotDisturb: {
+    ...DEFAULT_PREFERENCES.doNotDisturb,
+    ...(incoming?.doNotDisturb || {}),
+  },
+});
 
 export const NotificationProvider = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
@@ -262,16 +279,15 @@ export const NotificationProvider = ({ children }) => {
   // Load notifications
   const loadNotifications = async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      // API call to fetch notifications
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Filter mock notifications for current user
-      const userNotifications = MOCK_NOTIFICATIONS.filter(
+      const result = await notificationsService.getAll({ limit: 20 });
+      setNotifications(result?.notifications || []);
+    } catch (err) {
+      const fallbackNotifications = MOCK_NOTIFICATIONS.filter(
         (n) => n.userId === user?.id,
       );
-      setNotifications(userNotifications);
-    } catch (err) {
+      setNotifications(fallbackNotifications);
       setError(err.message);
     } finally {
       setIsLoading(false);
@@ -281,12 +297,16 @@ export const NotificationProvider = ({ children }) => {
   // Load preferences
   const loadPreferences = async () => {
     try {
-      const savedPrefs = localStorage.getItem(`notification_prefs_${user?.id}`);
-      if (savedPrefs) {
-        setPreferences(JSON.parse(savedPrefs));
-      }
+      const [serverPrefs, savedPrefs] = await Promise.all([
+        notificationsService.getPreferences().catch(() => null),
+        Promise.resolve(localStorage.getItem(`notification_prefs_${user?.id}`)),
+      ]);
+
+      const localPrefs = savedPrefs ? JSON.parse(savedPrefs) : null;
+      setPreferences(mergePreferences(serverPrefs || localPrefs || {}));
     } catch (err) {
       console.error("Failed to load preferences:", err);
+      setPreferences(mergePreferences());
     }
   };
 
@@ -329,9 +349,35 @@ export const NotificationProvider = ({ children }) => {
 
   // Play notification sound
   const playNotificationSound = useCallback(() => {
-    if (notificationSound.current && preferences.soundEnabled) {
-      notificationSound.current.play().catch(() => {});
+    if (!preferences.soundEnabled || typeof window === "undefined") {
+      return;
     }
+
+    const audioElement = notificationSound.current;
+    if (audioElement?.src) {
+      audioElement.currentTime = 0;
+      audioElement.play().catch(() => {});
+      return;
+    }
+
+    const AudioContextRef = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextRef) {
+      return;
+    }
+
+    try {
+      const context = new AudioContextRef();
+      const oscillator = context.createOscillator();
+      const gainNode = context.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.value = 880;
+      gainNode.gain.value = 0.02;
+      oscillator.connect(gainNode);
+      gainNode.connect(context.destination);
+      oscillator.start();
+      oscillator.stop(context.currentTime + 0.12);
+      oscillator.onended = () => context.close().catch(() => {});
+    } catch {}
   }, [preferences.soundEnabled]);
 
   // Show browser notification
@@ -339,8 +385,7 @@ export const NotificationProvider = ({ children }) => {
     (title, options = {}) => {
       if (isPushEnabled && Notification.permission === "granted") {
         new Notification(title, {
-          icon: "/icon-192x192.png",
-          badge: "/badge-72x72.png",
+          icon: "/favicon.ico",
           vibrate: [200, 100, 200],
           ...options,
         });
@@ -454,29 +499,22 @@ export const NotificationProvider = ({ children }) => {
   // Update preferences
   const updatePreferences = useCallback(
     async (type, channel, enabled) => {
-      setPreferences((prev) => ({
-        ...prev,
+      const nextPreferences = mergePreferences({
+        ...preferences,
         [type]: {
-          ...prev[type],
+          ...preferences[type],
           [channel]: enabled,
         },
-      }));
+      });
+
+      setPreferences(nextPreferences);
 
       try {
-        // Save to localStorage
         localStorage.setItem(
           `notification_prefs_${user?.id}`,
-          JSON.stringify({
-            ...preferences,
-            [type]: {
-              ...preferences[type],
-              [channel]: enabled,
-            },
-          }),
+          JSON.stringify(nextPreferences),
         );
-
-        // API call to update preferences
-        await new Promise((resolve) => setTimeout(resolve, 200));
+        await notificationsService.updatePreferences(nextPreferences).catch(() => null);
       } catch (err) {
         console.error("Failed to update preferences:", err);
       }
@@ -486,16 +524,26 @@ export const NotificationProvider = ({ children }) => {
 
   // Toggle sound
   const toggleSound = useCallback((enabled) => {
-    setPreferences((prev) => ({ ...prev, soundEnabled: enabled }));
-  }, []);
+    setPreferences((prev) => {
+      const nextPreferences = mergePreferences({ ...prev, soundEnabled: enabled });
+      localStorage.setItem(`notification_prefs_${user?.id}`, JSON.stringify(nextPreferences));
+      notificationsService.updatePreferences(nextPreferences).catch(() => null);
+      return nextPreferences;
+    });
+  }, [user]);
 
   // Toggle do not disturb
   const toggleDoNotDisturb = useCallback((enabled, startTime, endTime) => {
-    setPreferences((prev) => ({
-      ...prev,
-      doNotDisturb: { enabled, startTime, endTime },
-    }));
-  }, []);
+    setPreferences((prev) => {
+      const nextPreferences = mergePreferences({
+        ...prev,
+        doNotDisturb: { enabled, startTime, endTime },
+      });
+      localStorage.setItem(`notification_prefs_${user?.id}`, JSON.stringify(nextPreferences));
+      notificationsService.updatePreferences(nextPreferences).catch(() => null);
+      return nextPreferences;
+    });
+  }, [user]);
 
   // Get filtered notifications
   const filteredNotifications = useCallback(() => {
@@ -676,11 +724,7 @@ export const NotificationProvider = ({ children }) => {
     <NotificationContext.Provider value={value}>
       {children}
 
-      {/* Audio element for notification sounds */}
-      <audio ref={notificationSound} preload="auto">
-        <source src="/sounds/notification.mp3" type="audio/mpeg" />
-        <source src="/sounds/notification.ogg" type="audio/ogg" />
-      </audio>
+      <audio ref={notificationSound} preload="none" className="hidden" />
     </NotificationContext.Provider>
   );
 };
