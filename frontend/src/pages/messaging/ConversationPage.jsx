@@ -1,123 +1,239 @@
 // pages/messaging/ConversationPage.jsx
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Send } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Trash2 } from 'lucide-react';
+import { useDispatch, useSelector } from 'react-redux';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  DropdownMenu, DropdownMenuContent,
+  DropdownMenuItem, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useAuth } from '@/context/AuthContext';
-import { formatDate } from '@/utils/formatters';
+import ChatWindow from '@/components/features/messaging/ChatWindow';
+import ChatInput from '@/components/features/messaging/ChatInput';
 import { toast } from '@/components/shared/common';
+import { ROUTES } from '@/app/AppRoutes';
+import useMessaging from '@/hooks/useMessaging';
+import useAuth from '@/context/AuthContext';
 import { messagingService } from '@/api';
+import {
+  appendMessage,
+  replaceOptimisticMessage,
+  removeMessage,
+  setMessagesLoading,
+  removeConversation,
+  selectConversations,
+} from '@/store/slices/messagingSlice';
+
+let _tempId = 0;
+const nextTempId = () => `opt-${++_tempId}-${Date.now()}`;
 
 const ConversationPage = () => {
   const { conversationId } = useParams();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { user } = useAuth();
-  const [messages, setMessages] = useState([]);
-  const [conversation, setConversation] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [newMsg, setNewMsg] = useState('');
-  const [sending, setSending] = useState(false);
-  const bottomRef = useRef(null);
   const currentUserId = user?._id || user?.id;
 
-  const fetch = useCallback(async () => {
-    try {
-      const [conversationData, messagesData] = await Promise.all([
-        messagingService.getConversation(conversationId),
-        messagingService.getMessages(conversationId),
-      ]);
-      setConversation(conversationData);
-      setMessages(messagesData.messages || []);
-      await messagingService.markAsRead(conversationId).catch(() => {});
-    } catch { toast.error('Failed to load conversation'); navigate(-1); }
-    finally { setLoading(false); }
-  }, [conversationId, navigate]);
+  const {
+    messages,
+    messagesLoading,
+    isTyping,
+    loadMessages,
+    markAsRead,
+    joinConversation,
+    leaveConversation,
+    sendTyping,
+    sendMessage,
+  } = useMessaging(conversationId);
 
-  useEffect(() => { fetch(); }, [fetch]);
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  // Get conversation from Redux store (populated when InboxPage loads list)
+  const conversations = useSelector(selectConversations);
+  const cachedConv = conversations.find((c) => (c._id || c.id) === conversationId);
 
-  // Poll for new messages every 5 seconds while the conversation is open.  This is a
-  // fallback when real-time WebSocket updates are not available.  It compares the
-  // count of messages and replaces the list if new messages arrive.  It also
-  // marks the conversation as read to reset unread counts.
+  const [convData, setConvData] = useState(cachedConv || null);
+  const [headerLoading, setHeaderLoading] = useState(!cachedConv);
+  const [draft, setDraft] = useState('');
+  const [sending, setSending] = useState(false);
+  const recipientId = useRef(null);
+
+  // Sync convData when Redux cache populates
   useEffect(() => {
-    const intervalId = setInterval(async () => {
-      try {
-        const result = await messagingService.getMessages(conversationId);
-        const latestMessages = result?.messages || [];
-        if (latestMessages.length > messages.length) {
-          setMessages(latestMessages);
-          await messagingService.markAsRead(conversationId).catch(() => {});
-        }
-      } catch (err) {
-        // Suppress polling errors
-      }
-    }, 5000);
-    return () => clearInterval(intervalId);
-  }, [conversationId, messages.length]);
+    if (cachedConv && !convData) setConvData(cachedConv);
+  }, [cachedConv]);
 
-  const handleSend = async () => {
-    if (!newMsg.trim()) return;
+  // On mount — join socket room, load messages, fetch conv header if needed
+  useEffect(() => {
+    if (!conversationId) return;
+    joinConversation(conversationId);
+
+    const init = async () => {
+      try {
+        // Fetch conv header only if not already cached
+        if (!cachedConv) {
+          const conv = await messagingService.getConversation(conversationId);
+          setConvData(conv);
+        }
+        setHeaderLoading(false);
+
+        // Load messages
+        dispatch(setMessagesLoading(true));
+        await loadMessages(conversationId, { page: 1, limit: 60 });
+        await markAsRead(conversationId);
+      } catch {
+        toast.error('Failed to load conversation');
+        navigate(ROUTES.MESSAGES.ROOT, { replace: true });
+      } finally {
+        dispatch(setMessagesLoading(false));
+        setHeaderLoading(false);
+      }
+    };
+
+    init();
+    return () => leaveConversation(conversationId);
+  }, [conversationId]);
+
+  // Keep recipient ref fresh for typing events
+  useEffect(() => {
+    const other = convData?.otherParticipant;
+    recipientId.current = other?._id || other?.id || null;
+  }, [convData]);
+
+  // Derived display values
+  const other = convData?.otherParticipant;
+  const otherName = other
+    ? (other.name || [other.firstName, other.lastName].filter(Boolean).join(' ') || 'Unknown')
+    : '…';
+  const otherInitial = (otherName[0] || '?').toUpperCase();
+
+  const handleSend = useCallback(async () => {
+    const body = draft.trim();
+    if (!body || sending) return;
+
+    const tempId = nextTempId();
+    const optimistic = {
+      _id: tempId, id: tempId, conversationId,
+      senderId: currentUserId,
+      sender: { _id: currentUserId, id: currentUserId, name: user?.firstName || 'You' },
+      body, content: body,
+      isRead: false, pending: true,
+      createdAt: new Date().toISOString(),
+    };
+
+    setDraft('');
     setSending(true);
-    const optimistic = { _id: Date.now(), content: newMsg, sender: { _id: currentUserId }, senderId: currentUserId, createdAt: new Date().toISOString(), pending: true };
-    setMessages((m) => [...m, optimistic]);
-    setNewMsg('');
+    dispatch(appendMessage({ conversationId, message: optimistic }));
+
     try {
-      const sent = await messagingService.sendMessage(conversationId, { content: newMsg });
-      setMessages((m) => m.map((msg) => msg._id === optimistic._id ? sent : msg));
+      const sent = await sendMessage(conversationId, { body });
+      dispatch(replaceOptimisticMessage({ conversationId, tempId, message: sent }));
     } catch {
       toast.error('Failed to send');
-      setMessages((m) => m.filter((msg) => msg._id !== optimistic._id));
+      dispatch(removeMessage({ conversationId, messageId: tempId }));
+      setDraft(body);
     } finally {
       setSending(false);
     }
-  };
+  }, [draft, sending, conversationId, currentUserId, dispatch, sendMessage, user]);
 
-  const other = conversation?.participants?.find((p) => p._id !== currentUserId) || conversation?.otherParticipant;
+  const handleTyping = useCallback((active) => {
+    if (recipientId.current) sendTyping(conversationId, recipientId.current, active);
+  }, [conversationId, sendTyping]);
+
+  const handleDelete = useCallback(async () => {
+    try {
+      await messagingService.deleteConversation(conversationId);
+      dispatch(removeConversation(conversationId));
+      navigate(ROUTES.MESSAGES.ROOT, { replace: true });
+      toast.success('Conversation deleted');
+    } catch {
+      toast.error('Failed to delete');
+    }
+  }, [conversationId, dispatch, navigate]);
 
   return (
-    <div className="flex flex-col h-screen font-sans">
-      {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b border-border bg-background shrink-0">
-        <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate(-1)}><ArrowLeft className="h-4 w-4" /></Button>
-        <Avatar className="h-9 w-9">
-          <AvatarFallback className="text-sm font-bold bg-primary/10 text-primary">{(other?.name || other?.firstName || '?')[0].toUpperCase()}</AvatarFallback>
-        </Avatar>
-        <div>
-          <p className="text-sm font-bold">{other?.name || `${other?.firstName || ''} ${other?.lastName || ''}`.trim() || 'Unknown'}</p>
-          <p className="text-[11px] text-muted-foreground">{conversation?.subject || ''}</p>
-        </div>
-      </div>
+    <div className="flex flex-col h-full bg-background overflow-hidden">
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {loading ? Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 w-3/4 rounded-2xl" style={{ marginLeft: i % 2 ? 'auto' : undefined }} />)
-        : messages.map((msg) => {
-          const isMe = msg.sender?._id === currentUserId || msg.senderId === currentUserId;
-          return (
-            <div key={msg._id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${isMe ? 'bg-primary text-black rounded-tr-sm' : 'bg-muted text-foreground rounded-tl-sm'} ${msg.pending ? 'opacity-60' : ''}`}>
-                <p>{msg.content || msg.body}</p>
-                <p className={`text-[10px] mt-1 ${isMe ? 'text-black/50' : 'text-muted-foreground'}`}>{formatDate(msg.createdAt, { dateStyle: undefined, timeStyle: 'short' })}</p>
-              </div>
+      {/* ── Header ──────────────────────────────────────────────── */}
+      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border shrink-0">
+        {/* Back button — mobile only */}
+        <Button
+          variant="ghost" size="icon"
+          className="md:hidden h-8 w-8 shrink-0 -ml-1"
+          onClick={() => navigate(ROUTES.MESSAGES.ROOT)}
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+
+        {/* Participant info */}
+        {headerLoading ? (
+          <div className="flex items-center gap-2.5 flex-1">
+            <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+            <div className="space-y-1.5 flex-1">
+              <Skeleton className="h-3.5 w-32" />
+              <Skeleton className="h-2.5 w-24" />
             </div>
-          );
-        })}
-        <div ref={bottomRef} />
+          </div>
+        ) : (
+          <div className="flex items-center gap-2.5 flex-1 min-w-0">
+            <Avatar className="h-9 w-9 shrink-0">
+              <AvatarImage src={other?.avatar} alt={otherName} />
+              <AvatarFallback className="text-sm font-bold bg-primary/10 text-primary">
+                {otherInitial}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <p className="text-sm font-bold truncate leading-tight" style={{ fontFamily: 'var(--font-heading)' }}>
+                {otherName}
+              </p>
+              {convData?.event?.title && (
+                <p className="text-[11px] text-primary/70 truncate font-medium leading-tight mt-0.5">
+                  re: {convData.event.title}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Actions */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive gap-2 cursor-pointer"
+              onClick={handleDelete}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete conversation
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
-      {/* Input */}
-      <div className="p-4 border-t border-border bg-background shrink-0">
-        <div className="flex gap-2">
-          <Input value={newMsg} onChange={(e) => setNewMsg(e.target.value)} placeholder="Type a message…" className="h-10" onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()} />
-          <Button onClick={handleSend} disabled={sending || !newMsg.trim()} size="icon" className="h-10 w-10 shrink-0">
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+      {/* ── Message thread ───────────────────────────────────────── */}
+      <ChatWindow
+        messages={messages}
+        currentUserId={currentUserId}
+        loading={messagesLoading}
+        isTyping={isTyping}
+        className="flex-1 min-h-0"
+      />
+
+      {/* ── Input ────────────────────────────────────────────────── */}
+      <ChatInput
+        value={draft}
+        onChange={setDraft}
+        onSend={handleSend}
+        onTyping={handleTyping}
+        sending={sending}
+        disabled={messagesLoading && messages.length === 0}
+        placeholder={otherName !== '…' ? `Message ${otherName}…` : 'Type a message…'}
+      />
     </div>
   );
 };

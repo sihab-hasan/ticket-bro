@@ -1,0 +1,154 @@
+// components/features/messaging/ChatWindow.jsx
+import React, { useEffect, useRef, useCallback, useState } from 'react';
+import { Loader2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import ChatMessage from './ChatMessage';
+import { cn } from '@/lib/utils';
+
+const getId = (u) => u?._id || u?.id;
+
+// Group consecutive messages by same sender, insert date separators
+const buildGroups = (messages) => {
+  const result = [];
+  let lastDate = null;
+  let lastSenderId = null;
+
+  messages.forEach((msg, i) => {
+    const date = new Date(msg.createdAt).toDateString();
+    if (date !== lastDate) {
+      result.push({ type: 'separator', date, key: `sep-${date}` });
+      lastDate = date;
+      lastSenderId = null;
+    }
+    const senderId = getId(msg.sender) || msg.senderId;
+    const isFirst = senderId !== lastSenderId;
+    result.push({ type: 'message', msg, isFirst, key: getId(msg) || msg._id || i });
+    lastSenderId = senderId;
+  });
+
+  return result;
+};
+
+const DateSeparator = ({ date }) => {
+  const label = (() => {
+    const d = new Date(date);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    if (d.toDateString() === today.toDateString()) return 'Today';
+    if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
+    return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  })();
+
+  return (
+    <div className="flex items-center gap-3 my-4 px-2">
+      <div className="flex-1 h-px bg-border" />
+      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2">
+        {label}
+      </span>
+      <div className="flex-1 h-px bg-border" />
+    </div>
+  );
+};
+
+const TypingIndicator = () => (
+  <div className="flex items-end gap-2 px-4 pb-2">
+    <div className="h-7 w-7 rounded-full bg-muted shrink-0" />
+    <div className="bg-muted rounded-2xl rounded-bl-sm px-3.5 py-2.5 flex items-center gap-1">
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60 animate-bounce"
+          style={{ animationDelay: `${i * 0.15}s`, animationDuration: '1s' }}
+        />
+      ))}
+    </div>
+  </div>
+);
+
+const LoadingSkeleton = () => (
+  <div className="flex flex-col gap-3 p-4">
+    {[...Array(5)].map((_, i) => (
+      <div key={i} className={cn('flex gap-2', i % 2 === 0 ? '' : 'flex-row-reverse')}>
+        <Skeleton className="h-7 w-7 rounded-full shrink-0" />
+        <Skeleton className={cn('h-10 rounded-2xl', i % 3 === 0 ? 'w-48' : i % 3 === 1 ? 'w-64' : 'w-36')} />
+      </div>
+    ))}
+  </div>
+);
+
+const EmptyThread = () => (
+  <div className="flex flex-col items-center justify-center h-full text-center px-6">
+    <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center mb-3">
+      <span className="text-2xl">💬</span>
+    </div>
+    <p className="text-sm font-semibold text-foreground">Start the conversation</p>
+    <p className="text-xs text-muted-foreground mt-1">Say hello and get things started</p>
+  </div>
+);
+
+const ChatWindow = ({
+  messages = [],
+  currentUserId,
+  loading = false,
+  isTyping = false,
+  className,
+}) => {
+  const bottomRef = useRef(null);
+  const containerRef = useRef(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+
+  // Auto-scroll on new messages if user is near bottom
+  useEffect(() => {
+    if (isAtBottom) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, isTyping, isAtBottom]);
+
+  const handleScroll = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    setIsAtBottom(distFromBottom < 80);
+  }, []);
+
+  const items = buildGroups(messages);
+
+  return (
+    <div
+      ref={containerRef}
+      onScroll={handleScroll}
+      className={cn('flex-1 overflow-y-auto scroll-smooth', className)}
+    >
+      {loading ? (
+        <LoadingSkeleton />
+      ) : messages.length === 0 ? (
+        <EmptyThread />
+      ) : (
+        <div className="flex flex-col gap-1 p-4 pb-2">
+          {items.map((item) => {
+            if (item.type === 'separator') {
+              return <DateSeparator key={item.key} date={item.date} />;
+            }
+            const { msg, isFirst } = item;
+            const senderId = getId(msg.sender) || msg.senderId;
+            const isOwn = senderId === currentUserId;
+            return (
+              <ChatMessage
+                key={item.key}
+                message={msg}
+                isOwn={isOwn}
+                showAvatar={isFirst && !isOwn}
+              />
+            );
+          })}
+        </div>
+      )}
+
+      {isTyping && <TypingIndicator />}
+      <div ref={bottomRef} className="h-1" />
+    </div>
+  );
+};
+
+export default ChatWindow;
