@@ -16,7 +16,9 @@ class TicketRepository {
 
   async findByBookingId(bookingId) {
     return Ticket.find({ booking: bookingId, deletedAt: null })
-      .populate('event', 'title slug startDate')
+      .populate('event', 'title slug startDate endDate location')
+      .populate('user', 'firstName lastName email')
+      .populate('ticketType', 'name type')
       .select('+qrCode').lean();
   }
 

@@ -9,7 +9,9 @@ const STATUS_STYLES = {
   failed:      'bg-red-500/10 text-red-500 border-red-500/20',
   refunded:    'bg-blue-500/10 text-blue-500 border-blue-500/20',
   completed:   'bg-green-500/10 text-green-600 border-green-500/20',
+  succeeded:   'bg-green-500/10 text-green-600 border-green-500/20',
   processing:  'bg-purple-500/10 text-purple-600 border-purple-500/20',
+  checked_in:  'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
   // Event
   published:   'bg-green-500/10 text-green-600 border-green-500/20',
   draft:       'bg-gray-500/10 text-gray-500 border-gray-500/20',
