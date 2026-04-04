@@ -1,9 +1,8 @@
 // frontend/src/components/browse/sections/EventGridSection.jsx
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { LayoutGrid, List, Inbox } from "lucide-react";
-import { useBrowse, unslugify, spotsPercent } from "@/hooks";
+import { useBrowse, unslugify } from "@/hooks";
 import BrowseEventCard from "@/components/shared/cards/EventCard";
-import SectionShell from "./SectionShell";
 import Container from "@/components/layout/Container";
 
 const EVENTS_PER_PAGE = 12;
@@ -81,7 +80,7 @@ const EmptyState = ({ locationLabel, title }) => (
   </div>
 );
 
-const EventGridSection = ({ filters }) => {
+const EventGridSection = () => {
   const {
     getEvents,
     level,
@@ -89,27 +88,39 @@ const EventGridSection = ({ filters }) => {
     subCategorySlug,
     eventTypeSlug,
     locationLabel,
+    isLoading,
+    error,
   } = useBrowse();
   const [savedIds, setSavedIds] = useState(new Set());
   const [viewMode, setViewMode] = useState("grid");
   const [page, setPage] = useState(1);
 
+  // Retrieve all filtered events from context
   const allEvents = useMemo(() => getEvents(), [getEvents]);
   const totalCount = allEvents.length;
-  const totalPages = Math.ceil(totalCount / EVENTS_PER_PAGE);
+  const totalPages = Math.ceil(totalCount / EVENTS_PER_PAGE) || 1;
   const pageEvents = allEvents.slice(
     (page - 1) * EVENTS_PER_PAGE,
     page * EVENTS_PER_PAGE,
   );
 
+  // Reset page when the underlying events array length changes
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(1);
+    }
+  }, [totalPages, page]);
+
   const toggle = (id) =>
-    setSavedIds((p) => {
-      const n = new Set(p);
-      n.has(id) ? n.delete(id) : n.add(id);
-      return n;
+    setSavedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
     });
   const handlePage = (p) => {
-    setPage(p);
+    // Clamp page to valid range
+    const newPage = Math.min(Math.max(1, p), totalPages);
+    setPage(newPage);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -148,7 +159,7 @@ const EventGridSection = ({ filters }) => {
                 style={{ fontFamily: "var(--font-sans)" }}
               >
                 <span className="font-semibold text-foreground">
-                  {totalCount}
+                  {isLoading ? "…" : totalCount}
                 </span>{" "}
                 events in {locationLabel}
               </p>
@@ -180,39 +191,65 @@ const EventGridSection = ({ filters }) => {
             </div>
           </div>
 
-          {pageEvents.length === 0 ? (
+          {/* Loading state */}
+          {isLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {Array.from({ length: EVENTS_PER_PAGE }).map((_, i) => (
+                <div key={i} className="animate-pulse flex flex-col rounded-lg border border-border p-4 gap-2 bg-muted/20" />
+              ))}
+            </div>
+          ) : error ? (
+            // Error state
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <p className="text-sm font-semibold text-destructive mb-2" style={{ fontFamily: "var(--font-heading)" }}>
+                Failed to load events
+              </p>
+              <p className="text-xs text-muted-foreground" style={{ fontFamily: "var(--font-sans)" }}>
+                {error?.message || "Please try again later."}
+              </p>
+            </div>
+          ) : pageEvents.length === 0 ? (
             <EmptyState locationLabel={locationLabel} title={levelLabel} />
           ) : viewMode === "grid" ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {pageEvents.map((e) => (
-                <BrowseEventCard
-                  key={e.id}
-                  event={e}
-                  variant="grid"
-                  saved={savedIds.has(e.id)}
-                  onSave={toggle}
-                />
-              ))}
+              {pageEvents.map((e) => {
+                const key = e.id || e._id || e.slug;
+                return (
+                  <BrowseEventCard
+                    key={key}
+                    event={e}
+                    variant="grid"
+                    saved={savedIds.has(key)}
+                    onSave={() => toggle(key)}
+                  />
+                );
+              })}
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {pageEvents.map((e) => (
-                <BrowseEventCard
-                  key={e.id}
-                  event={e}
-                  variant="list"
-                  saved={savedIds.has(e.id)}
-                  onSave={toggle}
-                />
-              ))}
+              {pageEvents.map((e) => {
+                const key = e.id || e._id || e.slug;
+                return (
+                  <BrowseEventCard
+                    key={key}
+                    event={e}
+                    variant="list"
+                    saved={savedIds.has(key)}
+                    onSave={() => toggle(key)}
+                  />
+                );
+              })}
             </div>
           )}
 
-          <Pagination
-            page={page}
-            totalPages={totalPages}
-            onPageChange={handlePage}
-          />
+          {/* Pagination controls */}
+          {!isLoading && !error && (
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              onPageChange={handlePage}
+            />
+          )}
         </div>
         <div className="w-full h-px bg-border" />
       </Container>

@@ -16,9 +16,7 @@ class TicketRepository {
 
   async findByBookingId(bookingId) {
     return Ticket.find({ booking: bookingId, deletedAt: null })
-      .populate('event', 'title slug startDate endDate location')
-      .populate('user', 'firstName lastName email')
-      .populate('ticketType', 'name type')
+      .populate('event', 'title slug startDate')
       .select('+qrCode').lean();
   }
 
@@ -56,6 +54,26 @@ class TicketRepository {
   async updateType(id, data)   { return TicketType.findByIdAndUpdate(id, { $set: data }, { new: true, runValidators: true }).exec(); }
   async incrementSold(id, qty) { return TicketType.findByIdAndUpdate(id, { $inc: { sold: qty } }).exec(); }
   async decrementSold(id, qty) { return TicketType.findByIdAndUpdate(id, { $inc: { sold: -qty } }).exec(); }
+
+  /**
+   * Increment the number of reserved seats for a given ticket type.
+   * Reserving tickets reduces the available stock without marking them as sold.
+   * @param {String|ObjectId} id - TicketType ID
+   * @param {Number} qty - Quantity to reserve
+   */
+  async incrementReserved(id, qty) {
+    return TicketType.findByIdAndUpdate(id, { $inc: { reserved: qty } }, { new: true }).exec();
+  }
+
+  /**
+   * Decrement the number of reserved seats for a given ticket type.
+   * When a booking is confirmed or cancelled, reserved counts should be adjusted accordingly.
+   * @param {String|ObjectId} id - TicketType ID
+   * @param {Number} qty - Quantity to reduce
+   */
+  async decrementReserved(id, qty) {
+    return TicketType.findByIdAndUpdate(id, { $inc: { reserved: -qty } }, { new: true }).exec();
+  }
 }
 
 module.exports = new TicketRepository();

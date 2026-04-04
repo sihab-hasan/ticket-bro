@@ -5,6 +5,7 @@ const Event = require('../events/event.model');
 const Report = require('../reports/report.model');
 const AuditLog = require('../auditLogs/audit.model');
 const userService = require('../users/user.service');
+const notificationService = require('../notifications/notification.service');
 const { ROLES, normalizeRole } = require('../../common/constants/roles');
 const {
   BadRequestError,
@@ -108,11 +109,27 @@ class ModeratorService {
     return { targetUserId, warning };
   }
 
-  async getReportsQueue({ page = 1, limit = 20, status, entityType } = {}) {
+  async getReportsQueue({ page = 1, limit = 20, status, entityType, search } = {}) {
     const filter = {};
+    // Allow filtering by status; default to open/under_review if not provided
     if (status) filter.status = status;
-    if (entityType) filter.entityType = entityType;
     if (!status) filter.status = { $in: ['open', 'under_review'] };
+    // Filter by entity type (e.g. user, event, review)
+    if (entityType) filter.entityType = entityType;
+
+    /**
+     * Allow searching within reports by reason, description, or target title.
+     * The frontend passes a `search` query param when filtering reports.
+     * If provided, apply a case-insensitive regex on multiple fields.
+     */
+    if (search) {
+      const re = new RegExp(search, 'i');
+      filter.$or = [
+        { description: re },
+        { reason: re },
+        { targetTitle: re },
+      ];
+    }
 
     const skip = (Number(page) - 1) * Number(limit);
     const [reports, total] = await Promise.all([
@@ -215,6 +232,19 @@ class ModeratorService {
       throw new NotFoundError('Event not found.');
     }
 
+    // Notify the event organizer that their event has been approved
+    try {
+      await notificationService.notify(event.organizer, {
+        type: 'event.approved',
+        title: 'Event Approved',
+        message: `Your event "${event.title}" has been approved and published.`,
+        data: { eventId: event._id?.toString(), slug: event.slug },
+        link: `/events/${event.slug}`,
+      });
+    } catch (err) {
+      // Swallow notification errors to not block moderation flow
+    }
+
     return event;
   }
 
@@ -240,6 +270,19 @@ class ModeratorService {
 
     if (!event) {
       throw new NotFoundError('Event not found.');
+    }
+
+    // Notify the event organizer that their event has been rejected
+    try {
+      await notificationService.notify(event.organizer, {
+        type: 'event.rejected',
+        title: 'Event Rejected',
+        message: `Your event "${event.title}" has been rejected.`,
+        data: { eventId: event._id?.toString(), slug: event.slug, reason },
+        link: `/events/${event.slug}`,
+      });
+    } catch (err) {
+      // Do not block rejection flow on notification errors
     }
 
     return event;

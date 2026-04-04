@@ -51,8 +51,9 @@ const BookingDetailsPage = () => {
     <div className="p-4 sm:p-6 space-y-4"><Skeleton className="h-8 w-48" /><Skeleton className="h-64 w-full rounded-2xl" /><Skeleton className="h-48 w-full rounded-2xl" /></div>
   );
 
-  const canCancel = ['pending', 'confirmed'].includes(booking?.status) && new Date(booking?.event?.startDate) > new Date();
-  const canReview = ['confirmed', 'checked_in'].includes(booking?.status) && new Date(booking?.event?.endDate) < new Date();
+  const totalTickets = Array.isArray(booking?.items) ? booking.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0) : (booking?.totalTickets || booking?.quantity || 0);
+  const canCancel = booking?.status === 'confirmed' && booking?.event?.startDate && new Date(booking.event.startDate) > new Date();
+  const canReview = booking?.status === 'confirmed' && booking?.event?.endDate && new Date(booking.event.endDate) < new Date();
 
   return (
     <div className="p-4 sm:p-6 space-y-5 font-sans max-w-2xl mx-auto">
@@ -74,7 +75,7 @@ const BookingDetailsPage = () => {
         </div>
         <div className="text-right">
           <p className="text-xl font-extrabold font-heading text-green-600">{formatPrice(booking?.totalAmount)}</p>
-          <p className="text-xs text-muted-foreground">{booking?.quantity || 1} ticket{(booking?.quantity || 1) > 1 ? 's' : ''}</p>
+          <p className="text-xs text-muted-foreground">{totalTickets} ticket{totalTickets > 1 ? 's' : ''}</p>
         </div>
       </div>
 
@@ -88,7 +89,17 @@ const BookingDetailsPage = () => {
           <InfoRow label="Event" value={booking?.event?.title} icon={Calendar} />
           <InfoRow label="Date & Time" value={formatDate(booking?.event?.startDate)} icon={Calendar} />
           <InfoRow label="Venue" value={[booking?.event?.venue?.name, booking?.event?.venue?.city].filter(Boolean).join(', ')} icon={MapPin} />
-          <InfoRow label="Ticket Type" value={booking?.ticketType?.name} icon={Ticket} />
+          {/* Display ticket types summary. If multiple types, show count or label. */}
+          <InfoRow
+            label="Ticket Type"
+            value={(() => {
+              if (Array.isArray(booking?.items)) {
+                const unique = Array.from(new Set(booking.items.map((it) => it.ticketTypeName))).filter(Boolean);
+                return unique.length === 1 ? `${unique[0]} × ${totalTickets}` : `${unique.length} types`; }
+              return booking?.ticketType?.name;
+            })()}
+            icon={Ticket}
+          />
           <InfoRow label="Organizer" value={booking?.event?.organizer?.name} icon={User} />
         </CardContent>
       </Card>
@@ -97,10 +108,10 @@ const BookingDetailsPage = () => {
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-sm font-bold">Payment Summary</CardTitle></CardHeader>
         <CardContent>
-          <InfoRow label="Booking Total" value={formatPrice(booking?.totalAmount || 0)} icon={CreditCard} />
-          <InfoRow label="Payment Status" value={booking?.paymentStatus} />
+          <InfoRow label="Subtotal" value={formatPrice((booking?.totalAmount || 0) - (booking?.serviceFee || 0))} icon={CreditCard} />
+          <InfoRow label="Service Fee" value={formatPrice(booking?.serviceFee || 0)} />
           <div className="flex items-center justify-between py-3 mt-1">
-            <span className="text-sm font-bold">Amount</span>
+            <span className="text-sm font-bold">Total Paid</span>
             <span className="text-lg font-extrabold font-heading text-green-600">{formatPrice(booking?.totalAmount)}</span>
           </div>
           <InfoRow label="Payment Method" value={booking?.paymentMethod || 'Card'} />

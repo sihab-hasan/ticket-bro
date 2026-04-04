@@ -36,13 +36,8 @@ class BookingController {
   });
 
   getInvoice = asyncHandler(async (req, res) => {
-    const invoiceBuffer = await bookingService.getInvoiceBuffer(req.params.ref, req.user);
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="booking-${req.params.ref}-invoice.pdf"`,
-    );
-    res.send(invoiceBuffer);
+    const invoice = await bookingService.getInvoice(req.params.ref, req.user);
+    sendSuccess(res, 'Invoice fetched.', { invoice });
   });
 
   getOrganizerBookings = asyncHandler(async (req, res) => {

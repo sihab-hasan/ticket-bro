@@ -30,6 +30,14 @@ const InboxPage = () => {
 
   useEffect(() => { fetch(); }, [fetch]);
 
+  // Periodically refresh conversations to capture new messages or updates.
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      fetch().catch(() => {});
+    }, 30000); // refresh every 30 seconds
+    return () => clearInterval(intervalId);
+  }, [fetch]);
+
   const filtered = conversations.filter((c) => {
     const name = c.otherParticipant?.name || c.subject || c.event?.title || '';
     return name.toLowerCase().includes(search.toLowerCase());

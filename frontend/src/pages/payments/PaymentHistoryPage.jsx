@@ -37,7 +37,17 @@ const PaymentHistoryPage = () => {
 
       <FilterBar
         filters={[
-          { type: 'select', key: 'status', placeholder: 'All statuses', options: [{ label: 'Succeeded', value: 'succeeded' }, { label: 'Pending', value: 'pending' }, { label: 'Refunded', value: 'refunded' }, { label: 'Failed', value: 'failed' }] },
+          {
+            type: 'select',
+            key: 'status',
+            placeholder: 'All statuses',
+            options: [
+              { label: 'Completed', value: 'succeeded' },
+              { label: 'Pending', value: 'pending' },
+              { label: 'Refunded', value: 'refunded' },
+              { label: 'Failed', value: 'failed' },
+            ],
+          },
         ]}
         values={filters}
         onChange={(k, v) => setFilters((f) => ({ ...f, [k]: v }))}
@@ -54,16 +64,37 @@ const PaymentHistoryPage = () => {
             <Link key={p._id} to={ROUTES.PAYMENTS.DETAILS ? ROUTES.PAYMENTS.DETAILS(p._id) : '#'} className="block no-underline">
               <Card className="hover:shadow-sm transition-all group cursor-pointer">
                 <CardContent className="p-4 flex items-center gap-4">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${p.status === 'succeeded' ? 'bg-green-500/10' : p.status === 'refunded' ? 'bg-blue-500/10' : p.status === 'failed' ? 'bg-red-500/10' : 'bg-yellow-500/10'}`}>
-                    <CreditCard className={`h-5 w-5 ${p.status === 'succeeded' ? 'text-green-500' : p.status === 'refunded' ? 'text-blue-500' : p.status === 'failed' ? 'text-red-500' : 'text-yellow-500'}`} />
+                  <div
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                      p.status === 'succeeded'
+                        ? 'bg-green-500/10'
+                        : p.status === 'refunded'
+                        ? 'bg-blue-500/10'
+                        : p.status === 'failed'
+                        ? 'bg-red-500/10'
+                        : 'bg-yellow-500/10'
+                    }`}
+                  >
+                    <CreditCard
+                      className={`h-5 w-5 ${
+                        p.status === 'succeeded'
+                          ? 'text-green-500'
+                          : p.status === 'refunded'
+                          ? 'text-blue-500'
+                          : p.status === 'failed'
+                          ? 'text-red-500'
+                          : 'text-yellow-500'
+                      }`}
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate">{p.booking?.event?.title || p.event?.title || p.description || 'Payment'}</p>
+                    <p className="text-sm font-semibold truncate">{p.booking?.event?.title || p.description || 'Payment'}</p>
                     <p className="text-xs text-muted-foreground">{formatDate(p.createdAt, { dateStyle: 'medium', timeStyle: undefined })}</p>
                   </div>
                   <div className="text-right shrink-0">
                     <p className={`text-sm font-bold ${p.status === 'refunded' ? 'text-blue-500' : 'text-foreground'}`}>
-                      {p.status === 'refunded' ? '-' : ''}{formatPrice(p.amount)}
+                      {p.status === 'refunded' ? '-' : ''}
+                      {formatPrice(p.amount)}
                     </p>
                     <StatusBadge status={p.status} />
                   </div>

@@ -37,6 +37,15 @@ const NotificationsPage = () => {
 
   useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
 
+  // Poll notifications periodically to keep the list in sync.  Without real-time
+  // push, this ensures new notifications are surfaced within a reasonable time.
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      fetchNotifications();
+    }, 30000); // refresh every 30 seconds
+    return () => clearInterval(intervalId);
+  }, [fetchNotifications]);
+
   const markAllRead = async () => {
     try {
       await notificationsService.markAllRead();

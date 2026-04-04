@@ -56,8 +56,8 @@ const SearchResultsPage = lazy(
   () => import("@/pages/search/SearchResultsPage"),
 );
 const CartPage = lazy(() => import("@/pages/cart/CartPage"));
-const CheckoutPage = lazy(() => import("@/pages/cart/CheckoutPageCanonical"));
-const PaymentPage = lazy(() => import("@/pages/payments/PaymentPageCanonical"));
+const CheckoutPage = lazy(() => import("@/pages/cart/CheckoutPage"));
+const PaymentPage = lazy(() => import("@/pages/payments/PaymentPage"));
 const PaymentSuccessPage = lazy(
   () => import("@/pages/payments/PaymentSuccessPage"),
 );
@@ -77,10 +77,10 @@ const SeatSelectionPage = lazy(
   () => import("@/pages/tickets/SeatSelectionPage"),
 );
 const TicketBookingPage = lazy(
-  () => import("@/pages/tickets/TicketBookingRedirectPage"),
+  () => import("@/pages/tickets/TicketBookingPage"),
 );
 const TicketPaymentPage = lazy(
-  () => import("@/pages/tickets/TicketPaymentRedirectPage"),
+  () => import("@/pages/tickets/TicketPaymentPage"),
 );
 const TicketConfirmationPage = lazy(
   () => import("@/pages/tickets/TicketConfirmationPage"),
@@ -441,7 +441,7 @@ const AppRoutes = () => (
       {/* ══════════════════════════════════════════════════════════
           PROTECTED — Any authenticated user + UserLayout
       ══════════════════════════════════════════════════════════ */}
-      <Route element={<ProtectedRoute />}>
+      <Route element={<ProtectedRoute requireVerified />}>
         <Route element={<UserLayout />}>
           <Route path="/profile">
             <Route index element={<ProfilePage />} />
@@ -509,7 +509,7 @@ const AppRoutes = () => (
       ══════════════════════════════════════════════════════════ */}
       <Route
         element={
-          <ProtectedRoute requiredPanel="organizer" />
+          <ProtectedRoute requiredPanel="organizer" requireVerified />
         }
       >
         <Route element={<OrganizerLayout />}>
@@ -545,7 +545,7 @@ const AppRoutes = () => (
       ══════════════════════════════════════════════════════════ */}
       <Route
         element={
-          <ProtectedRoute requiredPanel="admin" />
+          <ProtectedRoute requiredPanel="admin" requireVerified />
         }
       >
         <Route element={<AdminLayout />}>
@@ -590,7 +590,7 @@ const AppRoutes = () => (
       {/* ══════════════════════════════════════════════════════════
           PROTECTED — Moderator + Admin + Super Admin
       ══════════════════════════════════════════════════════════ */}
-      <Route element={<ProtectedRoute requiredPanel="moderator" />}>
+      <Route element={<ProtectedRoute requiredPanel="moderator" requireVerified />}>
         <Route element={<ModeratorLayout />}>
           <Route path="/moderator">
             <Route
@@ -608,7 +608,7 @@ const AppRoutes = () => (
       {/* ══════════════════════════════════════════════════════════
           PROTECTED — Super Admin only
       ══════════════════════════════════════════════════════════ */}
-      <Route element={<ProtectedRoute requiredPanel="super_admin" />}>
+      <Route element={<ProtectedRoute requiredPanel="super_admin" requireVerified />}>
         <Route element={<SuperAdminLayout />}>
           <Route path="/super-admin">
             <Route

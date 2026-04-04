@@ -1,7 +1,22 @@
 // frontend/src/components/browse/sections/CalendarSection.jsx
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Calendar, MapPin, Clock, Star, BadgeCheck } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Calendar,
+  MapPin,
+  Clock,
+  Star,
+  BadgeCheck,
+  Ticket,
+} from "lucide-react";
+import {
+  getEventImage,
+  getEventLocationLabel,
+  getEventPriceLabel,
+  getEventUrl,
+} from "@/utils/event-card";
 import Container from "@/components/layout/Container";
 import { useBrowse } from "@/hooks";
 
@@ -23,10 +38,16 @@ const CalendarSection = () => {
   const cells = Array.from({ length: firstDay + daysInMonth }, (_, i) => i < firstDay ? null : i - firstDay + 1);
   while (cells.length % 7 !== 0) cells.push(null);
 
-  // Map events to day numbers (mock: use id % 28 to spread across month)
+  // Group events by the day of the month using their actual start dates.
+  // Only events with a valid startDate will appear on the calendar.
   const eventsByDay = {};
   events.forEach((e) => {
-    const day = (e.id % daysInMonth) + 1;
+    // If the event has a startDate, parse it into a Date object.
+    const dt = e.startDate ? new Date(e.startDate) : null;
+    if (!dt || Number.isNaN(dt.getTime())) return;
+    // Only include events occurring in the currently displayed month/year.
+    if (dt.getMonth() !== month || dt.getFullYear() !== year) return;
+    const day = dt.getDate();
     if (!eventsByDay[day]) eventsByDay[day] = [];
     eventsByDay[day].push(e);
   });
@@ -108,28 +129,82 @@ const CalendarSection = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {selectedEvents.slice(0, 4).map((e) => (
-                    <Link key={e.id} to={`/${e.category}/${e.subCategory}/${e.eventType}/${e.slug}`}
-                      className="group flex items-center gap-3 p-3 rounded-lg border border-border bg-card hover:border-foreground/20 hover:shadow-sm transition-all">
-                      <div className="w-14 h-14 rounded shrink-0 overflow-hidden bg-muted">
-                        <img src={e.image} alt={e.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onError={(x) => x.target.style.display="none"} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-bold text-foreground line-clamp-1 group-hover:underline" style={{ fontFamily: "var(--font-heading)" }}>
-                          {e.title}{e.verified && <BadgeCheck size={11} className="inline ml-1" />}
-                        </h4>
-                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5" style={{ fontFamily: "var(--font-sans)" }}>
-                          <span className="flex items-center gap-0.5"><Clock size={9} />{e.time}</span>
-                          <span className="flex items-center gap-0.5"><MapPin size={9} />{e.venue}</span>
+                  {selectedEvents.slice(0, 4).map((e) => {
+                    // Build values using event utility helpers. Fallbacks ensure graceful degradation.
+                    const href = getEventUrl(e);
+                    const image = getEventImage(e);
+                    const title = e?.title || "Untitled";
+                    const time = e?.startDate
+                      ? new Date(e.startDate).toLocaleTimeString("en-BD", {
+                          hour: "numeric",
+                          minute: "2-digit",
+                          hour12: true,
+                        })
+                      : "Time TBA";
+                    const venueLabel = getEventLocationLabel(e);
+                    const rating = Number(e?.averageRating || e?.avgRating || e?.rating || 0).toFixed(1);
+                    const price = getEventPriceLabel(e);
+                    const verified = e?.organizer?.isVerified;
+                    return (
+                      <Link
+                        key={e.id || e._id || e.slug}
+                        to={href}
+                        className="group flex items-center gap-3 p-3 rounded-lg border border-border bg-card hover:border-foreground/20 hover:shadow-sm transition-all"
+                      >
+                        <div className="w-14 h-14 rounded shrink-0 overflow-hidden bg-muted">
+                          {image ? (
+                            <img
+                              src={image}
+                              alt={title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              onError={(ev) => (ev.target.style.display = "none")}
+                            />
+                          ) : (
+                            <div className="flex items-center justify-center w-full h-full bg-muted text-muted-foreground/40">
+                              <Ticket size={20} />
+                            </div>
+                          )}
                         </div>
-                        <div className="flex items-center gap-1 mt-1">
-                          <Star size={10} className="text-foreground fill-foreground" />
-                          <span className="text-[11px] font-semibold text-foreground" style={{ fontFamily: "var(--font-sans)" }}>{e.rating}</span>
+                        <div className="flex-1 min-w-0">
+                          <h4
+                            className="text-sm font-bold text-foreground line-clamp-1 group-hover:underline"
+                            style={{ fontFamily: "var(--font-heading)" }}
+                          >
+                            {title}
+                            {verified && <BadgeCheck size={11} className="inline ml-1" />}
+                          </h4>
+                          <div
+                            className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5"
+                            style={{ fontFamily: "var(--font-sans)" }}
+                          >
+                            <span className="flex items-center gap-0.5">
+                              <Clock size={9} />
+                              {time}
+                            </span>
+                            <span className="flex items-center gap-0.5">
+                              <MapPin size={9} />
+                              {venueLabel}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1 mt-1">
+                            <Star size={10} className="text-foreground fill-foreground" />
+                            <span
+                              className="text-[11px] font-semibold text-foreground"
+                              style={{ fontFamily: "var(--font-sans)" }}
+                            >
+                              {rating}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                      <span className="text-sm font-bold text-foreground shrink-0" style={{ fontFamily: "var(--font-heading)" }}>{e.priceLabel}</span>
-                    </Link>
-                  ))}
+                        <span
+                          className="text-sm font-bold text-foreground shrink-0"
+                          style={{ fontFamily: "var(--font-heading)" }}
+                        >
+                          {price}
+                        </span>
+                      </Link>
+                    );
+                  })}
                 </div>
               )}
             </div>

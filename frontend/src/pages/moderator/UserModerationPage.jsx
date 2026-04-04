@@ -60,8 +60,11 @@ const UserModerationPage = () => {
     setDrawerOpen(false);
   };
 
-  const handleAction = async (mode = actionMode, targetUser = selectedUser) => {
-    if (!targetUser?._id) return;
+  // Perform moderation actions on a user.  The `mode` argument must be one of
+  // "warn", "suspend", or "restore".  If no target is provided, the
+  // currently selected user will be used.
+  const handleAction = async (mode, targetUser = selectedUser) => {
+    if (!mode || !targetUser?._id) return;
 
     if (["warn", "suspend"].includes(mode) && !note.trim()) {
       toast.error("A note is required for this action");

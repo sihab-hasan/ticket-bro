@@ -151,9 +151,10 @@ const BookingManagementPage = () => {
     {
       key: 'tickets',
       label: 'Qty',
-      render: (row) => (
-        <span className="text-sm font-semibold">{row.quantity || 1}</span>
-      ),
+      render: (row) => {
+        const total = Array.isArray(row.items) ? row.items.reduce((sum, it) => sum + Number(it.quantity || 0), 0) : (row.totalTickets || row.quantity || 0);
+        return <span className="text-sm font-semibold">{total}</span>;
+      },
     },
     {
       key: 'status',
@@ -325,7 +326,15 @@ const BookingManagementPage = () => {
             <DetailSection title="Booking Info">
               <DetailField label="Reference" value={selected.bookingRef} />
               <DetailField label="Date" value={formatDate(selected.createdAt)} />
-              <DetailField label="Tickets" value={`${selected.quantity || 1}`} />
+              <DetailField
+                label="Tickets"
+                value={(() => {
+                  if (Array.isArray(selected?.items)) {
+                    return selected.items.reduce((sum, it) => sum + Number(it.quantity || 0), 0);
+                  }
+                  return selected?.totalTickets || selected?.quantity || 0;
+                })()}
+              />
               <DetailField
                 label="Total Amount"
                 value={formatPrice(selected.totalAmount || 0)}
@@ -347,7 +356,14 @@ const BookingManagementPage = () => {
               />
               <DetailField
                 label="Ticket Type"
-                value={selected.ticketType?.name}
+                value={(() => {
+                  if (Array.isArray(selected?.items)) {
+                    const unique = Array.from(new Set(selected.items.map((it) => it.ticketTypeName))).filter(Boolean);
+                    const total = selected.items.reduce((sum, it) => sum + Number(it.quantity || 0), 0);
+                    return unique.length === 1 ? `${unique[0]} × ${total}` : `${unique.length} types`;
+                  }
+                  return selected?.ticketType?.name;
+                })()}
               />
             </DetailSection>
           </div>

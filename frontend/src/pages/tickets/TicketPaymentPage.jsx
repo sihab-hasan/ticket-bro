@@ -1,7 +1,7 @@
 // pages/tickets/TicketPaymentPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CreditCard, Tag, Lock, CheckCircle2, Wallet } from 'lucide-react';
+import { ArrowLeft, CreditCard, Lock, Wallet } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,74 +12,55 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
-import { cartService, paymentsService } from '@/api';
+import { bookingService, paymentsService } from '@/api';
 import { getApiErrorMessage } from '@/api/client';
 
 const TicketPaymentPage = () => {
   const { bookingId } = useParams();
   const navigate = useNavigate();
-  const [cart, setCart] = useState(null);
+  const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('card');
-  const [promoCode, setPromoCode] = useState('');
-  const [promoApplied, setPromoApplied] = useState(null);
-  const [applyingPromo, setApplyingPromo] = useState(false);
   const [cardForm, setCardForm] = useState({ number: '', expiry: '', cvc: '', name: '' });
 
   useEffect(() => {
+    // Fetch booking details using the booking reference from the URL
     (async () => {
       try {
-        setCart(await cartService.getCart());
-      } catch { toast.error('Cart not found'); navigate(ROUTES.CART.ROOT); }
-      finally { setLoading(false); }
+        const data = await bookingService.getByRef(bookingId);
+        setBooking(data);
+      } catch {
+        toast.error('Booking not found');
+        navigate(-1);
+      } finally {
+        setLoading(false);
+      }
     })();
-  }, [navigate]);
+  }, [navigate, bookingId]);
 
   const setCard = (key, val) => setCardForm((f) => ({ ...f, [key]: val }));
 
   const formatCardNumber = (val) => val.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim().slice(0, 19);
   const formatExpiry = (val) => { const v = val.replace(/\D/g, ''); return v.length >= 2 ? `${v.slice(0,2)}/${v.slice(2,4)}` : v; };
 
-  const handleApplyPromo = async () => {
-    if (!promoCode.trim()) return;
-    setApplyingPromo(true);
-    try {
-      const d = await cartService.applyPromo(promoCode);
-      setPromoApplied(d);
-      setCart((c) => ({ ...c, discount: d.discount, promoCode }));
-      toast.success(`Promo applied! You save ${formatPrice(d.discount)}`);
-    } catch (e) {
-      toast.error(getApiErrorMessage(e, 'Invalid promo code'));
-    } finally {
-      setApplyingPromo(false);
-    }
-  };
-
-  const handleRemovePromo = async () => {
-    try {
-      await cartService.removePromo();
-      setPromoApplied(null); setPromoCode('');
-      setCart((c) => ({ ...c, discount: 0, promoCode: null }));
-    } catch { toast.error('Failed to remove promo'); }
-  };
+  // Promo code functionality is disabled for bookings. If future promotion support is added
+  // at the booking level, handlers can be implemented here.
 
   const handlePay = async () => {
     setProcessing(true);
     try {
-      const contact = JSON.parse(sessionStorage.getItem('booking_contact') || '{}');
-      const intent = await paymentsService.createIntent({ cartId: cart._id, paymentMethod, contact });
-
-      if (paymentMethod === 'card') {
-        // In production, this would integrate with Stripe/similar
-        await paymentsService.verifyPayment({ intentId: intent._id || intent.id, paymentMethod: 'card' });
-      } else {
-        await paymentsService.verifyPayment({ intentId: intent._id || intent.id, paymentMethod });
-      }
-
-      const bookingRef = intent.bookingRef || intent._id;
+      if (!booking) throw new Error('Booking not found');
+      // Create payment intent for the current booking
+      const intent = await paymentsService.createIntent({ bookingRef: booking.bookingRef, currency: booking.currency || 'USD' });
+      // Determine the payment intent id from response
+      const paymentIntentId = intent.gatewayPaymentId || intent.paymentIntentId || intent.id || intent._id;
+      // Verify payment (mocked for non-Stripe environments)
+      await paymentsService.verifyPayment({ paymentIntentId, bookingRef: booking.bookingRef });
+      // Clear stored contact details from booking step
       sessionStorage.removeItem('booking_contact');
-      navigate(ROUTES.TICKETS.CONFIRM(bookingRef));
+      // Navigate to confirmation page using booking reference
+      navigate(ROUTES.TICKETS.CONFIRM(booking.bookingRef));
     } catch (e) {
       toast.error(getApiErrorMessage(e, 'Payment failed. Please try again.'));
     } finally {
@@ -89,9 +70,9 @@ const TicketPaymentPage = () => {
 
   if (loading) return <div className="p-4 sm:p-6 space-y-4 max-w-lg mx-auto">{[1,2,3].map((i) => <Skeleton key={i} className="h-40 rounded-2xl" />)}</div>;
 
-  const items = cart?.items || [];
-  const subtotal = items.reduce((s, item) => s + item.totalPrice, 0);
-  const discount = cart?.discount || 0;
+  const items = booking?.items || [];
+  const subtotal = items.reduce((s, item) => s + ((item.totalPrice != null ? item.totalPrice : (item.unitPrice || 0) * (item.quantity || 0))), 0);
+  const discount = 0; // Currently no discount support for bookings
   const serviceFee = subtotal * 0.05;
   const total = subtotal - discount + serviceFee;
 
@@ -127,28 +108,7 @@ const TicketPaymentPage = () => {
         </CardContent>
       </Card>
 
-      {/* Promo Code */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-2">
-            <Tag className="h-4 w-4 text-muted-foreground shrink-0" />
-            {promoApplied ? (
-              <div className="flex items-center gap-2 flex-1">
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                <span className="text-sm font-semibold text-green-600">"{promoCode}" — {formatPrice(discount)} off</span>
-                <Button variant="ghost" size="sm" className="ml-auto h-7 text-xs text-muted-foreground" onClick={handleRemovePromo}>Remove</Button>
-              </div>
-            ) : (
-              <div className="flex gap-2 flex-1">
-                <Input value={promoCode} onChange={(e) => setPromoCode(e.target.value.toUpperCase())} placeholder="Promo code" className="h-8 text-xs font-mono" onKeyDown={(e) => e.key === 'Enter' && handleApplyPromo()} />
-                <Button size="sm" variant="outline" className="h-8 shrink-0 font-semibold" onClick={handleApplyPromo} disabled={applyingPromo || !promoCode.trim()}>
-                  {applyingPromo ? '…' : 'Apply'}
-                </Button>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Promo Code section disabled for bookings; implement promotions at booking level if needed */}
 
       {/* Payment Method */}
       <Card>

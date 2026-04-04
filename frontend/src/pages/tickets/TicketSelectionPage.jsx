@@ -10,14 +10,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatDate, formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
-import { eventsService } from '@/api';
+import { cartService, eventsService } from '@/api';
 import { getApiErrorMessage } from '@/api/client';
-import { useCart } from '@/context/CartContext';
 
 const TicketSelectionPage = () => {
   const { eventId } = useParams();
   const navigate = useNavigate();
-  const { addItem } = useCart();
   const [event, setEvent] = useState(null);
   const [ticketTypes, setTicketTypes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,7 +41,9 @@ const TicketSelectionPage = () => {
 
   const adjust = (id, delta) => {
     const tt = ticketTypes.find((t) => t._id === id);
-    const max = Math.min(10, (tt?.quantity || 0) - (tt?.soldCount || 0));
+    // Determine available quantity from backend fields. Prefer `available` virtual if present.
+    const availableRaw = typeof tt?.available === 'number' ? tt.available : ((tt?.quantity || 0) - (tt?.sold || 0) - (tt?.reserved || 0));
+    const max = Math.min(10, Math.max(0, availableRaw));
     setQuantities((q) => ({ ...q, [id]: Math.max(0, Math.min(max, (q[id] || 0) + delta)) }));
   };
 
@@ -56,7 +56,7 @@ const TicketSelectionPage = () => {
     setAdding(true);
     try {
       for (const t of selected) {
-        await addItem({
+        await cartService.addItem({
           eventId: event?._id || eventId,
           ticketTypeId: t._id,
           ticketTypeName: t.name,
@@ -112,10 +112,8 @@ const TicketSelectionPage = () => {
         {ticketTypes.length === 0 ? (
           <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">No tickets available</CardContent></Card>
         ) : ticketTypes.map((tt) => {
-          const available = Math.max(
-            0,
-            Number(tt.quantity || 0) - Number(tt.soldCount || tt.sold || 0) - Number(tt.reserved || 0),
-          );
+          // Prefer backend-computed available property, fallback to manual calculation
+          const available = typeof tt.available === 'number' ? tt.available : ((tt.quantity || 0) - (tt.sold || 0) - (tt.reserved || 0));
           const qty = quantities[tt._id] || 0;
           const isSoldOut = available <= 0;
           return (

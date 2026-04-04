@@ -28,9 +28,10 @@ import { getApiErrorMessage } from '@/api/client';
 
 const STATUS_OPTS = [
   { label: 'Published', value: 'published' },
-  { label: 'Pending Review', value: 'pending_review' },
+  { label: 'Pending', value: 'pending' },
   { label: 'Draft', value: 'draft' },
   { label: 'Cancelled', value: 'cancelled' },
+  { label: 'Rejected', value: 'rejected' },
 ];
 
 const EventManagementPage = () => {
@@ -213,7 +214,7 @@ const EventManagementPage = () => {
           <Eye className="h-4 w-4 mr-2" /> View Details
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        {row.status === 'pending_review' && (
+        {row.status === 'pending' && (
           <>
             <DropdownMenuItem onClick={() => handleStatusChange(row._id, 'published')} className="text-green-600">
               <CheckCircle2 className="h-4 w-4 mr-2" /> Approve
@@ -283,7 +284,7 @@ const EventManagementPage = () => {
         description={selectedEvent?.category?.name}
         loading={drawerLoading}
         footer={
-          selectedEvent?.status === 'pending_review' && (
+          selectedEvent?.status === 'pending' && (
             <div className="flex gap-2">
               <Button
                 size="sm"
@@ -326,8 +327,8 @@ const EventManagementPage = () => {
               <DetailField label="Organizer" value={selectedEvent.organizer?.name || selectedEvent.organizer?.firstName} />
               <DetailField label="Start Date" value={formatDate(selectedEvent.startDate)} />
               <DetailField label="End Date" value={formatDate(selectedEvent.endDate)} />
-              <DetailField label="Venue" value={selectedEvent.venue?.name} />
-              <DetailField label="Location" value={[selectedEvent.venue?.city, selectedEvent.venue?.country].filter(Boolean).join(', ')} />
+              <DetailField label="Venue" value={selectedEvent.location?.name} />
+              <DetailField label="Location" value={[selectedEvent.location?.city, selectedEvent.location?.country].filter(Boolean).join(', ')} />
             </DetailSection>
 
             <DetailSection title="Ticket Stats">

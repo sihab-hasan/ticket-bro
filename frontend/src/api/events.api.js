@@ -237,8 +237,11 @@ export const rejectEvent = (slug, data) =>
     select: pickEntity("event"),
   });
 
-export const postponeEvent = (slug, data) =>
-  post(`/events/${slug}/postpone`, data);
+// NOTE: The backend currently does not support postponing events. If this feature
+// is required in the future, implement the corresponding endpoint on the server
+// and reintroduce this helper. See `event.routes.js` for available actions.
+// export const postponeEvent = (slug, data) =>
+//   post(`/events/${slug}/postpone`, data);
 
 export const createTicketType = (slug, data) =>
   post(ENDPOINTS.EVENTS.TICKET_TYPES(slug), data, {
@@ -259,15 +262,14 @@ export const createSeatSection = (slug, data) =>
 export const updateSeatSection = (slug, id, data) =>
   put(ENDPOINTS.EVENTS.SEAT_SECTION(slug, id), data);
 
-export const likeEvent = (slug) => post(ENDPOINTS.EVENTS.LIKE(slug), {});
-
-export const bookmarkEvent = (slug) =>
-  post(ENDPOINTS.EVENTS.BOOKMARK(slug), {});
-
-export const unbookmarkEvent = (slug) =>
-  del(ENDPOINTS.EVENTS.BOOKMARK(slug));
-
-export const shareEvent = (slug) => post(ENDPOINTS.EVENTS.SHARE(slug), {});
+// NOTE: The backend currently has no endpoints for liking, bookmarking or sharing
+// events. These helper functions were previously defined but led to 404 errors.
+// To avoid broken API calls, they have been commented out. If the backend adds
+// support for these interactions, reintroduce the corresponding functions.
+// export const likeEvent = (slug) => post(ENDPOINTS.EVENTS.LIKE(slug), {});
+// export const bookmarkEvent = (slug) => post(ENDPOINTS.EVENTS.BOOKMARK(slug), {});
+// export const unbookmarkEvent = (slug) => del(ENDPOINTS.EVENTS.BOOKMARK(slug));
+// export const shareEvent = (slug) => post(ENDPOINTS.EVENTS.SHARE(slug), {});
 
 export const trackEventView = async (slug) => {
   try {
@@ -308,15 +310,15 @@ export default {
   cancelEvent,
   approveEvent,
   rejectEvent,
-  postponeEvent,
+  // postponeEvent,
   createTicketType,
   updateTicketType,
   deleteTicketType,
   createSeatSection,
   updateSeatSection,
-  likeEvent,
-  bookmarkEvent,
-  unbookmarkEvent,
-  shareEvent,
+  // likeEvent,
+  // bookmarkEvent,
+  // unbookmarkEvent,
+  // shareEvent,
   trackEventView,
 };

@@ -5,6 +5,7 @@ const router = express.Router();
 const {
   authenticate,
   authorize,
+  requireEmailVerified,
 } = require("./common/middleware/auth.middleware");
 const { rateLimiter } = require("./common/middleware/rateLimiter.middleware");
 const { cache } = require("./common/middleware/cache.middleware");
@@ -151,8 +152,9 @@ router.use("/events", eventRoutes);
 // ════════════════════════════════════════════════════════════════════════════
 //   TICKETS
 //   User reads own tickets — System issues — Organizer validates
+//   Require verified email for all ticket operations
 // ════════════════════════════════════════════════════════════════════════════
-router.use("/tickets", authenticate, ticketRoutes);
+router.use("/tickets", authenticate, requireEmailVerified, ticketRoutes);
 
 // GET    /tickets                                 user — my tickets
 // GET    /tickets/:code                           user — single ticket
@@ -163,9 +165,9 @@ router.use("/tickets", authenticate, ticketRoutes);
 
 // ════════════════════════════════════════════════════════════════════════════
 //   CART
-//   Authenticated users only
+//   Authenticated users must have verified email
 // ════════════════════════════════════════════════════════════════════════════
-router.use("/cart", authenticate, cartRoutes);
+router.use("/cart", authenticate, requireEmailVerified, cartRoutes);
 
 // GET    /cart                                    user
 // POST   /cart/items                              user
@@ -178,9 +180,9 @@ router.use("/cart", authenticate, cartRoutes);
 
 // ════════════════════════════════════════════════════════════════════════════
 //   BOOKINGS
-//   Authenticated users — Organizer management — Admin override
+//   Authenticated users with verified email — Organizer management — Admin override
 // ════════════════════════════════════════════════════════════════════════════
-router.use("/bookings", authenticate, bookingRoutes);
+router.use("/bookings", authenticate, requireEmailVerified, bookingRoutes);
 
 // ─── USER ────────────────────────────────────────────────────────────────────
 // POST   /bookings                                user
@@ -203,9 +205,9 @@ router.use("/bookings", authenticate, bookingRoutes);
 
 // ════════════════════════════════════════════════════════════════════════════
 //   PAYMENTS
-//   Authenticated users — Admin oversight
+//   Authenticated users with verified email — Admin oversight
 // ════════════════════════════════════════════════════════════════════════════
-router.use("/payments", authenticate, paymentRoutes);
+router.use("/payments", authenticate, requireEmailVerified, paymentRoutes);
 
 // POST   /payments/intent                         user
 // POST   /payments/verify                         user
@@ -252,9 +254,9 @@ router.use("/search", cache("30s"), searchRoutes);
 
 // ════════════════════════════════════════════════════════════════════════════
 //   MESSAGING
-//   Authenticated users only
+//   Authenticated users with verified email
 // ════════════════════════════════════════════════════════════════════════════
-router.use("/messaging", authenticate, messagingRoutes);
+router.use("/messaging", authenticate, requireEmailVerified, messagingRoutes);
 
 // POST   /messaging/conversations                 user
 // GET    /messaging/conversations                 user/organizer
@@ -267,9 +269,9 @@ router.use("/messaging", authenticate, messagingRoutes);
 
 // ════════════════════════════════════════════════════════════════════════════
 //   NOTIFICATIONS
-//   Authenticated users only
+//   Authenticated users with verified email
 // ════════════════════════════════════════════════════════════════════════════
-router.use("/notifications", authenticate, notificationRoutes);
+router.use("/notifications", authenticate, requireEmailVerified, notificationRoutes);
 
 // GET    /notifications                           user
 // GET    /notifications/unread-count              user
