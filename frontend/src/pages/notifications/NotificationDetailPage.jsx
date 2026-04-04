@@ -47,10 +47,23 @@ const NotificationDetailPage = () => {
             </div>
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed">{notif.message}</p>
-          {((notif.metadata && Object.keys(notif.metadata).length > 0) || (notif.data && Object.keys(notif.data).length > 0)) && (
+          {/*
+            Metadata section
+
+            The API normalizes notifications to expose a `metadata` property which contains any additional
+            contextual data (for example eventId, bookingRef, etc.).  Historically the frontend would
+            fall back to a `data` property on the notification object if `metadata` was missing.  Since
+            `normalizeNotification` in `notifications.api.js` always defines `metadata`, we simplify
+            the logic here and reference only `notif.metadata`.  This prevents accidental access to
+            undefined `notif.data` and makes the rendering logic clearer.
+          */}
+          {notif.metadata && Object.keys(notif.metadata).length > 0 && (
             <div className="p-3 rounded-xl bg-muted/50 text-xs space-y-1">
-              {Object.entries(notif.metadata || notif.data || {}).map(([k, v]) => (
-                <div key={k} className="flex justify-between"><span className="text-muted-foreground capitalize">{k.replace(/([A-Z])/g, ' $1')}</span><span className="font-semibold">{String(v)}</span></div>
+              {Object.entries(notif.metadata).map(([k, v]) => (
+                <div key={k} className="flex justify-between">
+                  <span className="text-muted-foreground capitalize">{k.replace(/([A-Z])/g, ' $1')}</span>
+                  <span className="font-semibold">{String(v)}</span>
+                </div>
               ))}
             </div>
           )}

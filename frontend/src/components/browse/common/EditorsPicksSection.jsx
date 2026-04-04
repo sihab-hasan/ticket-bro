@@ -6,7 +6,7 @@ import BrowseEventCard from "@/components/shared/cards/EventCard";
 import SectionShell from "./SectionShell";
 
 const EditorsPicksSection = () => {
-  const { getEditorsPicks, config, locationLabel, level } = useBrowse();
+  const { getEditorsPicks, locationLabel } = useBrowse();
   const [savedIds, setSavedIds] = useState(new Set());
   const events = getEditorsPicks();
   if (!events.length) return null;

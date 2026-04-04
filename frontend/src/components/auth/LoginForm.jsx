@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 
 import { useDispatch, useSelector } from "react-redux";
@@ -74,7 +74,6 @@ const Field = ({ id, label, error, left, right, className, ...props }) => (
 
 const LoginForm = () => {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const isLoading = useSelector(selectIsLoading);
   const error = useSelector(selectAuthError);

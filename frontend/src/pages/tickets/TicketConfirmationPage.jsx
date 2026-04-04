@@ -13,7 +13,7 @@ import { bookingService } from '@/api';
 import { downloadBlob } from '@/utils/downloadFile';
 
 const TicketConfirmationPage = () => {
-  const { bookingId: bookingRef } = useParams();
+  const { bookingRef } = useParams();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
@@ -92,7 +92,18 @@ const TicketConfirmationPage = () => {
             <div className="flex justify-between items-center">
               <div>
                 <p className="text-xs text-muted-foreground">Tickets booked</p>
-                <p className="text-sm font-bold">{booking.quantity || 1} × {booking.ticketType?.name || 'General'}</p>
+                <p className="text-sm font-bold">
+                  {(() => {
+                    const totalTickets = Array.isArray(booking?.items) ? booking.items.reduce((sum, it) => sum + Number(it.quantity || 0), 0) : (booking?.totalTickets || booking?.quantity || 0);
+                    if (Array.isArray(booking?.items)) {
+                      const unique = Array.from(new Set(booking.items.map((it) => it.ticketTypeName))).filter(Boolean);
+                      return unique.length === 1
+                        ? `${totalTickets} × ${unique[0]}`
+                        : `${totalTickets} tickets`;
+                    }
+                    return `${totalTickets} × ${booking?.ticketType?.name || 'General'}`;
+                  })()}
+                </p>
               </div>
               <div className="text-right">
                 <p className="text-xs text-muted-foreground">Total paid</p>

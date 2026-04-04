@@ -2,7 +2,6 @@
 const asyncHandler   = require('../../common/utils/asyncHandler');
 const { sendSuccess } = require('../../common/utils/apiResponse');
 const ticketService  = require('./ticket.service');
-const { generateTicketPdf } = require('../../common/utils/generateTicketPDF');
 
 const getId = (u) => u?._id || u?.id || u?.userId;
 
@@ -17,13 +16,7 @@ class TicketController {
   });
   downloadTicket = asyncHandler(async (req, res) => {
     const ticket = await ticketService.downloadTicket(req.params.code, getId(req.user));
-    const ticketBuffer = await generateTicketPdf({ ticket });
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="ticket-${req.params.code}.pdf"`,
-    );
-    res.send(ticketBuffer);
+    sendSuccess(res, 'Ticket fetched.', { ticket });
   });
   validateTicket = asyncHandler(async (req, res) => {
     const ticket = await ticketService.validateTicket(req.params.code, req.user);

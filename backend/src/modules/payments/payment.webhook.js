@@ -2,7 +2,7 @@
 const express = require('express');
 const router  = express.Router();
 const asyncHandler   = require('../../common/utils/asyncHandler');
-const paymentService = require('./payment.service.impl');
+const paymentService = require('./payment.service');
 const logger = require('../../infrastructure/logger/logger');
 
 // Raw body is already set in app.js for /webhooks prefix

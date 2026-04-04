@@ -12,7 +12,8 @@ import { useAuth } from '@/context/AuthContext';
 import { formatDate, formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
-import { cartService } from '@/api';
+import { cartService, bookingService } from '@/api';
+import { getApiErrorMessage } from '@/api/client';
 
 const Field = ({ label, required, children }) => (
   <div className="space-y-1.5">
@@ -59,11 +60,44 @@ const TicketBookingPage = () => {
     if (!form.firstName || !form.email) return toast.error('Primary contact details required');
     setSubmitting(true);
     try {
-      // Store booking contact info in session storage for payment page
-      sessionStorage.setItem('booking_contact', JSON.stringify(form));
-      navigate(ROUTES.TICKETS.PAYMENT(eventId));
-    } catch { toast.error('Something went wrong'); }
-    finally { setSubmitting(false); }
+      // Ensure we have the latest cart data
+      const currentCart = cart || (await cartService.getCart());
+      if (!currentCart?.items?.length) {
+        toast.error('Cart is empty');
+        setSubmitting(false);
+        return;
+      }
+      // Derive event id from the first cart item (cart items should all belong to the same event)
+      const eventIdActual = currentCart.items[0]?.event?._id || currentCart.items[0]?.event || eventId;
+      // Build booking items array using authoritative ticketType IDs and quantities
+      const bookingItems = currentCart.items.map((item) => ({
+        ticketTypeId: item?.ticketType?._id || item?.ticketType || item?.ticketTypeId,
+        quantity: Number(item?.quantity ?? 0),
+        seats: [],
+        attendees: [],
+      }));
+      // Create booking on the backend; this will also reserve inventory
+      const booking = await bookingService.create({
+        eventId: eventIdActual,
+        items: bookingItems,
+        contactName: `${form.firstName} ${form.lastName}`.trim(),
+        contactEmail: form.email,
+        contactPhone: form.phone,
+      });
+      // Clear cart since booking now holds reserved inventory
+      await cartService.clearCart();
+      // Navigate to payment step with booking reference
+      const ref = booking?.bookingRef || booking?._id;
+      if (ref) {
+        navigate(ROUTES.TICKETS.PAYMENT(ref));
+      } else {
+        navigate(ROUTES.TICKETS.PAYMENT(eventIdActual));
+      }
+    } catch (e) {
+      toast.error(getApiErrorMessage(e, 'Failed to create booking'));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading) return <div className="p-4 sm:p-6 space-y-4 max-w-lg mx-auto">{[1,2,3].map((i) => <Skeleton key={i} className="h-32 rounded-2xl" />)}</div>;

@@ -17,28 +17,37 @@ import { getApiErrorMessage } from '@/api/client';
 const PaymentPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const bookingId = searchParams.get('bookingId') || searchParams.get('id');
+  const bookingRef = searchParams.get('bookingRef') || searchParams.get('bookingId') || searchParams.get('id');
   const [booking, setBooking] = useState(null);
-  const [loading, setLoading] = useState(!!bookingId);
+  const [loading, setLoading] = useState(!!bookingRef);
   const [processing, setProcessing] = useState(false);
   const [method, setMethod] = useState('card');
 
   useEffect(() => {
-    if (!bookingId) { setLoading(false); return; }
+    if (!bookingRef) {
+      setLoading(false);
+      return;
+    }
     (async () => {
       try {
-        setBooking(await bookingService.getByRef(bookingId));
-      } catch { toast.error('Booking not found'); navigate(-1); }
-      finally { setLoading(false); }
+        setBooking(await bookingService.getByRef(bookingRef));
+      } catch {
+        toast.error('Booking not found');
+        navigate(-1);
+      } finally {
+        setLoading(false);
+      }
     })();
-  }, [bookingId, navigate]);
+  }, [bookingRef, navigate]);
 
   const handlePay = async () => {
     setProcessing(true);
     try {
-      const intent = await paymentsService.createIntent({ bookingId, paymentMethod: method });
-      await paymentsService.verifyPayment({ intentId: intent._id || intent.id, paymentMethod: method });
-      navigate(`/payments/success/${intent._id || bookingId}?ref=${intent.bookingRef || bookingId}`);
+      if (!bookingRef) throw new Error('Booking reference missing');
+      const intent = await paymentsService.createIntent({ bookingRef, currency: booking?.currency || 'USD' });
+      const paymentIntentId = intent.gatewayPaymentId || intent.paymentIntentId || intent.id || intent._id;
+      await paymentsService.verifyPayment({ paymentIntentId, bookingRef });
+      navigate(`/payments/success/${paymentIntentId}?ref=${bookingRef}`);
     } catch (e) {
       toast.error(getApiErrorMessage(e, 'Payment failed'));
     } finally {

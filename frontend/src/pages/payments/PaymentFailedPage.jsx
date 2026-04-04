@@ -10,7 +10,7 @@ const PaymentFailedPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const reason = searchParams.get('reason') || 'Your payment could not be processed.';
-  const bookingId = searchParams.get('bookingId');
+  const bookingRef = searchParams.get('bookingRef') || searchParams.get('bookingId');
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center font-sans space-y-5">
@@ -30,8 +30,8 @@ const PaymentFailedPage = () => {
         </CardContent>
       </Card>
       <div className="flex flex-col w-full max-w-xs gap-2">
-        {bookingId && (
-          <Button onClick={() => navigate('/payments/' + bookingId)} className="w-full font-bold">
+        {bookingRef && (
+          <Button onClick={() => navigate('/payments/' + bookingRef)} className="w-full font-bold">
             <RefreshCw className="h-4 w-4 mr-2" />Try Again
           </Button>
         )}

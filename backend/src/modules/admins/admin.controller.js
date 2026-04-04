@@ -67,11 +67,11 @@ class AdminController {
   });
 
   verifyOrganizer = asyncHandler(async (req, res) => {
-    sendSuccess(res, 'Organizer verified.', await adminService.verifyOrganizer(req.params.id));
+    sendSuccess(res, 'Organizer verified.', await adminService.verifyOrganizer(req.params.id, req.user));
   });
 
   rejectOrganizer = asyncHandler(async (req, res) => {
-    sendSuccess(res, 'Organizer rejected.', await adminService.rejectOrganizer(req.params.id, req.body.reason));
+    sendSuccess(res, 'Organizer rejected.', await adminService.rejectOrganizer(req.params.id, req.body.reason, req.user));
   });
 
   suspendOrganizer = asyncHandler(async (req, res) => {
@@ -99,7 +99,7 @@ class AdminController {
   });
 
   refundPayment = asyncHandler(async (req, res) => {
-    sendSuccess(res, 'Payment refunded.', await adminService.refundPayment(req.params.id, req.user, req.body.reason));
+    sendSuccess(res, 'Payment refunded.', await adminService.refundPayment(req.params.id, req.body.reason));
   });
 
   getAllReviews = asyncHandler(async (req, res) => {

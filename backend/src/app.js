@@ -20,6 +20,9 @@ const {
 const { sanitizeBody } = require("./common/middleware/validation.middleware");
 const logger = require("./infrastructure/logger/logger");
 
+// Audit middleware logs create/update/delete actions for privileged routes.
+const { auditMiddleware } = require("./common/middleware/audit.middleware");
+
 require("./modules/auth/strategies/passport");
 
 const app = express();
@@ -131,6 +134,12 @@ app.get("/health", (req, res) => {
 
 // ── API Routes ────────────────────────────────────────────────────────────────
 app.use(API_PREFIX, routes);
+
+// ── Audit Logging ────────────────────────────────────────────────────────────
+// Attach audit middleware after routing so it can inspect req.user and response.
+// SKIP_PATHS and SKIP_METHODS are defined in the middleware to avoid logging
+// health checks, metrics, OPTIONS, etc.
+app.use(auditMiddleware);
 
 // ── Static Files ──────────────────────────────────────────────────────────────
 app.use(

@@ -539,8 +539,13 @@ const EventDetailsPage = () => {
               </>
             )}
 
-            {(event.agenda?.length > 0 || event.schedule?.length > 0) && (
+            {event.agenda?.length > 0 && (
               <>
+                {/*
+                 * Only show the agenda section when the event has at least one agenda item.
+                 * The backend schema does not include an `event.schedule` field; older
+                 * mocks referenced `schedule` but it is not part of the production model.
+                 */}
                 <EventAgendaSection event={event} />
                 <Divider />
               </>

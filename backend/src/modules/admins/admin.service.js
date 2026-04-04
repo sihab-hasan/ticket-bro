@@ -19,7 +19,6 @@ const AuditLog = require('../auditLogs/audit.model');
 const RefreshToken = require('../../infrastructure/tokens/tokens');
 const SystemSetting = require('../systemSettings/systemSetting.model');
 const userService = require('../users/user.service');
-const bookingService = require('../bookings/booking.service');
 const bookingRepository = require('../bookings/booking.repository');
 const paymentRepository = require('../payments/payment.repository');
 const payoutRepository = require('../payouts/payout.repository');
@@ -34,7 +33,6 @@ const {
   BadRequestError,
   NotFoundError,
 } = require('../../common/errors/AppError');
-const { getRefundSummary } = require('../bookings/booking.policy');
 
 const DEFAULT_SYSTEM_SETTINGS = Object.freeze({
   platformName: 'Ticket Bro',
@@ -85,64 +83,28 @@ const toDateRange = ({ from, to } = {}) => {
   return Object.keys(range).length ? range : null;
 };
 
-const normalizeBookingStatus = (status) => (status === 'expired' ? 'cancelled' : status);
-const normalizePaymentStatus = (status) => (status === 'paid' ? 'succeeded' : status || 'pending');
-
 const serializePaymentForAdmin = (payment) => {
   if (!payment) return payment;
   const source = payment.toObject ? payment.toObject() : payment;
-  const ticketCount =
-    source.booking?.items?.reduce((sum, item) => sum + Number(item.quantity || 0), 0) || 0;
   return {
     ...source,
-    status: normalizePaymentStatus(source.status),
-    rawStatus: source.status,
+    status: source.status === 'succeeded' ? 'completed' : source.status,
     paymentMethod: source.paymentMethod?.type || source.gateway || 'stripe',
     gatewayTransactionId: source.gatewayPaymentId || null,
     platformFee: source.platformFee || 0,
-    quantity: ticketCount,
-    ticketCount,
-    booking: source.booking
-      ? {
-          ...source.booking,
-          status: normalizeBookingStatus(source.booking.status),
-          rawStatus: source.booking.status,
-          paymentStatus: normalizePaymentStatus(source.booking.paymentStatus),
-          event: source.event || source.booking.event || null,
-          quantity: ticketCount,
-          ticketCount,
-          refundSummary: getRefundSummary({
-            ...source.booking,
-            event: source.event || source.booking.event,
-          }),
-        }
-      : null,
-    event: source.event
-      ? {
-          ...source.event,
-          venue: source.event.venue || source.event.location || null,
-        }
-      : null,
   };
 };
 
 const serializeBookingForAdmin = (booking) => {
   if (!booking) return booking;
   const source = booking.toObject ? booking.toObject() : booking;
-  const ticketCount =
-    source.totalTickets ||
-    source.items?.reduce((sum, item) => sum + Number(item.quantity || 0), 0) ||
-    0;
   return {
     ...source,
-    status: normalizeBookingStatus(source.status),
-    rawStatus: source.status,
-    paymentStatus: normalizePaymentStatus(source.paymentStatus),
-    rawPaymentStatus: source.paymentStatus,
     amount: source.totalAmount,
-    ticketCount,
-    ticketsSold: ticketCount,
-    refundSummary: getRefundSummary(source),
+    ticketsSold:
+      source.totalTickets ||
+      source.items?.reduce((sum, item) => sum + item.quantity, 0) ||
+      0,
   };
 };
 
@@ -151,7 +113,8 @@ const serializeEventForAdmin = (event) => {
   const source = event.toObject ? event.toObject() : event;
   return {
     ...source,
-    status: source.status === 'pending' ? 'pending_review' : source.status,
+    // Do not remap status; use the stored event status directly (e.g. 'pending', 'published', etc.).
+    status: source.status,
     organizer: source.organizer
       ? {
           ...source.organizer,
@@ -607,7 +570,7 @@ class AdminService {
     return organizer;
   }
 
-  async verifyOrganizer(id) {
+  async verifyOrganizer(id, actor = null) {
     const organizer = await Organizer.findOneAndUpdate(
       { _id: id, deletedAt: null },
       { $set: { verificationStatus: 'verified', verifiedAt: new Date() } },
@@ -626,10 +589,25 @@ class AdminService {
       });
     }
 
+    // Write audit log
+    if (actor) {
+      await AuditLog.create({
+        userId: getId(actor),
+        userEmail: actor.email,
+        userRole: actor.role,
+        action: 'organizer.verified',
+        resource: 'organizer',
+        resourceId: organizer._id?.toString(),
+        metadata: {
+          organizerUserId: organizer.user?._id?.toString() || null,
+        },
+      });
+    }
+
     return organizer;
   }
 
-  async rejectOrganizer(id, reason = '') {
+  async rejectOrganizer(id, reason = '', actor = null) {
     const organizer = await Organizer.findOneAndUpdate(
       { _id: id, deletedAt: null },
       { $set: { verificationStatus: 'rejected', rejectionReason: reason } },
@@ -649,6 +627,22 @@ class AdminService {
       });
     }
 
+    // Write audit log
+    if (actor) {
+      await AuditLog.create({
+        userId: getId(actor),
+        userEmail: actor.email,
+        userRole: actor.role,
+        action: 'organizer.rejected',
+        resource: 'organizer',
+        resourceId: organizer._id?.toString(),
+        metadata: {
+          organizerUserId: organizer.user?._id?.toString() || null,
+          reason: reason || '',
+        },
+      });
+    }
+
     return organizer;
   }
 
@@ -664,6 +658,22 @@ class AdminService {
       reason || 'Organizer suspended by admin',
     );
 
+    // Write audit log
+    if (actor) {
+      await AuditLog.create({
+        userId: getId(actor),
+        userEmail: actor.email,
+        userRole: actor.role,
+        action: 'organizer.suspended',
+        resource: 'organizer',
+        resourceId: id?.toString(),
+        metadata: {
+          organizerUserId: organizer.user?._id?.toString() || null,
+          reason: reason || 'Organizer suspended by admin',
+        },
+      });
+    }
+
     return this.getOrganizerById(id);
   }
 
@@ -677,19 +687,67 @@ class AdminService {
   }
 
   async cancelBooking(ref, actor, reason = '') {
-    const updated = await bookingService.cancelBooking(ref, actor, reason, {
-      bypassOwnership: true,
-      forceFullRefund: true,
+    const booking = await bookingRepository.findByRef(ref);
+    if (!booking) throw new NotFoundError('Booking not found.');
+
+    const updated = await bookingRepository.updateByRef(ref, {
+      status: 'cancelled',
+      cancelledAt: new Date(),
+      cancelReason: reason,
+      cancelledBy: getId(actor),
     });
+
+    if (booking.user?.email) {
+      await emailService.sendTicketCancelledEmail({
+        to: booking.user.email,
+        firstName: booking.user.firstName,
+        eventName: booking.event?.title,
+        ticketCode: booking.items?.[0]?.ticketCode || booking.items?.[0]?.code || booking.bookingRef,
+        cancelledAt: formatDateTime(updated.cancelledAt || new Date()),
+        refundSummary: 'If your booking qualifies for a refund, a separate update will follow.',
+        bookingUrl: buildFrontendUrl(`/bookings/${booking.bookingRef}`),
+      });
+    }
 
     return serializeBookingForAdmin(updated);
   }
 
   async refundBooking(ref, actor, reason = '') {
-    const updated = await bookingService.refundBooking(ref, actor, reason, {
-      bypassOwnership: true,
-      forceFullRefund: true,
+    const booking = await bookingRepository.findByRef(ref);
+    if (!booking) throw new NotFoundError('Booking not found.');
+
+    const updated = await bookingRepository.updateByRef(ref, {
+      status: 'refunded',
+      paymentStatus: 'refunded',
+      refundedAt: new Date(),
+      refundRequested: false,
+      cancelReason: reason || booking.cancelReason,
+      cancelledBy: booking.cancelledBy || getId(actor),
     });
+
+    if (booking.payment) {
+      await Payment.findByIdAndUpdate(booking.payment, {
+        $set: {
+          status: 'refunded',
+          refundedAt: new Date(),
+          refundReason: reason || 'Admin initiated booking refund',
+          refundAmount: booking.totalAmount || 0,
+        },
+      });
+    }
+
+    if (booking.user?.email) {
+      await emailService.sendRefundProcessedEmail({
+        to: booking.user.email,
+        firstName: booking.user.firstName,
+        amount: booking.totalAmount || 0,
+        currency: booking.currency || 'USD',
+        paymentMethod: 'Original payment method',
+        processedAt: formatDateTime(updated.refundedAt || new Date()),
+        bookingRef: booking.bookingRef,
+        statusUrl: buildFrontendUrl(`/bookings/${booking.bookingRef}`),
+      });
+    }
 
     return serializeBookingForAdmin(updated);
   }
@@ -709,20 +767,50 @@ class AdminService {
     return serializePaymentForAdmin(payment);
   }
 
-  async refundPayment(id, actor, reason = '') {
+  async refundPayment(id, reason = '') {
     const payment = await paymentRepository.findById(id);
     if (!payment) throw new NotFoundError('Payment not found.');
 
-    if (!payment.booking?.bookingRef) {
-      throw new BadRequestError('Payment is not linked to a booking.');
+    const updated = await Payment.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          status: 'refunded',
+          refundedAt: new Date(),
+          refundReason: reason || 'Admin initiated refund',
+          refundAmount: payment.amount,
+        },
+      },
+      { new: true },
+    )
+      .populate('booking', 'bookingRef status items totalAmount paymentStatus')
+      .populate('user', 'firstName lastName email');
+
+    if (payment.booking?._id) {
+      await Booking.findByIdAndUpdate(payment.booking._id, {
+        $set: {
+          paymentStatus: 'refunded',
+          status: payment.booking.status === 'cancelled' ? 'refunded' : payment.booking.status,
+          refundedAt: new Date(),
+        },
+      });
     }
 
-    await bookingService.refundBooking(payment.booking.bookingRef, actor, reason, {
-      bypassOwnership: true,
-      forceFullRefund: true,
-    });
+    if (payment.user?.email) {
+      await emailService.sendRefundProcessedEmail({
+        to: payment.user.email,
+        firstName: payment.user.firstName,
+        amount: payment.amount,
+        currency: payment.currency || 'USD',
+        paymentMethod: getPaymentMethodLabel(payment),
+        processedAt: formatDateTime(updated.refundedAt || new Date()),
+        bookingRef: payment.booking?.bookingRef,
+        statusUrl: payment.booking?.bookingRef
+          ? buildFrontendUrl(`/bookings/${payment.booking.bookingRef}`)
+          : buildFrontendUrl('/payments/history'),
+      });
+    }
 
-    const updated = await paymentRepository.findById(id);
     return serializePaymentForAdmin(updated);
   }
 

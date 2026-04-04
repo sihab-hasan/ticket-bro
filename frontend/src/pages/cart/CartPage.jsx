@@ -10,8 +10,18 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatDate, formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
+import { cartService } from '@/api';
 import { getApiErrorMessage } from '@/api/client';
-import { useCart } from '@/context/CartContext';
+
+const EMPTY_CART = {
+  items: [],
+  subtotal: 0,
+  discount: 0,
+  discountAmount: 0,
+  itemCount: 0,
+  total: 0,
+  promoCode: null,
+};
 
 const getEventHref = (item) => {
   const slug = item?.event?.slug;
@@ -20,27 +30,23 @@ const getEventHref = (item) => {
 
 const CartPage = () => {
   const navigate = useNavigate();
-  const {
-    cart,
-    isLoading,
-    refreshCart,
-    updateItem,
-    removeItem,
-    applyPromo,
-    removePromo,
-    clearCart,
-  } = useCart();
+  const [cart, setCart] = useState(EMPTY_CART);
+  const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState({});
   const [promoCode, setPromoCode] = useState('');
   const [applyingPromo, setApplyingPromo] = useState(false);
 
   const fetchCart = useCallback(async () => {
+    setLoading(true);
     try {
-      await refreshCart();
+      setCart((await cartService.getCart()) || EMPTY_CART);
     } catch (error) {
+      setCart(EMPTY_CART);
       toast.error(getApiErrorMessage(error, 'Failed to load cart'));
+    } finally {
+      setLoading(false);
     }
-  }, [refreshCart]);
+  }, []);
 
   useEffect(() => { fetchCart(); }, [fetchCart]);
 
@@ -48,9 +54,9 @@ const CartPage = () => {
     setUpdating((u) => ({ ...u, [itemId]: true }));
     try {
       if (newQty <= 0) {
-        await removeItem(itemId);
+        setCart(await cartService.removeItem(itemId));
       } else {
-        await updateItem(itemId, { quantity: newQty });
+        setCart(await cartService.updateItem(itemId, { quantity: newQty }));
       }
     } catch (e) {
       toast.error(getApiErrorMessage(e, 'Failed to update cart item'));
@@ -63,7 +69,8 @@ const CartPage = () => {
     if (!promoCode.trim()) return;
     setApplyingPromo(true);
     try {
-      await applyPromo(promoCode.trim());
+      const updatedCart = await cartService.applyPromo(promoCode.trim());
+      setCart(updatedCart || EMPTY_CART);
       toast.success('Promo code applied');
     } catch (e) {
       toast.error(getApiErrorMessage(e, 'Invalid promo code'));
@@ -74,8 +81,9 @@ const CartPage = () => {
 
   const handleRemovePromo = async () => {
     try {
-      await removePromo();
+      const updatedCart = await cartService.removePromo();
       setPromoCode('');
+      setCart(updatedCart || EMPTY_CART);
       toast.success('Promo removed');
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Failed to remove promo'));
@@ -84,7 +92,8 @@ const CartPage = () => {
 
   const handleClearCart = async () => {
     try {
-      await clearCart();
+      await cartService.clearCart();
+      setCart(EMPTY_CART);
       setPromoCode('');
       toast.success('Cart cleared');
     } catch (error) {
@@ -95,9 +104,10 @@ const CartPage = () => {
   const items = cart?.items || [];
   const subtotal = Number(cart?.subtotal ?? items.reduce((sum, item) => sum + Number(item?.totalPrice || 0), 0));
   const discount = Number(cart?.discount ?? cart?.discountAmount ?? 0);
-  const total = Number(cart?.total ?? Math.max(0, subtotal - discount));
+  const serviceFee = subtotal > 0 ? subtotal * 0.05 : 0;
+  const total = Math.max(0, subtotal - discount + serviceFee);
 
-  if (isLoading && items.length === 0) return <div className="p-4 sm:p-6 space-y-4 max-w-lg mx-auto">{[1,2].map((i) => <Skeleton key={i} className="h-32 rounded-2xl" />)}</div>;
+  if (loading) return <div className="p-4 sm:p-6 space-y-4 max-w-lg mx-auto">{[1,2].map((i) => <Skeleton key={i} className="h-32 rounded-2xl" />)}</div>;
 
   return (
     <div className="p-4 sm:p-6 max-w-lg mx-auto space-y-5 font-sans">
@@ -191,6 +201,7 @@ const CartPage = () => {
             <CardContent className="p-4 space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatPrice(subtotal)}</span></div>
               {discount > 0 && <div className="flex justify-between text-green-600"><span>Discount</span><span>-{formatPrice(discount)}</span></div>}
+              <div className="flex justify-between"><span className="text-muted-foreground">Service fee (5%)</span><span>{formatPrice(serviceFee)}</span></div>
               <Separator />
               <div className="flex justify-between font-bold text-base">
                 <span>Total</span><span className="text-primary">{formatPrice(total)}</span>

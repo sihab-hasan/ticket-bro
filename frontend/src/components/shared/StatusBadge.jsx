@@ -9,13 +9,16 @@ const STATUS_STYLES = {
   failed:      'bg-red-500/10 text-red-500 border-red-500/20',
   refunded:    'bg-blue-500/10 text-blue-500 border-blue-500/20',
   completed:   'bg-green-500/10 text-green-600 border-green-500/20',
-  succeeded:   'bg-green-500/10 text-green-600 border-green-500/20',
   processing:  'bg-purple-500/10 text-purple-600 border-purple-500/20',
-  checked_in:  'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+  // Payment succeeded: treat same as completed
+  succeeded:   'bg-green-500/10 text-green-600 border-green-500/20',
   // Event
   published:   'bg-green-500/10 text-green-600 border-green-500/20',
   draft:       'bg-gray-500/10 text-gray-500 border-gray-500/20',
+  // Pending review or approval (events awaiting moderation)
   pending_review: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
+  pending:     'bg-orange-500/10 text-orange-500 border-orange-500/20',
+  postponed:   'bg-purple-500/10 text-purple-600 border-purple-500/20',
   rejected:    'bg-red-500/10 text-red-500 border-red-500/20',
   // User
   active:      'bg-green-500/10 text-green-600 border-green-500/20',

@@ -12,7 +12,9 @@ class WebSocketService {
       try {
         const { event, data } = JSON.parse(e.data);
         (this.listeners[event] || []).forEach(cb => cb(data));
-      } catch {}
+      } catch {
+        // Ignore invalid JSON
+      }
     };
     this.ws.onclose = () => { setTimeout(() => this.connect(baseUrl), 5000); };
   }

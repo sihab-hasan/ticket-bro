@@ -1,5 +1,5 @@
 // pages/bookings/BookingHistoryPage.jsx
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Ticket, Calendar, MapPin, ChevronRight, RefreshCw, Download } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -63,56 +63,14 @@ const BookingHistoryPage = () => {
   const fetch = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await bookingService.getMyBookings(filters);
+      const status = tab === 'cancelled' ? 'cancelled' : tab === 'past' ? 'confirmed' : undefined;
+      const data = await bookingService.getMyBookings({ ...filters, status });
       setBookings(data.bookings || []);
     } catch { toast.error('Failed to load bookings'); }
     finally { setLoading(false); }
-  }, [filters]);
+  }, [tab, filters]);
 
   useEffect(() => { fetch(); }, [fetch]);
-
-  const visibleBookings = useMemo(() => {
-    const now = Date.now();
-    const search = String(filters.search || '').trim().toLowerCase();
-
-    return bookings.filter((booking) => {
-      const eventTime = booking.event?.startDate
-        ? new Date(booking.event.startDate).getTime()
-        : 0;
-
-      if (search) {
-        const haystack = [
-          booking.bookingRef,
-          booking.event?.title,
-          booking.event?.venue?.name,
-          booking.event?.venue?.city,
-        ]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase();
-
-        if (!haystack.includes(search)) {
-          return false;
-        }
-      }
-
-      if (tab === 'cancelled') {
-        return ['cancelled', 'refunded'].includes(booking.status);
-      }
-
-      if (tab === 'past') {
-        return (
-          eventTime < now ||
-          ['checked_in', 'refunded'].includes(booking.status)
-        );
-      }
-
-      return (
-        eventTime >= now &&
-        ['pending', 'confirmed'].includes(booking.status)
-      );
-    });
-  }, [bookings, filters.search, tab]);
 
   return (
     <div className="p-4 sm:p-6 space-y-6 font-sans">
@@ -134,7 +92,7 @@ const BookingHistoryPage = () => {
           />
           {loading ? (
             Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 w-full rounded-2xl" />)
-          ) : visibleBookings.length === 0 ? (
+          ) : bookings.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center py-16 text-muted-foreground">
                 <Ticket className="h-10 w-10 opacity-20 mb-3" />
@@ -147,7 +105,7 @@ const BookingHistoryPage = () => {
               </CardContent>
             </Card>
           ) : (
-            visibleBookings.map((b) => <BookingCard key={b._id} booking={b} />)
+            bookings.map((b) => <BookingCard key={b._id} booking={b} />)
           )}
         </TabsContent>
       </Tabs>

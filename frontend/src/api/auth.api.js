@@ -1,6 +1,7 @@
 import authConfig from "@/config/auth.config";
 import { ENDPOINTS } from "@/config/api.config";
 import { get, post } from "@/api/client";
+import { del } from "@/api/client";
 
 const authService = {
   register: (data) => post(ENDPOINTS.AUTH.REGISTER, data),
@@ -23,6 +24,17 @@ const authService = {
   resetPassword: (data) => post(ENDPOINTS.AUTH.RESET_PASSWORD, data),
   changePassword: (data) => post(ENDPOINTS.AUTH.CHANGE_PASSWORD, data),
   getActiveSessions: () => get(ENDPOINTS.AUTH.SESSIONS),
+
+  /**
+   * Revoke a single active session by its ID. The server will invalidate the
+   * refresh token associated with the session. After revocation, the session
+   * will be removed from the active sessions list. This call does not return
+   * any payload on success.
+   *
+   * @param {string} sessionId - The identifier of the session to revoke.
+   * @returns {Promise<void>} A promise that resolves when the session is revoked.
+   */
+  revokeSession: (sessionId) => del(ENDPOINTS.AUTH.SESSION(sessionId)),
   setup2FA: () => post(ENDPOINTS.AUTH.TWO_FACTOR.SETUP),
   enable2FA: (token) => post(ENDPOINTS.AUTH.TWO_FACTOR.ENABLE, { token }),
   disable2FA: (password) =>
