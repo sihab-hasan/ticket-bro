@@ -12,6 +12,6 @@ class CartController {
   clearCart  = asyncHandler(async (req, res) => { sendSuccess(res, 'Cart cleared.', await cartService.clearCart(getId(req.user))); });
   applyPromo = asyncHandler(async (req, res) => { sendSuccess(res, 'Promo applied.', { cart: await cartService.applyPromo(getId(req.user), req.body.code) }); });
   removePromo= asyncHandler(async (req, res) => { sendSuccess(res, 'Promo removed.', { cart: await cartService.removePromo(getId(req.user)) }); });
-  checkout   = asyncHandler(async (req, res) => { sendSuccess(res, 'Ready for checkout.', await cartService.checkout(getId(req.user))); });
+  checkout   = asyncHandler(async (req, res) => { sendSuccess(res, 'Checkout booking created.', await cartService.checkout(getId(req.user), req.body)); });
 }
 module.exports = new CartController();

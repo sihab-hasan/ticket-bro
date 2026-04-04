@@ -1,7 +1,7 @@
 'use strict';
 const asyncHandler   = require('../../common/utils/asyncHandler');
 const { sendSuccess, sendCreated } = require('../../common/utils/apiResponse');
-const paymentService = require('./payment.service');
+const paymentService = require('./payment.service.impl');
 
 const getId = (u) => u?._id || u?.id || u?.userId;
 

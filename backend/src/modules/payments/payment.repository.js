@@ -8,14 +8,16 @@ class PaymentRepository {
 
   async findById(id) {
     return Payment.findOne({ _id: id, deletedAt: null })
-      .populate('booking', 'bookingRef status items totalAmount')
+      .populate('booking', 'bookingRef status paymentStatus items totalAmount refundedAt refundAmount')
+      .populate('event', 'title slug startDate endDate location')
       .populate('user', 'firstName lastName email')
       .exec();
   }
 
   async findByGatewayId(gatewayPaymentId) {
     return Payment.findOne({ gatewayPaymentId, deletedAt: null })
-      .populate('booking', 'bookingRef status paymentStatus user totalAmount')
+      .populate('booking', 'bookingRef status paymentStatus user totalAmount refundedAt refundAmount')
+      .populate('event', 'title slug startDate endDate location')
       .populate('user', 'firstName lastName email')
       .exec();
   }
@@ -56,6 +58,7 @@ class PaymentRepository {
       Payment.find(filter)
         .populate('user', 'firstName lastName email')
         .populate('booking', 'bookingRef')
+        .populate('event', 'title slug startDate endDate location')
         .sort(sort).skip(skip).limit(Number(limit)).lean(),
       Payment.countDocuments(filter),
     ]);
