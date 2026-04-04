@@ -8,7 +8,13 @@ const express = require('express');
 const router = express.Router();
 
 const { authorize } = require('../../common/middleware/auth.middleware');
+const { validateRequest } = require('../../common/middleware/validation.middleware');
 const { ROLES } = require('../../common/constants/roles');
+const {
+  adminReviewFlagSchema,
+  adminReviewListQuerySchema,
+  reviewIdParamsSchema,
+} = require('../reviews/review.validation');
 
 let _ctrl;
 const ctrl = () => { if (!_ctrl) _ctrl = require('./admin.controller'); return _ctrl; };
@@ -108,13 +114,13 @@ router.patch('/payouts/:id',            (req, res, next) => ctrl().updatePayout(
 
 // ── Reviews ───────────────────────────────────────────────────────────────────
 // GET    /admin/reviews
-router.get('/reviews',                  (req, res, next) => ctrl().getAllReviews(req, res, next));
+router.get('/reviews',                  validateRequest(adminReviewListQuerySchema, 'query'), (req, res, next) => ctrl().getAllReviews(req, res, next));
 
 // DELETE /admin/reviews/:id
-router.delete('/reviews/:id',           (req, res, next) => ctrl().deleteReview(req, res, next));
+router.delete('/reviews/:id',           validateRequest(reviewIdParamsSchema, 'params'), (req, res, next) => ctrl().deleteReview(req, res, next));
 
 // PUT    /admin/reviews/:id/flag
-router.put('/reviews/:id/flag',         (req, res, next) => ctrl().flagReview(req, res, next));
+router.put('/reviews/:id/flag',         validateRequest(reviewIdParamsSchema, 'params'), validateRequest(adminReviewFlagSchema), (req, res, next) => ctrl().flagReview(req, res, next));
 
 // ── Analytics ─────────────────────────────────────────────────────────────────
 // GET /admin/analytics/overview

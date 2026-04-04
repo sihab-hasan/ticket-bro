@@ -266,6 +266,7 @@ export const normalizeLocationOption = (city) => {
 };
 
 export const normalizeBrowseReview = (review, event) => {
+  const reviewEvent = review?.event || event || null;
   const authorName =
     buildDisplayName(review?.user) || buildDisplayName(review?.author) || "Guest";
   return {
@@ -277,17 +278,17 @@ export const normalizeBrowseReview = (review, event) => {
     rating: Number(review?.rating || review?.averageRating || 0),
     averageRating: Number(review?.rating || review?.averageRating || 0),
     title: review?.title || "",
-    body: review?.body || review?.text || "",
-    text: review?.body || review?.text || "",
-    helpful: Number(review?.helpful || 0),
+    body: review?.body || review?.comment || review?.text || "",
+    text: review?.body || review?.comment || review?.text || "",
+    helpful: Number(review?.helpful || review?.helpfulCount || 0),
     verified: Boolean(review?.isVerified || review?.verified),
     createdAt: review?.createdAt || review?.date,
     date: review?.createdAt || review?.date,
-    eventTitle: event?.title || review?.eventTitle || "Event",
-    city: event?.location?.city || "",
-    categorySlug: event?.category?.slug || "",
-    subcategorySlug: event?.subcategory?.slug || "",
-    eventTypeSlug: event?.eventType?.slug || "",
+    eventTitle: reviewEvent?.title || review?.eventTitle || "",
+    city: reviewEvent?.location?.city || review?.city || "",
+    categorySlug: reviewEvent?.category?.slug || "",
+    subcategorySlug: reviewEvent?.subcategory?.slug || "",
+    eventTypeSlug: reviewEvent?.eventType?.slug || "",
   };
 };
 

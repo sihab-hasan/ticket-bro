@@ -1,120 +1,254 @@
-// src/components/FeedbackSection.jsx
-import React, { useState } from "react";
-import { Star, Quote, TrendingUp, ArrowRight } from "lucide-react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  AlertCircle,
+  ArrowRight,
+  CheckCircle2,
+  Quote,
+  Star,
+  TrendingUp,
+} from "lucide-react";
 import Container from "@/components/layout/Container";
+import { ROUTES } from "@/app/AppRoutes";
+import { reviewsService } from "@/api";
+import { getApiErrorMessage, normalizeApiError } from "@/api/client";
+import { useBrowseContext } from "@/context/BrowseContext";
+import { useAuth } from "@/context/AuthContext";
+import { toast } from "@/components/shared/common";
 
-const RateFeedback = () => {
-  const [stats, setStats] = useState({ avg: 4.7, total: 12453 });
+const FeedbackSection = () => {
+  const navigate = useNavigate();
+  const { reviews, refreshBrowseData } = useBrowseContext();
+  const { isAuthenticated } = useAuth();
+
+  const [summary, setSummary] = useState({ averageRating: 0, totalReviews: 0 });
   const [userRating, setUserRating] = useState(0);
-  const [submitted, setSubmitted] = useState(false);
+  const [body, setBody] = useState("");
+  const [loadingSummary, setLoadingSummary] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [myReview, setMyReview] = useState(null);
+  const [status, setStatus] = useState("idle");
 
-  const initialFeedbacks = [
-    {
-      id: 1,
-      name: "Arif Ahmed",
-      role: "Organizer",
-      text: "The best platform for local concerts. Clean UI!",
-      rating: 5,
-    },
-    {
-      id: 2,
-      name: "Sara Islam",
-      role: "Attendee",
-      text: "Found an amazing photography workshop here. Highly recommended!",
-      rating: 4,
-    },
-    {
-      id: 3,
-      name: "Tanvir Hossain",
-      role: "Tech Lead",
-      text: "The performance is super fast. Best in the market.",
-      rating: 5,
-    },
-  ];
+  const recentReviews = useMemo(() => (reviews || []).slice(0, 3), [reviews]);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const newTotal = stats.total + 1;
-    const newAvg = (stats.avg * stats.total + userRating) / newTotal;
-    setStats({ avg: parseFloat(newAvg.toFixed(1)), total: newTotal });
-    setSubmitted(true);
-    setTimeout(() => {
-      setSubmitted(false);
-      setUserRating(0);
-    }, 4000);
+  useEffect(() => {
+    let active = true;
+
+    const load = async () => {
+      setLoadingSummary(true);
+
+      try {
+        const [summaryData, myReviewData] = await Promise.all([
+          reviewsService.getSummary(),
+          isAuthenticated
+            ? reviewsService.getMyReview().catch(() => null)
+            : Promise.resolve(null),
+        ]);
+
+        if (!active) {
+          return;
+        }
+
+        setSummary(summaryData || { averageRating: 0, totalReviews: 0 });
+        setMyReview(myReviewData || null);
+        setStatus(myReviewData ? "duplicate" : "idle");
+      } catch {
+        if (active) {
+          toast.error("Failed to load review feedback");
+        }
+      } finally {
+        if (active) {
+          setLoadingSummary(false);
+        }
+      }
+    };
+
+    load();
+
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated]);
+
+  const reloadData = async () => {
+    const [summaryData, myReviewData] = await Promise.all([
+      reviewsService.getSummary(),
+      isAuthenticated
+        ? reviewsService.getMyReview().catch(() => null)
+        : Promise.resolve(null),
+      refreshBrowseData(),
+    ]);
+
+    setSummary(summaryData || { averageRating: 0, totalReviews: 0 });
+    setMyReview(myReviewData || null);
   };
 
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!isAuthenticated) {
+      navigate(ROUTES.REVIEWS.WRITE);
+      return;
+    }
+
+    if (myReview) {
+      setStatus("duplicate");
+      return;
+    }
+
+    if (!userRating) {
+      toast.error("Please choose a rating");
+      return;
+    }
+
+    if (!body.trim()) {
+      toast.error("Please share a few words");
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      const createdReview = await reviewsService.create({
+        rating: userRating,
+        body: body.trim(),
+      });
+
+      setMyReview(createdReview);
+      setStatus("success");
+      setBody("");
+      setUserRating(0);
+      await reloadData();
+    } catch (error) {
+      const normalized = normalizeApiError(error);
+      if (normalized.status === 409) {
+        setStatus("duplicate");
+        await reloadData();
+      } else {
+        toast.error(getApiErrorMessage(error, "Failed to submit feedback"));
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const average = Number(summary?.averageRating || 0);
+  const total = Number(summary?.totalReviews || 0);
+  const showSuccess = status === "success";
+  const showDuplicate = status === "duplicate" && !showSuccess;
+
   return (
-    <section className="py-20 bg-background transition-colors duration-300">
+    <section className="bg-background py-20 transition-colors duration-300">
       <Container>
-        {/* --- HEADER (Moved to Left with Lime Green) --- */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4 border-l-4 border-lime-500 pl-6">
+        <div className="mb-12 flex flex-col justify-between gap-4 border-l-4 border-lime-500 pl-6 md:flex-row md:items-end">
           <div>
-            <h2 className="text-3xl md:text-4xl font-black text-lime-500 uppercase tracking-tighter leading-none">
+            <h2 className="text-3xl font-black uppercase leading-none tracking-tighter text-lime-500 md:text-4xl">
               Review and Rating
             </h2>
-            <p className="text-muted-foreground text-[10px] font-black uppercase tracking-[0.3em] mt-3">
-              Community Ratings & Live Feedback
+            <p className="mt-3 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">
+              Community Ratings and Live Feedback
             </p>
           </div>
           <Link
-            to="/reviews"
-            className="flex items-center gap-2 text-lime-500 font-black uppercase tracking-widest text-[10px] hover:text-lime-400 transition-colors pb-1"
+            to={ROUTES.REVIEWS.ROOT}
+            className="flex items-center gap-2 pb-1 text-[10px] font-black uppercase tracking-widest text-lime-500 transition-colors hover:text-lime-400"
           >
             See All Reviews <ArrowRight size={14} />
           </Link>
         </div>
 
-        {/* --- STATS & FORM --- */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
-          {/* Global Score Card - Updated for Theme */}
-          <div className="bg-card p-8 rounded-[2.5rem] border border-border flex flex-col items-center justify-center text-center shadow-sm">
-            <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-4">
+        <div className="mb-16 grid grid-cols-1 gap-8 lg:grid-cols-3">
+          <div className="flex flex-col items-center justify-center rounded-[2.5rem] border border-border bg-card p-8 text-center shadow-sm">
+            <h4 className="mb-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
               Global Satisfaction
             </h4>
-            <div className="text-6xl font-black text-foreground mb-2">
-              {stats.avg}
+            <div className="mb-2 text-6xl font-black text-foreground">
+              {loadingSummary ? "--" : average.toFixed(1)}
             </div>
-            <div className="flex gap-1 mb-4 text-lime-500">
-              {[...Array(5)].map((_, i) => (
+            <div className="mb-4 flex gap-1 text-lime-500">
+              {[...Array(5)].map((_, index) => (
                 <Star
-                  key={i}
+                  key={index}
                   size={16}
-                  fill={i < Math.floor(stats.avg) ? "currentColor" : "none"}
+                  fill={index < Math.round(average) ? "currentColor" : "none"}
                 />
               ))}
             </div>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-              From {stats.total.toLocaleString()} users
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              From {loadingSummary ? "..." : total.toLocaleString()} users
             </p>
           </div>
 
-          {/* User Input Form - Updated for Theme */}
-          <div className="lg:col-span-2 bg-card p-8 rounded-[2.5rem] border border-border flex flex-col justify-center shadow-sm">
-            {submitted ? (
-              <div className="text-center py-6">
-                <TrendingUp size={40} className="text-lime-500 mx-auto mb-4" />
-                <h3 className="text-foreground font-black uppercase text-xl">
-                  Feedback Received!
+          <div className="rounded-[2.5rem] border border-border bg-card p-8 shadow-sm lg:col-span-2">
+            {showSuccess ? (
+              <div className="py-6 text-center">
+                <CheckCircle2 size={40} className="mx-auto mb-4 text-lime-500" />
+                <h3 className="text-xl font-black uppercase text-foreground">
+                  Feedback Received
                 </h3>
-                <p className="text-muted-foreground text-[10px] mt-2 uppercase tracking-widest">
-                  Your rating has been added to the global average.
+                <p className="mt-2 text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Your review has been added to the app rating.
                 </p>
+                <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
+                  <button
+                    type="button"
+                    onClick={() => navigate(ROUTES.REVIEWS.ROOT)}
+                    className="rounded-xl bg-lime-500 px-6 py-3 text-[10px] font-black uppercase tracking-widest text-black shadow-lg shadow-lime-500/20"
+                  >
+                    View Reviews
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStatus("idle")}
+                    className="rounded-xl border border-border px-6 py-3 text-[10px] font-black uppercase tracking-widest text-foreground"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            ) : showDuplicate ? (
+              <div className="py-6 text-center">
+                <AlertCircle size={40} className="mx-auto mb-4 text-amber-500" />
+                <h3 className="text-xl font-black uppercase text-foreground">
+                  Review Already Submitted
+                </h3>
+                <p className="mt-2 text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Each user can keep one active Ticket Bro review.
+                </p>
+                <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
+                  <button
+                    type="button"
+                    onClick={() => navigate(ROUTES.REVIEWS.ROOT)}
+                    className="rounded-xl bg-lime-500 px-6 py-3 text-[10px] font-black uppercase tracking-widest text-black shadow-lg shadow-lime-500/20"
+                  >
+                    View Reviews
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate(ROUTES.REVIEWS.WRITE)}
+                    className="rounded-xl border border-border px-6 py-3 text-[10px] font-black uppercase tracking-widest text-foreground"
+                  >
+                    Open Review Page
+                  </button>
+                </div>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <span className="text-[10px] font-black text-foreground uppercase tracking-widest">
+                <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-foreground">
                     Share Your Experience
                   </span>
-                  <div className="flex items-center gap-2 bg-background px-4 py-2 rounded-xl border border-border">
+                  <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <button
                         key={star}
                         type="button"
                         onClick={() => setUserRating(star)}
-                        className={`transition-all ${userRating >= star ? "text-lime-500 scale-110" : "text-muted-foreground/30"}`}
+                        className={`transition-all ${
+                          userRating >= star
+                            ? "scale-110 text-lime-500"
+                            : "text-muted-foreground/30"
+                        }`}
                       >
                         <Star
                           size={24}
@@ -124,23 +258,26 @@ const RateFeedback = () => {
                     ))}
                   </div>
                 </div>
+
                 <div className="relative">
-                  <input
-                    type="text"
+                  <textarea
+                    value={body}
+                    onChange={(event) => setBody(event.target.value)}
                     placeholder="Describe your thoughts..."
                     required
-                    className="w-full bg-background border border-border rounded-2xl py-5 px-6 text-sm text-foreground focus:outline-none focus:border-lime-500/50 transition-all"
+                    rows={4}
+                    className="w-full rounded-2xl border border-border bg-background px-6 py-5 pr-32 text-sm text-foreground transition-all focus:border-lime-500/50 focus:outline-none"
                   />
                   <button
-                    disabled={userRating === 0}
+                    disabled={submitting || userRating === 0}
                     type="submit"
-                    className={`absolute right-3 top-3 px-8 py-3 rounded-xl font-black text-[10px] uppercase transition-all ${
-                      userRating === 0
+                    className={`absolute right-3 top-3 rounded-xl px-8 py-3 text-[10px] font-black uppercase transition-all ${
+                      submitting || userRating === 0
                         ? "bg-muted text-muted-foreground"
                         : "bg-lime-500 text-black shadow-lg shadow-lime-500/20 active:scale-95"
                     }`}
                   >
-                    Submit
+                    {submitting ? "Sending..." : isAuthenticated ? "Submit" : "Sign In"}
                   </button>
                 </div>
               </form>
@@ -148,45 +285,55 @@ const RateFeedback = () => {
           </div>
         </div>
 
-        {/* --- FEEDBACK GRID --- */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {initialFeedbacks.map((item) => (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          {recentReviews.map((item) => (
             <div
               key={item.id}
-              className="bg-card border border-border p-8 rounded-[2.5rem] relative group shadow-sm hover:border-lime-500/30 transition-all"
+              className="group relative rounded-[2.5rem] border border-border bg-card p-8 shadow-sm transition-all hover:border-lime-500/30"
             >
-              <Quote className="absolute -right-2 -top-2 text-foreground/5 w-24 h-24 group-hover:text-lime-500/5 transition-colors" />
-              <div className="flex gap-0.5 mb-4 text-lime-500">
-                {[...Array(5)].map((_, i) => (
+              <Quote className="absolute -right-2 -top-2 h-24 w-24 text-foreground/5 transition-colors group-hover:text-lime-500/5" />
+              <div className="mb-4 flex gap-0.5 text-lime-500">
+                {[...Array(5)].map((_, index) => (
                   <Star
-                    key={i}
+                    key={index}
                     size={12}
-                    fill={i < item.rating ? "currentColor" : "none"}
+                    fill={index < item.rating ? "currentColor" : "none"}
                   />
                 ))}
               </div>
-              <p className="text-muted-foreground text-sm leading-relaxed mb-8 italic relative z-10 font-medium">
+              <p className="relative z-10 mb-8 text-sm font-medium italic leading-relaxed text-muted-foreground">
                 "{item.text}"
               </p>
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-muted rounded-2xl flex items-center justify-center font-black text-xs text-foreground border border-border italic">
-                  {item.name[0]}
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border bg-muted text-xs font-black italic text-foreground">
+                  {item.initial}
                 </div>
                 <div>
-                  <h4 className="text-foreground text-[10px] font-black uppercase tracking-widest">
-                    {item.name}
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-foreground">
+                    {item.reviewer}
                   </h4>
-                  <p className="text-muted-foreground text-[9px] font-bold uppercase tracking-tighter">
-                    {item.role}
+                  <p className="text-[9px] font-bold uppercase tracking-tighter text-muted-foreground">
+                    Ticket Bro user
                   </p>
                 </div>
               </div>
             </div>
           ))}
+          {!recentReviews.length ? (
+            <div className="rounded-[2.5rem] border border-dashed border-border bg-card p-8 text-center md:col-span-3">
+              <TrendingUp className="mx-auto mb-4 h-10 w-10 text-muted-foreground/40" />
+              <p className="text-sm font-semibold text-foreground">
+                No public reviews yet
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Share the first Ticket Bro review to get the community started.
+              </p>
+            </div>
+          ) : null}
         </div>
       </Container>
     </section>
   );
 };
 
-export default RateFeedback;
+export default FeedbackSection;

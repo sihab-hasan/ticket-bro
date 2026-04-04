@@ -132,9 +132,9 @@ const BookingDetailsPage = () => {
           </Link>
         )}
         {canReview && (
-          <Link to={ROUTES.REVIEWS.WRITE(booking?.event?.slug || booking?.event?._id)} className="flex-1">
+          <Link to={ROUTES.REVIEWS.WRITE} className="flex-1">
             <Button className="w-full font-bold">
-              <Star className="h-4 w-4 mr-2" /> Write Review
+              <Star className="h-4 w-4 mr-2" /> Leave App Review
             </Button>
           </Link>
         )}

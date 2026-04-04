@@ -6,13 +6,14 @@ import {
   ChevronLeft,
   ExternalLink,
   Loader2,
+  MessageSquare,
   RefreshCcw,
+  Star,
 } from "lucide-react";
 import Container from "@/components/layout/Container";
 import Breadcrumb from "@/components/shared/common/Breadcrumb";
 import eventsService from "@/api/events.api";
 import {
-  normalizeBrowseReview,
   normalizeEvent,
   normalizeTicketType,
 } from "@/utils/browse.utils";
@@ -25,7 +26,6 @@ import {
   EventLineupSection,
   EventOrganizerSection,
   EventRelatedSection,
-  EventReviewsSection,
   EventSponsorsSection,
   EventStickyBar,
   EventTicketsSection,
@@ -277,13 +277,12 @@ const EventDetailsPage = () => {
   const shareTimerRef = useRef(null);
   const user = useSelector((state) => state.auth?.user);
 
-  const [saved, setSaved] = useState(false);
+  const [savedEvents, setSavedEvents] = useState(() => getSavedEvents());
   const [flashMessage, setFlashMessage] = useState("");
   const [reloadToken, setReloadToken] = useState(0);
   const [state, setState] = useState({
     event: null,
     relatedEvents: [],
-    reviews: [],
     isLoading: true,
     notFound: false,
     loadError: false,
@@ -293,10 +292,7 @@ const EventDetailsPage = () => {
     window.scrollTo({ top: 0, left: 0 });
   }, [eventSlug]);
 
-  useEffect(() => {
-    const savedEvents = getSavedEvents();
-    setSaved(savedEvents.includes(eventSlug));
-  }, [eventSlug]);
+  const saved = savedEvents.includes(eventSlug);
 
   useEffect(() => {
     let cancelled = false;
@@ -305,7 +301,6 @@ const EventDetailsPage = () => {
       setState({
         event: null,
         relatedEvents: [],
-        reviews: [],
         isLoading: true,
         notFound: false,
         loadError: false,
@@ -327,7 +322,6 @@ const EventDetailsPage = () => {
           setState({
             event: null,
             relatedEvents: [],
-            reviews: [],
             isLoading: false,
             notFound: status === 404,
             loadError: status !== 404,
@@ -342,16 +336,10 @@ const EventDetailsPage = () => {
 
       const event = normalizeEvent(rawEvent);
 
-      const [ticketsResult, relatedResult, reviewsResult] =
-        await Promise.allSettled([
-          eventsService.getTicketTypes(eventSlug),
-          eventsService.getRelatedEvents(eventSlug),
-          eventsService.getEventReviews(eventSlug, {
-            page: 1,
-            limit: 6,
-            sort: "-createdAt",
-          }),
-        ]);
+      const [ticketsResult, relatedResult] = await Promise.allSettled([
+        eventsService.getTicketTypes(eventSlug),
+        eventsService.getRelatedEvents(eventSlug),
+      ]);
 
       if (cancelled) {
         return;
@@ -374,19 +362,9 @@ const EventDetailsPage = () => {
           ? (relatedResult.value || []).map(normalizeEvent)
           : [];
 
-      const reviewItems =
-        reviewsResult.status === "fulfilled"
-          ? reviewsResult.value?.reviews || reviewsResult.value || []
-          : [];
-
-      const reviews = reviewItems.map((review) =>
-        normalizeBrowseReview(review, hydratedEvent),
-      );
-
       setState({
         event: hydratedEvent,
         relatedEvents,
-        reviews,
         isLoading: false,
         notFound: false,
         loadError: false,
@@ -407,8 +385,7 @@ const EventDetailsPage = () => {
     };
   }, [eventSlug, reloadToken]);
 
-  const { event, relatedEvents, reviews, isLoading, notFound, loadError } =
-    state;
+  const { event, relatedEvents, isLoading, notFound, loadError } = state;
 
   const previewBanner = useMemo(
     () => getPreviewBanner(event, user),
@@ -424,19 +401,17 @@ const EventDetailsPage = () => {
   };
 
   const handleSave = () => {
-    const savedEvents = getSavedEvents();
-
     if (saved) {
       const next = savedEvents.filter((value) => value !== eventSlug);
       persistSavedEvents(next);
-      setSaved(false);
+      setSavedEvents(next);
       setTimedFlash("Removed from saved events");
       return;
     }
 
     const next = Array.from(new Set([...savedEvents, eventSlug]));
     persistSavedEvents(next);
-    setSaved(true);
+    setSavedEvents(next);
     setTimedFlash("Saved for later");
   };
 
@@ -564,7 +539,57 @@ const EventDetailsPage = () => {
               </>
             )}
 
-            <EventReviewsSection event={event} reviews={reviews} />
+            <div
+              className="rounded-2xl border border-border p-6"
+              style={{ background: "var(--card)" }}
+            >
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex items-start gap-4">
+                  <div
+                    className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border"
+                    style={{ background: "var(--secondary)" }}
+                  >
+                    <MessageSquare size={20} className="text-foreground" />
+                  </div>
+                  <div>
+                    <p
+                      className="text-lg font-bold text-foreground"
+                      style={{ fontFamily: "var(--font-heading)" }}
+                    >
+                      Ticket Bro feedback is now app-wide
+                    </p>
+                    <p
+                      className="mt-2 text-sm leading-relaxed text-muted-foreground"
+                      style={{ fontFamily: "var(--font-sans)" }}
+                    >
+                      Read community reviews about the Ticket Bro experience, or
+                      leave one review of your own after using the platform.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 sm:min-w-[200px]">
+                  <Link
+                    to={ROUTES.REVIEWS.ROOT}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-3 text-sm font-semibold text-foreground hover:bg-background"
+                    style={{ fontFamily: "var(--font-sans)" }}
+                  >
+                    <MessageSquare size={14} /> View Reviews
+                  </Link>
+                  <Link
+                    to={ROUTES.REVIEWS.WRITE}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold"
+                    style={{
+                      background: "var(--foreground)",
+                      color: "var(--background)",
+                      fontFamily: "var(--font-sans)",
+                    }}
+                  >
+                    <Star size={14} />
+                    {user ? "Write a Review" : "Sign In to Review"}
+                  </Link>
+                </div>
+              </div>
+            </div>
 
             {event.faqs?.length > 0 && (
               <>

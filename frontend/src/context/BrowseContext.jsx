@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, {
   createContext,
   useCallback,
@@ -9,12 +10,12 @@ import React, {
 import categoriesService from "@/api/categories.api";
 import subcategoriesService from "@/api/subcategories.api";
 import eventsService from "@/api/events.api";
+import reviewsService from "@/api/reviews.api";
 import {
   buildBrowseNavigation,
   buildCategoryMap,
   normalizeBrowseReview,
   normalizeEvent,
-  pickBrowseReviewCandidates,
 } from "@/utils/browse.utils";
 
 const BrowseContext = createContext(null);
@@ -81,29 +82,20 @@ export const BrowseProvider = ({ children }) => {
     }));
 
     try {
-      const [categories, subcategories, events] = await Promise.all([
+      const [categories, subcategories, events, reviewResult] = await Promise.all([
         categoriesService.getAll(),
         subcategoriesService.getAll(),
         fetchAllPublishedEvents(),
-      ]);
-      const reviewCandidates = pickBrowseReviewCandidates(events);
-
-      const reviewResults = await Promise.allSettled(
-        reviewCandidates.map(async (event) => {
-          const result = await eventsService.getEventReviews(event.slug, {
+        reviewsService
+          .getAll({
             page: 1,
-            limit: 3,
+            limit: 6,
             sort: "-createdAt",
-          });
-
-          return (result?.reviews || []).map((review) =>
-            normalizeBrowseReview(review, event),
-          );
-        }),
-      );
-
-      const reviews = reviewResults.flatMap((result) =>
-        result.status === "fulfilled" ? result.value : [],
+          })
+          .catch(() => ({ reviews: [] })),
+      ]);
+      const reviews = (reviewResult?.reviews || []).map((review) =>
+        normalizeBrowseReview(review),
       );
 
       const categoryMap = buildCategoryMap({
