@@ -7,6 +7,7 @@ import {
   TriangleAlertIcon,
   XIcon,
 } from "lucide-react";
+import { toast as hotToast } from "react-hot-toast";
 
 // Toast Context
 const ToastContext = createContext(null);
@@ -334,18 +335,20 @@ export const useToast = () => {
 
 // Standalone toast object (for components without hook access)
 const toast = {
-  success: (title, options) => {
-    console.warn(
-      "toast.success should be used within a component with useToast()",
-    );
-  },
-  error: (title, options) => {},
-  warning: (title, options) => {},
-  info: (title, options) => {},
-  loading: (title, options) => {},
-  promise: (promiseFn, options) => {},
-  dismiss: (id) => {},
-  dismissAll: () => {},
+  success: (title, options) => hotToast.success(title, options),
+  error: (title, options) => hotToast.error(title, options),
+  warning: (title, options) => hotToast(title, { icon: "⚠️", ...options }),
+  info: (title, options) => hotToast(title, options),
+  loading: (title, options) => hotToast.loading(title, options),
+  promise: (promiseFn, options = {}) =>
+    hotToast.promise(promiseFn, {
+      loading: options.loading,
+      success: options.success,
+      error: options.error,
+      ...options,
+    }),
+  dismiss: (id) => hotToast.dismiss(id),
+  dismissAll: () => hotToast.dismiss(),
 };
 
 // Initialize toast with context (call this in App.jsx)
