@@ -25,7 +25,6 @@ const SettingField = ({ label, hint, children }) => (
 );
 
 const SystemSettingsPage = () => {
-  const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({});
@@ -34,7 +33,7 @@ const SystemSettingsPage = () => {
     const fetch = async () => {
       try {
         const d = await adminService.getSystemSettings();
-        setSettings(d); setForm(d || {});
+        setForm(d || {});
       } catch { toast.error('Failed to load settings'); }
       finally { setLoading(false); }
     };
@@ -43,7 +42,7 @@ const SystemSettingsPage = () => {
 
   const set = (key, val) => setForm((f) => ({ ...f, [key]: val }));
 
-  const handleSave = async (section) => {
+  const handleSave = async () => {
     setSaving(true);
     try {
       await adminService.updateSystemSettings(form);
@@ -155,7 +154,7 @@ const SystemSettingsPage = () => {
             <CardContent>
               {loading ? <Skeleton className="h-40 w-full" /> : [
                 { key: 'enableMessaging', label: 'In-app Messaging', hint: 'Allow users and organizers to message each other' },
-                { key: 'enableReviews', label: 'Event Reviews', hint: 'Allow attendees to write reviews after events' },
+                { key: 'enableReviews', label: 'App Reviews', hint: 'Allow users to leave one platform review and rating' },
                 { key: 'enableLoyaltyPoints', label: 'Loyalty Points', hint: 'Users earn points on every booking' },
                 { key: 'enableWaitlist', label: 'Waitlist', hint: 'Users can join waitlist for sold-out events' },
                 { key: 'enableSeatMap', label: 'Seat Selection', hint: 'Visual seat map for seated events' },

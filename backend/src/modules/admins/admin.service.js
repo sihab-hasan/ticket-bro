@@ -814,7 +814,7 @@ class AdminService {
     return serializePaymentForAdmin(updated);
   }
 
-  async getAllReviews({ page = 1, limit = 20, search, reported } = {}) {
+  async getAllReviews({ page = 1, limit = 20, search, reported, sort = '-createdAt' } = {}) {
     const filter = { deletedAt: null };
     if (reported !== undefined && reported !== '') {
       filter.reported = reported === 'true' || reported === true;
@@ -826,13 +826,13 @@ class AdminService {
 
     const skip = (Number(page) - 1) * Number(limit);
     const [reviews, total] = await Promise.all([
-      Review.find(filter)
-        .populate('user', 'firstName lastName email avatar')
-        .populate('event', 'title slug')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(Number(limit))
-        .lean(),
+        Review.find(filter)
+          .populate('user', 'firstName lastName email avatar')
+          .populate('event', 'title slug')
+          .sort(sort)
+          .skip(skip)
+          .limit(Number(limit))
+          .lean(),
       Review.countDocuments(filter),
     ]);
 

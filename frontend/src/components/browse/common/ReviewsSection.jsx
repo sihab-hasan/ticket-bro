@@ -1,7 +1,8 @@
 // frontend/src/components/browse/sections/ReviewsSection.jsx
 import React, { useState } from "react";
-import { Star, BadgeCheck, ThumbsUp, Quote, ChevronLeft, ChevronRight } from "lucide-react";
+import { Star, ThumbsUp, Quote, ChevronLeft, ChevronRight } from "lucide-react";
 import { useBrowse } from "@/hooks";
+import { ROUTES } from "@/app/AppRoutes";
 import SectionShell from "./SectionShell";
 
 const timeAgo = (iso) => {
@@ -41,7 +42,7 @@ const ReviewCard = ({ review }) => {
       </div>
       <div className="flex items-center justify-between pt-2 border-t border-border">
         <p className="text-[10px] text-muted-foreground truncate max-w-[60%]" style={{ fontFamily: "var(--font-sans)" }}>
-          Re: <span className="font-medium text-foreground">{review.eventTitle}</span>
+          Ticket Bro community feedback
         </p>
         <button onClick={() => { if (!voted) { setHelpful((p) => p + 1); setVoted(true); } }}
           className={`flex items-center gap-1 text-[10px]  ${voted ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
@@ -54,7 +55,7 @@ const ReviewCard = ({ review }) => {
 };
 
 const ReviewsSection = () => {
-  const { getReviews, locationLabel } = useBrowse();
+  const { getReviews } = useBrowse();
   const reviews = getReviews();
   const [page, setPage] = useState(0);
   if (!reviews.length) return null;
@@ -62,7 +63,7 @@ const ReviewsSection = () => {
   const totalPages = Math.ceil(reviews.length / perPage);
   const visible = reviews.slice(page * perPage, page * perPage + perPage);
   return (
-    <SectionShell title="What Attendees Say" subtitle={`Recent reviews from events in ${locationLabel}`} icon={Star} viewAllHref="/browse">
+    <SectionShell title="What People Say" subtitle="Recent Ticket Bro reviews from the community" icon={Star} viewAllHref={ROUTES.REVIEWS.ROOT}>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {visible.map((r) => <ReviewCard key={r.id} review={r} />)}
       </div>
