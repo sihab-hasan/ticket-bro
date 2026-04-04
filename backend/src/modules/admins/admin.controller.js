@@ -99,7 +99,7 @@ class AdminController {
   });
 
   refundPayment = asyncHandler(async (req, res) => {
-    sendSuccess(res, 'Payment refunded.', await adminService.refundPayment(req.params.id, req.body.reason));
+    sendSuccess(res, 'Payment refunded.', await adminService.refundPayment(req.params.id, req.user, req.body.reason));
   });
 
   getAllReviews = asyncHandler(async (req, res) => {

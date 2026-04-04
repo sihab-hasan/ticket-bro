@@ -26,6 +26,33 @@ class BookingRepository {
       .exec();
   }
 
+  async findPendingByCartId(userId, cartId) {
+    return Booking.findOne({
+      user: userId,
+      cartId,
+      deletedAt: null,
+      status: 'pending',
+      paymentStatus: 'pending',
+    })
+      .populate('event', 'title slug startDate endDate location coverImage organizer')
+      .populate('payment')
+      .sort({ createdAt: -1 })
+      .exec();
+  }
+
+  async findPendingByUserId(userId) {
+    return Booking.find({
+      user: userId,
+      deletedAt: null,
+      status: 'pending',
+      paymentStatus: 'pending',
+    })
+      .populate('event', 'title slug startDate endDate location organizer')
+      .populate('payment')
+      .sort({ createdAt: -1 })
+      .exec();
+  }
+
   async findByUserId({ userId, status, page = 1, limit = 20, sort = '-createdAt' }) {
     const filter = { user: userId, deletedAt: null };
     if (status) filter.status = status;

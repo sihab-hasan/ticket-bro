@@ -56,8 +56,8 @@ const SearchResultsPage = lazy(
   () => import("@/pages/search/SearchResultsPage"),
 );
 const CartPage = lazy(() => import("@/pages/cart/CartPage"));
-const CheckoutPage = lazy(() => import("@/pages/cart/CheckoutPage"));
-const PaymentPage = lazy(() => import("@/pages/payments/PaymentPage"));
+const CheckoutPage = lazy(() => import("@/pages/cart/CheckoutPageCanonical"));
+const PaymentPage = lazy(() => import("@/pages/payments/PaymentPageCanonical"));
 const PaymentSuccessPage = lazy(
   () => import("@/pages/payments/PaymentSuccessPage"),
 );
@@ -77,10 +77,10 @@ const SeatSelectionPage = lazy(
   () => import("@/pages/tickets/SeatSelectionPage"),
 );
 const TicketBookingPage = lazy(
-  () => import("@/pages/tickets/TicketBookingPage"),
+  () => import("@/pages/tickets/TicketBookingRedirectPage"),
 );
 const TicketPaymentPage = lazy(
-  () => import("@/pages/tickets/TicketPaymentPage"),
+  () => import("@/pages/tickets/TicketPaymentRedirectPage"),
 );
 const TicketConfirmationPage = lazy(
   () => import("@/pages/tickets/TicketConfirmationPage"),

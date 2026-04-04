@@ -13,7 +13,7 @@ import { bookingService } from '@/api';
 import { downloadBlob } from '@/utils/downloadFile';
 
 const TicketConfirmationPage = () => {
-  const { bookingRef } = useParams();
+  const { bookingId: bookingRef } = useParams();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);

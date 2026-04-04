@@ -55,7 +55,8 @@ const PaymentDetailsPage = () => {
 
   if (loading) return <div className="p-4 sm:p-6 space-y-4 max-w-lg mx-auto">{[1,2].map((i) => <Skeleton key={i} className="h-52 rounded-2xl" />)}</div>;
 
-  const canRefund = payment?.status === 'completed' && payment?.booking?.event?.startDate && new Date(payment.booking.event.startDate) > new Date();
+  const paymentEvent = payment?.booking?.event || payment?.event;
+  const canRefund = payment?.status === 'succeeded' && paymentEvent?.startDate && new Date(paymentEvent.startDate) > new Date();
 
   return (
     <div className="p-4 sm:p-6 max-w-lg mx-auto space-y-5 font-sans">
@@ -73,8 +74,8 @@ const PaymentDetailsPage = () => {
         <p className={`text-3xl font-extrabold font-heading ${payment?.status === 'refunded' ? 'text-blue-500' : 'text-foreground'}`}>
           {payment?.status === 'refunded' ? '-' : ''}{formatPrice(payment?.amount || 0)}
         </p>
-        {payment?.refundedAmount > 0 && payment.status !== 'refunded' && (
-          <p className="text-xs text-blue-500 mt-1">Partially refunded: {formatPrice(payment.refundedAmount)}</p>
+        {payment?.refundAmount > 0 && payment.status !== 'refunded' && (
+          <p className="text-xs text-blue-500 mt-1">Partially refunded: {formatPrice(payment.refundAmount)}</p>
         )}
       </div>
 
@@ -83,7 +84,7 @@ const PaymentDetailsPage = () => {
         <CardContent>
           <Row label="Transaction ID" value={payment?.gatewayTransactionId || payment?._id} icon={Hash} mono />
           <Row label="Date" value={formatDate(payment?.createdAt)} icon={Calendar} />
-          <Row label="Payment Method" value={payment?.paymentMethod?.replace(/_/g, ' ')} icon={CreditCard} />
+          <Row label="Payment Method" value={String(payment?.paymentMethod || 'card').replace(/_/g, ' ')} icon={CreditCard} />
           <Row label="Gateway" value={payment?.gateway} />
         </CardContent>
       </Card>
@@ -92,7 +93,7 @@ const PaymentDetailsPage = () => {
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm font-bold">Booking Info</CardTitle></CardHeader>
           <CardContent>
-            <Row label="Event" value={payment.booking.event?.title} icon={Ticket} />
+            <Row label="Event" value={payment.booking.event?.title || payment.event?.title} icon={Ticket} />
             <Row label="Booking Ref" value={payment.booking.bookingRef} mono />
             <Row label="Tickets" value={`${payment.booking.quantity || 1}` } />
           </CardContent>

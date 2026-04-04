@@ -28,7 +28,7 @@ const PaymentManagementPage = () => {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [filters, setFilters] = useState({ search: '', status: '' });
+  const [filters, setFilters] = useState({ search: '', status: '', gateway: '' });
   const [selected, setSelected] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerLoading, setDrawerLoading] = useState(false);
@@ -118,7 +118,7 @@ const PaymentManagementPage = () => {
       <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={() => openDrawer(row._id)}><Eye className="h-4 w-4 mr-2" /> View</DropdownMenuItem>
-        {row.status === 'completed' && (
+        {row.status === 'succeeded' && (
           <DropdownMenuItem onClick={() => setConfirmRefund(row)} className="text-orange-500">
             <RefreshCcw className="h-4 w-4 mr-2" /> Refund
           </DropdownMenuItem>
@@ -165,12 +165,12 @@ const PaymentManagementPage = () => {
           <FilterBar
             filters={[
               { type: 'search', key: 'search', placeholder: 'Search payments…' },
-              { type: 'select', key: 'status', placeholder: 'All statuses', options: [{ label: 'Completed', value: 'completed' }, { label: 'Pending', value: 'pending' }, { label: 'Failed', value: 'failed' }, { label: 'Refunded', value: 'refunded' }] },
-              { type: 'select', key: 'method', placeholder: 'All methods', options: [{ label: 'Stripe', value: 'stripe' }, { label: 'PayPal', value: 'paypal' }, { label: 'Razorpay', value: 'razorpay' }] },
+              { type: 'select', key: 'status', placeholder: 'All statuses', options: [{ label: 'Succeeded', value: 'succeeded' }, { label: 'Pending', value: 'pending' }, { label: 'Failed', value: 'failed' }, { label: 'Refunded', value: 'refunded' }] },
+              { type: 'select', key: 'gateway', placeholder: 'All methods', options: [{ label: 'Stripe', value: 'stripe' }] },
             ]}
             values={filters}
             onChange={(k, v) => { setFilters((f) => ({ ...f, [k]: v })); setPage(1); }}
-            onClear={() => { setFilters({ search: '', status: '' }); setPage(1); }}
+            onClear={() => { setFilters({ search: '', status: '', gateway: '' }); setPage(1); }}
           />
           <DataTable columns={paymentColumns} data={payments} actions={paymentActions} loading={loading}
             pagination={{ page, limit: LIMIT, total, onPageChange: setPage }}
@@ -188,7 +188,7 @@ const PaymentManagementPage = () => {
       <DetailDrawer open={drawerOpen} onClose={closeDrawer} loading={drawerLoading}
         title={selected ? `Payment ${selected._id?.slice(-10).toUpperCase()}` : 'Payment Details'}
         description={selected?.status}
-        footer={selected?.status === 'completed' && (
+        footer={selected?.status === 'succeeded' && (
           <Button size="sm" variant="outline" className="w-full" onClick={() => setConfirmRefund(selected)}>
             <RefreshCcw className="h-3.5 w-3.5 mr-2" /> Process Refund
           </Button>
