@@ -2,12 +2,23 @@
 const notificationRepository = require('./notification.repository');
 const { NotFoundError } = require('../../common/errors/AppError');
 const logger = require('../../infrastructure/logger/logger');
+// WebSocket emitter to push notifications in real time
+const { emitToUser } = require('../../infrastructure/websocket/socketServer');
 const getId = (u) => u?._id || u?.id || u?.userId;
 
 class NotificationService {
   async notify(userId, { type, title, message, data = {}, link = '' }) {
     const notification = await notificationRepository.create({ user: userId, type, title, message, data, link });
     logger.debug(`Notification sent to ${userId}: ${type}`);
+    try {
+      // Emit the notification to connected clients via WebSocket.  The event name
+      // follows the pattern 'notification.created' and sends the raw notification
+      // document.  Clients should normalize the payload as needed.
+      emitToUser(getId(userId), 'notification.created', { notification });
+    } catch (err) {
+      // Log errors but do not block the main notification flow
+      logger.warn('Failed to emit WS notification', { err: err.message });
+    }
     return notification;
   }
 

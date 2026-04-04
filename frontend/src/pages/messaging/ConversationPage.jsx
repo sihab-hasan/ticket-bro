@@ -39,6 +39,26 @@ const ConversationPage = () => {
   useEffect(() => { fetch(); }, [fetch]);
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
+  // Poll for new messages every 5 seconds while the conversation is open.  This is a
+  // fallback when real-time WebSocket updates are not available.  It compares the
+  // count of messages and replaces the list if new messages arrive.  It also
+  // marks the conversation as read to reset unread counts.
+  useEffect(() => {
+    const intervalId = setInterval(async () => {
+      try {
+        const result = await messagingService.getMessages(conversationId);
+        const latestMessages = result?.messages || [];
+        if (latestMessages.length > messages.length) {
+          setMessages(latestMessages);
+          await messagingService.markAsRead(conversationId).catch(() => {});
+        }
+      } catch (err) {
+        // Suppress polling errors
+      }
+    }, 5000);
+    return () => clearInterval(intervalId);
+  }, [conversationId, messages.length]);
+
   const handleSend = async () => {
     if (!newMsg.trim()) return;
     setSending(true);

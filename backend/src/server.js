@@ -11,6 +11,8 @@ const env = require('./config/env');
 const logger = require('./infrastructure/logger/logger');
 
 let server;
+// WebSocket server instance
+let io;
 
 const startServer = async () => {
   try {
@@ -34,6 +36,18 @@ const startServer = async () => {
 ╚══════════════════════════════════════════════════════════╝
       `);
     });
+
+    // 4. Optionally initialize WebSocket server
+    try {
+      const { initSocketServer } = require('./infrastructure/websocket/socketServer');
+      // Initialize WebSocket server only if not already running and environment allows it
+      io = initSocketServer(server);
+      // Register bridge to forward domain events to sockets
+      require('./infrastructure/websocket/bridge');
+      logger.info('WebSocket server initialized');
+    } catch (wsErr) {
+      logger.warn(`WebSocket initialization failed: ${wsErr.message}`);
+    }
 
   } catch (error) {
     logger.error(`Server startup failed: ${error.message}`);

@@ -174,16 +174,32 @@ class PaymentService {
       await stripe.refunds.create({ payment_intent: payment.gatewayPaymentId, reason: 'requested_by_customer' });
     }
 
-    const updated = await paymentRepository.updateById(paymentId, {
-      status: 'refunded', refundReason: reason, refundedAt: new Date(),
+    const updatedPayment = await paymentRepository.updateById(paymentId, {
+      status: 'refunded',
+      refundReason: reason,
+      refundedAt: new Date(),
     });
+
+    // Update the associated booking's payment status
+    if (payment.booking?._id) {
+      try {
+        await bookingRepository.updateById(payment.booking._id, {
+          paymentStatus: 'refunded',
+          // Do not change booking status here; admins may cancel/refund separately
+          refundedAt: new Date(),
+        });
+      } catch (err) {
+        logger.error(`Failed to update booking ${payment.booking._id} to refunded: ${err.message}`);
+      }
+    }
+
     logger.info(`Refund processed: payment ${paymentId} by user ${userId}`);
 
     await this._sendRefundProcessedEmail(
-      { ...payment.toObject(), ...updated?.toObject?.(), refundedAt: updated?.refundedAt || new Date() },
+      { ...payment.toObject(), ...updatedPayment?.toObject?.(), refundedAt: updatedPayment?.refundedAt || new Date() },
       payment.booking,
     );
-    return updated;
+    return updatedPayment;
   }
 
   async getPaymentMethods(userId) {

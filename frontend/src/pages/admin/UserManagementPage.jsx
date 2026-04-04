@@ -117,6 +117,7 @@ const UserManagementPage = () => {
       if (type === 'ban') await adminService.banUser(user._id);
       else if (type === 'activate') await adminService.updateUser(user._id, { status: 'active' });
       else if (type === 'deactivate') await adminService.updateUser(user._id, { status: 'suspended' });
+      else if (type === 'unban') await adminService.unbanUser(user._id);
       else if (type === 'delete') await adminService.deleteUser(user._id);
       toast.success(`User ${type === 'delete' ? 'deleted' : 'updated'} successfully`);
       fetchUsers();
@@ -226,6 +227,14 @@ const UserManagementPage = () => {
             <Ban className="h-4 w-4 mr-2" /> Ban User
           </DropdownMenuItem>
         )}
+        {row.status === 'banned' && (
+          <DropdownMenuItem
+            onClick={() => setConfirmAction({ type: 'unban', user: row })}
+            className="text-green-600"
+          >
+            <UserCheck className="h-4 w-4 mr-2" /> Unban User
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={() => setConfirmAction({ type: 'delete', user: row })}
@@ -242,6 +251,7 @@ const UserManagementPage = () => {
     activate: { title: 'Activate User?', description: 'This will restore full access to this user.', label: 'Activate', variant: 'default' },
     deactivate: { title: 'Suspend User?', description: 'User will lose access until reactivated.', label: 'Suspend' },
     delete: { title: 'Delete User?', description: 'This will permanently delete the user and all their data. This cannot be undone.', label: 'Delete' },
+    unban: { title: 'Unban User?', description: 'This will restore access to a banned user.', label: 'Unban', variant: 'default' },
   };
 
   return (

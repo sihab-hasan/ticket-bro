@@ -60,14 +60,12 @@ const bookingSchema = new mongoose.Schema({
   payment:       { type: mongoose.Schema.Types.ObjectId, ref: 'Payment' },
   paymentStatus: { type: String, enum: ['pending','paid','failed','refunded'], default: 'pending', index: true },
   paidAt:        { type: Date },
-  expiresAt:     { type: Date, index: true },
 
   cancelledAt:     { type: Date },
   cancelReason:    { type: String, trim: true },
   cancelledBy:     { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   refundRequested: { type: Boolean, default: false },
   refundedAt:      { type: Date },
-  refundAmount:    { type: Number, default: 0, min: 0 },
 
   checkedInAt: { type: Date },
   checkedInBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
@@ -85,9 +83,6 @@ bookingSchema.virtual('totalTickets').get(function () {
   return this.items.reduce((sum, i) => sum + i.quantity, 0);
 });
 bookingSchema.virtual('isPaid').get(function () { return this.paymentStatus === 'paid'; });
-bookingSchema.virtual('isExpired').get(function () {
-  return this.status === 'pending' && this.expiresAt ? new Date(this.expiresAt).getTime() < Date.now() : false;
-});
 bookingSchema.virtual('isCancellable').get(function () {
   return ['pending','confirmed'].includes(this.status);
 });

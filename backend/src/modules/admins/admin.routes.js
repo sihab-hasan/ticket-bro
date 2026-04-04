@@ -24,11 +24,13 @@ router.get('/system/health',    (req, res, next) => ctrl().getSystemHealth(req, 
 // GET /admin/system/metrics
 router.get('/system/metrics',   (req, res, next) => ctrl().getSystemMetrics(req, res, next));
 router.get('/system/settings',  (req, res, next) => ctrl().getSystemSettings(req, res, next));
-router.put('/system/settings',  (req, res, next) => ctrl().updateSystemSettings(req, res, next));
+// Update system settings — restricted to SUPER_ADMIN
+router.put('/system/settings', authorize(ROLES.SUPER_ADMIN), (req, res, next) => ctrl().updateSystemSettings(req, res, next));
 router.get('/system/logs',      (req, res, next) => ctrl().getSystemLogs(req, res, next));
 router.get('/system/sessions',  (req, res, next) => ctrl().getSystemSessions(req, res, next));
-router.delete('/system/sessions',     (req, res, next) => ctrl().clearSystemSessions(req, res, next));
-router.delete('/system/sessions/:id', (req, res, next) => ctrl().revokeSystemSession(req, res, next));
+// Clearing or revoking system sessions — restricted to SUPER_ADMIN
+router.delete('/system/sessions', authorize(ROLES.SUPER_ADMIN), (req, res, next) => ctrl().clearSystemSessions(req, res, next));
+router.delete('/system/sessions/:id', authorize(ROLES.SUPER_ADMIN), (req, res, next) => ctrl().revokeSystemSession(req, res, next));
 router.get('/system/security-alerts', (req, res, next) => ctrl().getSecurityAlerts(req, res, next));
 router.get('/system/audit-logs',      (req, res, next) => ctrl().getAuditLogs(req, res, next));
 
@@ -37,7 +39,8 @@ router.get('/system/audit-logs',      (req, res, next) => ctrl().getAuditLogs(re
 router.get('/feature-flags',    (req, res, next) => ctrl().getFeatureFlags(req, res, next));
 
 // PUT  /admin/feature-flags
-router.put('/feature-flags',    (req, res, next) => ctrl().updateFeatureFlags(req, res, next));
+// Update feature flags — restricted to SUPER_ADMIN
+router.put('/feature-flags', authorize(ROLES.SUPER_ADMIN), (req, res, next) => ctrl().updateFeatureFlags(req, res, next));
 
 // ── User Management ───────────────────────────────────────────────────────────
 // GET    /admin/users

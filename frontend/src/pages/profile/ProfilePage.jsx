@@ -22,6 +22,8 @@ import {
   Camera,
   MessageSquare,
   Heart,
+  Globe,
+  XCircle,
 } from "lucide-react";
 import {
   fetchProfile,
@@ -31,6 +33,7 @@ import {
 import { logoutUser } from "@/store/slices/authSlice";
 import AvatarUpload from "@/components/roles/user/AvatarUpload";
 import { ROUTES } from "@/app/AppRoutes";
+import authService from "@/api/auth.api";
 
 // ── Role badge ────────────────────────────────────────────────────────────────
 const RoleBadge = ({ role }) => {
@@ -164,9 +167,45 @@ const ProfilePage = () => {
   const isLoading = useSelector(selectUserLoading);
   const [showAvatarUpload, setShowAvatarUpload] = useState(false);
 
+  // ── Sessions state ───────────────────────────────────────────────────────
+  const [sessions, setSessions] = useState([]);
+  const [loadingSessions, setLoadingSessions] = useState(true);
+  const [revokingId, setRevokingId] = useState(null);
+
   useEffect(() => {
     dispatch(fetchProfile());
   }, [dispatch]);
+
+  // Fetch active sessions on mount
+  useEffect(() => {
+    const fetchSessions = async () => {
+      try {
+        setLoadingSessions(true);
+        const data = await authService.getActiveSessions();
+        // Ensure data is an array; the API returns an array of session objects
+        setSessions(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingSessions(false);
+      }
+    };
+    fetchSessions();
+  }, []);
+
+  // Handler to revoke a session
+  const handleRevokeSession = async (id) => {
+    if (!id) return;
+    try {
+      setRevokingId(id);
+      await authService.revokeSession(id);
+      setSessions((prev) => prev.filter((s) => s.id !== id));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setRevokingId(null);
+    }
+  };
 
   if (isLoading && !profile) return <Skeleton />;
   if (!profile) return null;
@@ -405,6 +444,68 @@ const ProfilePage = () => {
               })}
             </span>
           </div>
+        )}
+      </Card>
+
+      {/* ── Sessions ──────────────────────────────────────────────────────── */}
+      <Card>
+        <CardHeader title="Active sessions" />
+        {loadingSessions ? (
+          <div className="space-y-2 py-3">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-12 rounded-lg bg-muted animate-pulse"
+              />
+            ))}
+          </div>
+        ) : sessions.length === 0 ? (
+          <p className="text-sm text-muted-foreground px-1 py-3">
+            No other active sessions.
+          </p>
+        ) : (
+          sessions.map((session, index) => {
+            const isCurrent = index === 0;
+            return (
+              <div
+                key={session.id}
+                className="flex items-start gap-3 py-3 px-1 border-b border-border last:border-b-0"
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {session.userAgent || "Unknown device"}
+                  </p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 truncate">
+                    <Globe size={12} className="shrink-0" />
+                    {session.ipAddress || "Unknown IP"}
+                  </p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 truncate">
+                    <Clock size={12} className="shrink-0" />
+                    {new Date(session.createdAt).toLocaleString("en-GB", {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    })}
+                  </p>
+                </div>
+                {isCurrent ? (
+                  <span className="text-xs font-semibold text-primary whitespace-nowrap">
+                    Current device
+                  </span>
+                ) : (
+                  <button
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-destructive hover:text-destructive/80 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={revokingId === session.id}
+                    onClick={() => handleRevokeSession(session.id)}
+                  >
+                    <XCircle size={12} />
+                    <span>
+                      {revokingId === session.id ? "Revoking..." : "Revoke"}
+                    </span>
+                  </button>
+                )}
+              </div>
+            );
+          })
         )}
       </Card>
 

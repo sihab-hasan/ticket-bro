@@ -9,11 +9,6 @@ const getId = (u) => u?._id?.toString() || u?.id || u?.userId;
 class TicketService {
 
   async generateTicketsForBooking(booking) {
-    const existingTickets = await ticketRepository.findByBookingId(booking._id);
-    if (existingTickets.length) {
-      return existingTickets;
-    }
-
     const tickets = [];
     for (const item of booking.items) {
       for (let i = 0; i < item.quantity; i++) {
@@ -37,10 +32,6 @@ class TicketService {
       }
     }
     return ticketRepository.createMany(tickets);
-  }
-
-  async getTicketsForBooking(bookingId) {
-    return ticketRepository.findByBookingId(bookingId);
   }
 
   async getMyTickets(userId, query = {}) {
