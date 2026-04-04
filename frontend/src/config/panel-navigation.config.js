@@ -7,6 +7,7 @@ import {
   FileText,
   Gift,
   LayoutDashboard,
+  MessageSquare,
   Server,
   Settings,
   Shield,
@@ -174,6 +175,12 @@ export const PANEL_NAVIGATION = {
           href: "/admin/payments",
           icon: CreditCard,
           description: "Review payments, payouts, and settlement issues",
+        },
+        {
+          label: "Reviews",
+          href: "/admin/reviews",
+          icon: MessageSquare,
+          description: "Moderate app-wide user feedback",
         },
         {
           label: "Promotions",

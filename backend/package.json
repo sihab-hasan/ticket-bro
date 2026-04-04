@@ -10,6 +10,7 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "seed": "node scripts/seed.js",
+    "migrate:reviews:app-wide": "node scripts/migrate-reviews-to-app-wide.js",
     "test": "jest --coverage --forceExit",
     "test:watch": "jest --watch"
   },

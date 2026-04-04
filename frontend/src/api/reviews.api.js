@@ -19,15 +19,17 @@ const pickReviews = (payload) => {
 };
 
 const reviewsService = {
-  getByEvent: (slug, params) =>
-    get(ENDPOINTS.REVIEWS.EVENT(slug), { params, select: pickReviews }),
-  getSummary: (slug) =>
-    get(ENDPOINTS.REVIEWS.SUMMARY(slug), {
+  getAll: (params) =>
+    get(ENDPOINTS.REVIEWS.LIST, { params, select: pickReviews }),
+  getSummary: () =>
+    get(ENDPOINTS.REVIEWS.SUMMARY, {
       select: (payload) => payload?.summary || payload,
     }),
   create: (data) => post(ENDPOINTS.REVIEWS.CREATE, data, { select: pickEntity("review") }),
-  getMyReviews: (params) =>
-    get(ENDPOINTS.REVIEWS.MY, { params, select: pickReviews }),
+  getMyReview: () =>
+    get(ENDPOINTS.REVIEWS.MY, {
+      select: (payload) => payload?.review ?? null,
+    }),
   update: (id, data) =>
     put(ENDPOINTS.REVIEWS.UPDATE(id), data, { select: pickEntity("review") }),
   remove: (id) => del(ENDPOINTS.REVIEWS.DELETE(id)),

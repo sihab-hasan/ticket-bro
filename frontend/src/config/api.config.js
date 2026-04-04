@@ -53,7 +53,6 @@ export const ENDPOINTS = {
     TICKETS: (slug) => `/events/${slug}/tickets`,
     TICKET_TYPES: (slug) => `/events/${slug}/ticket-types`,
     TICKET_TYPE: (slug, id) => `/events/${slug}/ticket-types/${id}`,
-    REVIEWS: (slug) => `/events/${slug}/reviews`,
     RELATED: (slug) => `/events/${slug}/related`,
     SEAT_SECTIONS: (slug) => `/events/${slug}/seat-sections`,
     SEAT_SECTION: (slug, id) => `/events/${slug}/seat-sections/${id}`,
@@ -183,8 +182,8 @@ export const ENDPOINTS = {
   },
 
   REVIEWS: {
-    EVENT: (slug) => `/reviews/event/${slug}`,
-    SUMMARY: (slug) => `/reviews/event/${slug}/summary`,
+    LIST: "/reviews",
+    SUMMARY: "/reviews/summary",
     CREATE: "/reviews",
     UPDATE: (id) => `/reviews/${id}`,
     DELETE: (id) => `/reviews/${id}`,

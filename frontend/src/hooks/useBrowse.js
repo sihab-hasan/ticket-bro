@@ -252,31 +252,7 @@ const useBrowse = () => {
     scopedEvents,
   ]);
 
-  const scopedReviews = useMemo(
-    () =>
-      reviews.filter((review) => {
-        if (cityId !== "all" && cityId !== "current") {
-          const cityMatches = [
-            review.city,
-            review.location,
-          ]
-            .filter(Boolean)
-            .map(normalizeCompareValue)
-            .includes(normalizeCompareValue(selectedLocation?.label || cityId));
-
-          if (!cityMatches) {
-            return false;
-          }
-        }
-
-        if (categorySlug && review.categorySlug !== categorySlug) return false;
-        if (subCategorySlug && review.subcategorySlug !== subCategorySlug) return false;
-        if (eventTypeSlug && review.eventTypeSlug !== eventTypeSlug) return false;
-
-        return true;
-      }),
-    [categorySlug, cityId, eventTypeSlug, reviews, selectedLocation, subCategorySlug],
-  );
+  const scopedReviews = useMemo(() => reviews || [], [reviews]);
 
   const totalCount = filteredEvents.length;
 
