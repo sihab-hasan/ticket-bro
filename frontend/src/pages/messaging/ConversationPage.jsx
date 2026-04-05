@@ -17,8 +17,10 @@ import { ROUTES }     from '@/app/AppRoutes';
 import useMessaging   from '@/hooks/useMessaging';
 import useAuth        from '@/context/AuthContext';
 import { messagingService } from '@/api';
-import {
+
 import Container from '@/components/layout/Container';
+
+import {
   appendMessage,
   replaceOptimisticMessage,
   removeMessage,
@@ -169,20 +171,23 @@ const ConversationPage = () => {
     }
   }, [conversationId, dispatch, navigate]);
 
-  return (
-    <Container className="py-6">
-    <div className="flex flex-col h-full bg-background overflow-hidden">
-
-      {/* ── Header ───────────────────────────────────────────────── */}
+return (
+  <Container className="py-4 md:py-6 h-[calc(100vh-4rem)]">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border bg-background">
+      {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border shrink-0 min-h-[56px]">
-        {/* Back — mobile only */}
-        <Button variant="ghost" size="icon"
+        <Button
+          variant="ghost"
+          size="icon"
           className="md:hidden h-8 w-8 shrink-0 -ml-1"
-          onClick={() => navigate(ROUTES.MESSAGES.ROOT)}>
+          onClick={() => navigate(ROUTES.MESSAGES.ROOT)}
+        >
           <ArrowLeft className="h-4 w-4" />
         </Button>
 
-        {headerLoading ? <HeaderSkeleton /> : (
+        {headerLoading ? (
+          <HeaderSkeleton />
+        ) : (
           <div className="flex items-center gap-2.5 flex-1 min-w-0">
             <Avatar className="h-9 w-9 shrink-0">
               <AvatarImage src={other?.avatar} alt={otherName} />
@@ -190,11 +195,15 @@ const ConversationPage = () => {
                 {otherInitial}
               </AvatarFallback>
             </Avatar>
+
             <div className="min-w-0">
-              <p className="text-sm font-bold truncate leading-tight"
-                style={{ fontFamily: 'var(--font-heading)' }}>
+              <p
+                className="text-sm font-bold truncate leading-tight"
+                style={{ fontFamily: 'var(--font-heading)' }}
+              >
                 {otherName || <span className="text-muted-foreground">Unknown</span>}
               </p>
+
               {convData?.event?.title && (
                 <p className="text-[11px] text-primary/70 truncate font-medium leading-tight mt-0.5">
                   re: {convData.event.title}
@@ -204,18 +213,22 @@ const ConversationPage = () => {
           </div>
         )}
 
-        {/* More actions */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon"
-              className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+            >
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
+
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuItem
               className="text-destructive focus:text-destructive gap-2 cursor-pointer"
-              onClick={handleDelete}>
+              onClick={handleDelete}
+            >
               <Trash2 className="h-3.5 w-3.5" />
               Delete conversation
             </DropdownMenuItem>
@@ -223,28 +236,32 @@ const ConversationPage = () => {
         </DropdownMenu>
       </div>
 
-      {/* ── Message thread ───────────────────────────────────────── */}
-      <ChatWindow
-        messages={messages}
-        currentUserId={currentUserId}
-        loading={messagesLoading && messages.length === 0}
-        isTyping={isTyping}
-        className="flex-1 min-h-0"
-      />
+      {/* Messages */}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <ChatWindow
+          messages={messages}
+          currentUserId={currentUserId}
+          loading={messagesLoading && messages.length === 0}
+          isTyping={isTyping}
+          className="h-full min-h-0"
+        />
+      </div>
 
-      {/* ── Input ────────────────────────────────────────────────── */}
-      <ChatInput
-        value={draft}
-        onChange={setDraft}
-        onSend={handleSend}
-        onTyping={handleTyping}
-        sending={sending}
-        disabled={false}
-        placeholder={otherName ? `Message ${otherName}…` : 'Type a message…'}
-      />
+      {/* Input */}
+      <div className="shrink-0 border-t border-border">
+        <ChatInput
+          value={draft}
+          onChange={setDraft}
+          onSend={handleSend}
+          onTyping={handleTyping}
+          sending={sending}
+          disabled={false}
+          placeholder={otherName ? `Message ${otherName}…` : 'Type a message…'}
+        />
+      </div>
     </div>
-    </Container>
-  );
+  </Container>
+);
 };
 
 export default ConversationPage;
