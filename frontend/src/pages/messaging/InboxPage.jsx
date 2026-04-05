@@ -7,6 +7,7 @@ import ConversationList from '@/components/features/messaging/ConversationList';
 import useMessaging from '@/hooks/useMessaging';
 import { setLoading } from '@/store/slices/messagingSlice';
 import { cn } from '@/lib/utils';
+import Container from '@/components/layout/Container';
 
 const EmptyPane = () => (
   <div className="flex flex-col items-center justify-center flex-1 text-center px-8 bg-muted/10">

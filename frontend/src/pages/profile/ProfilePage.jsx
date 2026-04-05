@@ -133,7 +133,7 @@ const NavItem = ({ to, icon: Icon, label, desc, color, onClick, danger }) => {
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 const Skeleton = () => (
-  <Container aria-label="Profile loading"><div className="max-w-2xl mx-auto py-4 space-y-3 sm:space-y-4 animate-pulse">
+  <Container className="space-y-3 sm:space-y-4 animate-pulse">
     <div className="bg-card rounded-2xl p-4 sm:p-5">
       <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-5">
         <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-muted shrink-0" />
@@ -157,7 +157,7 @@ const Skeleton = () => (
         </div>
       </div>
     ))}
-</div></Container>
+  </Container>
 );
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -228,7 +228,7 @@ const ProfilePage = () => {
     : null;
 
   return (
-    <Container aria-label="Profile"><div className="max-w-2xl mx-auto py-4 space-y-3 sm:space-y-4 font-sans pb-8">
+    <Container className="space-y-3 sm:space-y-4 font-sans pb-8">
       {/* ── Hero card ─────────────────────────────────────────────────────── */}
       <Card>
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-5">
@@ -529,7 +529,7 @@ const ProfilePage = () => {
         open={showAvatarUpload}
         onOpenChange={setShowAvatarUpload}
       />
-    </div></Container>
+    </Container>
   );
 };
 

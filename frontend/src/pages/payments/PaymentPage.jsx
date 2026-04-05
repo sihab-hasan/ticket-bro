@@ -13,6 +13,7 @@ import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
 import { bookingService, paymentsService } from '@/api';
 import { getApiErrorMessage } from '@/api/client';
+import Container from '@/components/layout/Container';
 
 const PaymentPage = () => {
   const navigate = useNavigate();
@@ -60,6 +61,7 @@ const PaymentPage = () => {
   const amount = booking?.totalAmount || 0;
 
   return (
+    <Container className="py-6">
     <div className="p-4 sm:p-6 max-w-lg mx-auto space-y-5 font-sans">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-extrabold font-heading">Complete Payment</h1>
@@ -98,6 +100,7 @@ const PaymentPage = () => {
         {processing ? <><span className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />Processing…</> : <><Lock className="h-5 w-5 mr-2" />Pay {formatPrice(amount)}</>}
       </Button>
     </div>
+    </Container>
   );
 };
 

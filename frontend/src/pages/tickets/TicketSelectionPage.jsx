@@ -12,6 +12,7 @@ import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
 import { cartService, eventsService } from '@/api';
 import { getApiErrorMessage } from '@/api/client';
+import Container from '@/components/layout/Container';
 
 const TicketSelectionPage = () => {
   const { eventId } = useParams();
@@ -82,6 +83,7 @@ const TicketSelectionPage = () => {
   );
 
   return (
+    <Container className="py-6">
     <div className="p-4 sm:p-6 max-w-lg mx-auto space-y-5 font-sans">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate(-1)}>
@@ -171,6 +173,7 @@ const TicketSelectionPage = () => {
         {adding ? <><span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />Adding…</> : <><ShoppingCart className="h-5 w-5 mr-2" />Add to Cart{totalTickets > 0 ? ` (${totalTickets})` : ''}</>}
       </Button>
     </div>
+    </Container>
   );
 };
 
