@@ -11,7 +11,7 @@ const eventPopulate = [
   { path: 'organizer', select: 'firstName lastName email avatar organizationName' },
   {
     path: 'organizerProfile',
-    select: 'displayName slug bio logo coverImage website phone email socialLinks verificationStatus eventCount',
+    select: 'user displayName slug bio logo coverImage website phone email socialLinks verificationStatus eventCount',
   },
   { path: 'category', select: 'name slug' },
   { path: 'subcategory', select: 'name slug category' },
