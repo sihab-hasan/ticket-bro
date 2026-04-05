@@ -9,10 +9,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { formatDate, formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
-import { ROUTES } from '@/app/AppRoutes';
+import { ROUTES } from '@/config/routes.config';
 import { paymentsService } from '@/api';
 import { getApiErrorMessage } from '@/api/client';
-import Container from '@/components/layout/Container';
 
 const Row = ({ label, value, icon: Icon, mono }) => (
   <div className="flex items-start gap-3 py-3 border-b border-border last:border-0">
@@ -54,12 +53,12 @@ const PaymentDetailsPage = () => {
     }
   };
 
-  if (loading) return <Container><div className="py-4 space-y-4 max-w-lg mx-auto">{[1,2].map((i) => <Skeleton key={i} className="h-52 rounded-2xl" />)}</div></Container>;
+  if (loading) return <div className="content-shell"><div className="py-4 space-y-4 max-w-lg mx-auto">{[1,2].map((i) => <Skeleton key={i} className="h-52 rounded-2xl" />)}</div></div>;
 
   const canRefund = payment?.status === 'succeeded' && payment?.booking?.event?.startDate && new Date(payment.booking.event.startDate) > new Date();
 
   return (
-    <Container aria-label="Payment details"><div className="py-5 max-w-lg mx-auto space-y-5 font-sans">
+    <div className="content-shell" aria-label="Payment details"><div className="py-5 max-w-lg mx-auto space-y-5 font-sans">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate(-1)}><ArrowLeft className="h-4 w-4" /></Button>
         <div>
@@ -117,7 +116,7 @@ const PaymentDetailsPage = () => {
           </Button>
         )}
       </div>
-    </div></Container>
+    </div></div>
   );
 };
 

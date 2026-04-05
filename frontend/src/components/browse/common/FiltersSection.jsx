@@ -2,7 +2,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { SlidersHorizontal, ChevronDown, X, Calendar, MapPin, Tag, Clock, Check, RotateCcw } from "lucide-react";
-import Container from "@/components/layout/Container";
 import { useBrowse } from "@/hooks";
 
 const DATE_OPTIONS = [
@@ -172,7 +171,7 @@ const FiltersSection = ({ onFiltersChange, counts }) => {
 
   return (
     <div className="w-full bg-background border-b border-border">
-      <Container aria-label="Filters">
+      <div className="content-shell" aria-label="Filters">
         <div className="flex items-center gap-2 py-2.5 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
             <div className="flex items-center gap-1.5 shrink-0 pr-2.5 border-r border-border mr-0.5">
@@ -200,7 +199,7 @@ const FiltersSection = ({ onFiltersChange, counts }) => {
             <ActiveChips filters={filters} onRemove={(k) => updateFilter(k, null)} />
           </div>
         )}
-      </Container>
+      </div>
     </div>
   );
 };

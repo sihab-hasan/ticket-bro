@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 import { superAdminService } from "@/api";
-import { ROUTES } from "@/app/AppRoutes";
+import { ROUTES } from "@/config/routes.config";
 import PageHeader from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

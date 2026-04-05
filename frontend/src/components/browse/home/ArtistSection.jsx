@@ -2,7 +2,6 @@
 // Note: Organizer/artist data doesn't exist in useBrowse/EVENTS_POOL.
 // We derive unique organizers from real events and tab-filter by category.
 import React, { useState, useMemo } from "react";
-import Container from "@/components/layout/Container";
 import { useBrowse } from "@/hooks";
 import { BadgeCheck } from "lucide-react";
 
@@ -44,7 +43,7 @@ const ArtistSection = () => {
 
   return (
     <section className="py-10 bg-background">
-      <Container>
+      <div className="content-shell">
         <h2 className="text-2xl font-bold text-foreground mb-6"
           style={{ fontFamily: "var(--font-heading)" }}>
           Organisers Near {locationLabel}
@@ -92,7 +91,7 @@ const ArtistSection = () => {
             </div>
           ))}
         </div>
-      </Container>
+      </div>
     </section>
   );
 };

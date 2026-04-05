@@ -2,7 +2,6 @@
 import React, { useState, useRef, useMemo } from "react";
 import { Calendar, MapPin, Clock, Ticket, Radio } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import Container from "@/components/layout/Container";
 import { useBrowse } from "@/hooks";
 
 const FALLBACK = "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&w=500&q=80";
@@ -63,7 +62,7 @@ const ExploreByDate = () => {
 
   return (
     <section className="py-12 bg-background">
-      <Container>
+      <div className="content-shell">
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl font-bold text-foreground tracking-tight"
             style={{ fontFamily: "var(--font-heading)" }}>
@@ -181,7 +180,7 @@ const ExploreByDate = () => {
             </div>
           )}
         </div>
-      </Container>
+      </div>
     </section>
   );
 };

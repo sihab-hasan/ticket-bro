@@ -11,7 +11,7 @@ import { Progress } from '@/components/ui/progress';
 import PageHeader from '@/components/shared/PageHeader';
 import StatCard from '@/components/shared/StatCard';
 import { formatPrice } from '@/utils/formatters';
-import { ROUTES } from '@/app/AppRoutes';
+import { ROUTES } from '@/config/routes.config';
 import { analyticsService } from '@/api';
 
 // ── Simple bar chart visualization ───────────────────────────────────────────

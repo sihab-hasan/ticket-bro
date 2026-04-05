@@ -1,55 +1,52 @@
-import React, { forwardRef } from "react";
-import PropTypes from "prop-types";
-import clsx from "clsx";
-import "@/styles/container.css";
+import React, { forwardRef } from 'react';
+import PropTypes from 'prop-types';
+import clsx from 'clsx';
+import '@/styles/container.css';
 
-/**
- * Responsive Container
- * - Small / Tablet / Laptop → full width
- * - Large screens → centered layout
- */
+const variantClasses = {
+  narrow: 'container--narrow',
+  default: 'container--default',
+  wide: 'container--wide',
+  full: 'container--full',
+};
 
 const Container = forwardRef(
-  ({ children, className = "", fluid = false, noPadding = false, as: Component = "div", role = "region", "aria-label": ariaLabel, ...props }, ref) => {
+  (
+    {
+      children,
+      className = '',
+      fluid = false,
+      noPadding = false,
+      variant = 'default',
+      as: Component = 'div',
+      ...props
+    },
+    ref,
+  ) => {
     const containerClasses = clsx(
-      fluid ? "container-fluid" : "container",
-      noPadding && "container-no-padding",
-      className
+      fluid ? 'container-fluid' : 'container',
+      variantClasses[variant],
+      noPadding && 'container-no-padding',
+      className,
     );
 
     return (
-      <Component
-        ref={ref}
-        className={containerClasses}
-        role={role}
-        aria-label={ariaLabel}
-        {...props}
-      >
+      <Component ref={ref} className={containerClasses} {...props}>
         {children}
       </Component>
     );
-  }
+  },
 );
 
-Container.displayName = "Container";
+Container.displayName = 'Container';
 
 Container.propTypes = {
   children: PropTypes.node.isRequired,
   className: PropTypes.string,
   fluid: PropTypes.bool,
   noPadding: PropTypes.bool,
+  variant: PropTypes.oneOf(['narrow', 'default', 'wide', 'full']),
   as: PropTypes.elementType,
-  role: PropTypes.string,
-  "aria-label": PropTypes.string,
-};
-
-Container.defaultProps = {
-  className: "",
-  fluid: false,
-  noPadding: false,
-  as: "div",
-  role: "region",
-  "aria-label": undefined,
 };
 
 export default Container;

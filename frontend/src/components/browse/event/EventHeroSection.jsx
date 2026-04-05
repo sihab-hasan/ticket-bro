@@ -20,7 +20,6 @@ import {
   Sparkles,
   Image as ImageIcon,
 } from "lucide-react";
-import Container from "@/components/layout/Container";
 import {
   CapacityBar,
   StatusBadge,
@@ -197,7 +196,7 @@ const EventHeroSection = ({ event, saved, onSave, onShare, onBook }) => {
         )}
 
         <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6">
-          <Container>
+          <div className="content-shell">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div className="min-w-0 flex-1">
                 {(event.tags || []).length > 0 && (
@@ -295,12 +294,12 @@ const EventHeroSection = ({ event, saved, onSave, onShare, onBook }) => {
                 </button>
               </div>
             </div>
-          </Container>
+          </div>
         </div>
       </div>
 
       <div className="border-b border-border" style={{ background: "var(--card)" }}>
-        <Container>
+        <div className="content-shell">
           <div className="grid grid-cols-2 gap-4 py-4 sm:grid-cols-4">
             <div className="flex items-center gap-2.5">
               <div
@@ -397,7 +396,7 @@ const EventHeroSection = ({ event, saved, onSave, onShare, onBook }) => {
               </div>
             </div>
           </div>
-        </Container>
+        </div>
       </div>
 
       {lightbox && activeImage && (

@@ -1,7 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Calendar, ChevronRight, MapPin, Star, Ticket } from "lucide-react";
-import Container from "@/components/layout/Container";
 import { fmtDateShort } from "./shared/EventShared.jsx";
 import { getEventImage, getEventLocationLabel, getEventPriceLabel, getEventUrl } from "@/utils/event-card";
 
@@ -18,7 +17,7 @@ const EventRelatedSection = ({ event, events = [] }) => {
       className="w-full border-t border-border"
       style={{ background: "var(--background)" }}
     >
-      <Container>
+      <div className="content-shell">
         <div className="py-12">
           <div className="mb-6 flex items-center justify-between">
             <h2
@@ -128,7 +127,7 @@ const EventRelatedSection = ({ event, events = [] }) => {
             })}
           </div>
         </div>
-      </Container>
+      </div>
     </div>
   );
 };

@@ -1,5 +1,4 @@
 // src/components/ImpactSection.jsx
-import Container from "@/components/layout/Container";
 import React from "react";
 import { Link } from "react-router-dom";
 
@@ -41,7 +40,7 @@ const ImpactSection = () => {
 
   return (
     <section className="py-16 md:py-24 bg-background transition-colors duration-300">
-      <Container>
+      <div className="content-shell">
         {/* Section Header - Moved to Left Corner */}
         <div className="text-left mb-16 border-l-4 border-lime-500 pl-6">
           <h2 className="font-heading text-3xl md:text-4xl font-black text-foreground mb-2 tracking-tighter uppercase">
@@ -96,7 +95,7 @@ const ImpactSection = () => {
             <span className="text-xl">→</span>
           </Link>
         </div>
-      </Container>
+      </div>
     </section>
   );
 };

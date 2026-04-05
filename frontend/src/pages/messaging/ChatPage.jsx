@@ -6,7 +6,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { messagingService } from '@/api';
 import { useDispatch } from 'react-redux';
 import { upsertConversation } from '@/store/slices/messagingSlice';
-import { ROUTES } from '@/app/AppRoutes';
+import { ROUTES } from '@/config/routes.config';
 import { PageLoader } from '@/components/shared/Loader';
 import { toast } from '@/components/shared/common';
 
