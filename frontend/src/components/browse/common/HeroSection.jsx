@@ -12,7 +12,6 @@ import {
   Locate,
   X,
 } from "lucide-react";
-import Container from "@/components/layout/Container";
 import {
   useLocation as useLocationCtx,
 } from "@/context/LocationContext";
@@ -306,7 +305,7 @@ const HeroSection = () => {
 
   return (
     <section className="w-full bg-background" aria-label="Browse hero">
-      <Container>
+      <div className="content-shell">
         <div className="py-4">
           <div className="mb-6">
             <Breadcrumb />
@@ -411,7 +410,7 @@ const HeroSection = () => {
           </div>
         </div>
         <div className="w-full h-[3px] bg-primary/60" />
-      </Container>
+      </div>
     </section>
   );
 };

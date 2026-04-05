@@ -2,7 +2,6 @@
 import React, { useState } from "react";
 import { Mail, Check, Loader2, Bell, Tag, Calendar, MapPin } from "lucide-react";
 import { useParams } from "react-router-dom";
-import Container from "@/components/layout/Container";
 import { useBrowse, unslugify } from "@/hooks";
 
 const isValidEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
@@ -35,7 +34,7 @@ const NewsletterSection = () => {
 
   return (
     <section className="w-full bg-background" aria-label="Newsletter signup">
-      <Container>
+      <div className="content-shell">
         <div className="py-10">
           <div className="max-w-2xl mx-auto rounded-xl border border-border bg-secondary/5 p-8 text-center">
             <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary border border-primary/20 mb-4">
@@ -78,7 +77,7 @@ const NewsletterSection = () => {
             </p>
           </div>
         </div>
-      </Container>
+      </div>
     </section>
   );
 };

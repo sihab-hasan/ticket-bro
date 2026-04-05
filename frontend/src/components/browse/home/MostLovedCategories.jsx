@@ -1,7 +1,6 @@
 // frontend/src/components/home/MostLovedCategories.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import Container from "@/components/layout/Container";
 import { useBrowse } from "@/hooks";
 
 const CategoryCard = ({ slug, cat, onClick }) => {
@@ -52,7 +51,7 @@ const MostLovedCategories = () => {
 
   return (
     <section className="bg-background py-10">
-      <Container>
+      <div className="content-shell">
         <div className="flex items-end justify-between mb-6">
           <div>
             <h2 className="text-2xl font-bold text-foreground"
@@ -83,7 +82,7 @@ const MostLovedCategories = () => {
             />
           ))}
         </div>
-      </Container>
+      </div>
     </section>
   );
 };

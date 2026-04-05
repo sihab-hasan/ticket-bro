@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useLocation as useLocationCtx } from "@/context/LocationContext";
 import { useBrowseContext } from "@/context/BrowseContext";
-import { ROUTES } from "@/app/AppRoutes";
+import { ROUTES } from "@/config/routes.config";
 import {
   applyBrowseFilters,
   browseFallbackIcon,

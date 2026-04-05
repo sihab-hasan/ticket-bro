@@ -2,7 +2,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Globe, Video, Award } from "lucide-react";
-import Container from "@/components/layout/Container";
 
 const VolunteerHeroMonth = () => {
   const hero = {
@@ -28,7 +27,7 @@ const VolunteerHeroMonth = () => {
 
   return (
     <div>
-      <Container>
+      <div className="content-shell">
         <Link
           to={`/volunteer-heroes/${hero.id}`}
           className="flex flex-col lg:flex-row lg:items-center justify-between gap-4"
@@ -127,7 +126,7 @@ const VolunteerHeroMonth = () => {
             </div>
           </div>
         </Link>
-      </Container>
+      </div>
     </div>
   );
 };

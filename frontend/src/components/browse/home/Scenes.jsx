@@ -2,7 +2,6 @@
 import React, { useState, useMemo } from "react";
 import { Star, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import Container from "@/components/layout/Container";
 import { useBrowse } from "@/hooks";
 
 const fmtDate = (d) => {
@@ -50,7 +49,7 @@ const Scenes = () => {
 
   return (
     <section className="py-10 bg-background">
-      <Container>
+      <div className="content-shell">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-foreground flex items-center gap-2"
             style={{ fontFamily: "var(--font-heading)" }}>
@@ -155,7 +154,7 @@ const Scenes = () => {
             </button>
           </div>
         )}
-      </Container>
+      </div>
     </section>
   );
 };

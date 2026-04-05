@@ -21,7 +21,7 @@ import StatCard from '@/components/shared/StatCard';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { toast } from '@/components/shared/common';
 import { formatDate, formatPrice } from '@/utils/formatters';
-import { ROUTES } from '@/app/AppRoutes';
+import { ROUTES } from '@/config/routes.config';
 
 const getEventKey = (event) => event?.slug || event?._id;
 

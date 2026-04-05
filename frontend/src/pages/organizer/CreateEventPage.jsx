@@ -27,7 +27,7 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import PageHeader from '@/components/shared/PageHeader';
 import { toast } from '@/components/shared/common';
-import { ROUTES } from '@/app/AppRoutes';
+import { ROUTES } from '@/config/routes.config';
 
 const StepIndicator = ({ steps, current }) => (
   <div className="flex items-center justify-center gap-2 mb-8 flex-wrap">

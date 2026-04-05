@@ -17,7 +17,6 @@ import {
   getEventPriceLabel,
   getEventUrl,
 } from "@/utils/event-card";
-import Container from "@/components/layout/Container";
 import { useBrowse } from "@/hooks";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -61,7 +60,7 @@ const CalendarSection = () => {
 
   return (
     <section className="w-full bg-background" aria-label="Events calendar">
-      <Container>
+      <div className="content-shell">
         <div className="py-8">
           <div className="flex items-center gap-2.5 mb-5">
             <span className="flex items-center justify-center w-7 h-7 rounded shrink-0 bg-primary/10 text-primary border border-primary/20">
@@ -211,7 +210,7 @@ const CalendarSection = () => {
           </div>
         </div>
         <div className="w-full h-px bg-border" />
-      </Container>
+      </div>
     </section>
   );
 };

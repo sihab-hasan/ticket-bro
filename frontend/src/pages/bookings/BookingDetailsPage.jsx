@@ -12,11 +12,10 @@ import PageHeader       from '@/components/shared/PageHeader';
 import { StatusBadge }  from '@/components/shared/StatusBadge';
 import { formatDate, formatPrice } from '@/utils/formatters';
 import { toast }        from '@/components/shared/common';
-import { ROUTES }       from '@/app/AppRoutes';
+import { ROUTES }       from '@/config/routes.config';
 import { bookingService } from '@/api';
 import { downloadBlob } from '@/utils/downloadFile';
 import useAuth          from '@/context/AuthContext';
-import Container from '@/components/layout/Container';
 
 const InfoRow = ({ label, value, icon: Icon }) => (
   <div className="flex items-start gap-3 py-3 border-b border-border last:border-0">
@@ -56,11 +55,11 @@ const BookingDetailsPage = () => {
   };
 
   if (loading) return (
-    <Container><div className="py-4 space-y-4">
+    <div className="content-shell"><div className="py-4 space-y-4">
       <Skeleton className="h-8 w-48" />
       <Skeleton className="h-64 w-full rounded-2xl" />
       <Skeleton className="h-48 w-full rounded-2xl" />
-    </div></Container>
+    </div></div>
   );
 
   const canCancel = booking?.status === 'confirmed' && new Date(booking?.event?.startDate) > new Date();
@@ -83,7 +82,7 @@ const BookingDetailsPage = () => {
     String(organizerUserId) !== String(currentUserId);
 
   return (
-    <Container aria-label="Booking details"><div className="py-5 space-y-5 font-sans max-w-2xl mx-auto">
+    <div className="content-shell" aria-label="Booking details"><div className="py-5 space-y-5 font-sans max-w-2xl mx-auto">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" className="h-9 w-9"
           onClick={() => navigate(ROUTES.BOOKINGS.ROOT)}>
@@ -199,7 +198,7 @@ const BookingDetailsPage = () => {
           </Link>
         )}
       </div>
-    </div></Container>
+    </div></div>
   );
 };
 

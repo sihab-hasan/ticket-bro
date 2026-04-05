@@ -13,7 +13,7 @@ import { Skeleton }   from '@/components/ui/skeleton';
 import ChatWindow     from '@/components/features/messaging/ChatWindow';
 import ChatInput      from '@/components/features/messaging/ChatInput';
 import { toast }      from '@/components/shared/common';
-import { ROUTES }     from '@/app/AppRoutes';
+import { ROUTES }     from '@/config/routes.config';
 import useMessaging   from '@/hooks/useMessaging';
 import useAuth        from '@/context/AuthContext';
 import { messagingService } from '@/api';

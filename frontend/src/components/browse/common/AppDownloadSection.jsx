@@ -1,7 +1,6 @@
 // frontend/src/components/browse/sections/AppDownloadSection.jsx
 import React from "react";
 import { Smartphone, Star, Bell, Ticket, MapPin } from "lucide-react";
-import Container from "@/components/layout/Container";
 import { useBrowse } from "@/hooks";
 
 const AppDownloadSection = () => {
@@ -14,7 +13,7 @@ const AppDownloadSection = () => {
   ];
   return (
     <section className="w-full bg-background" aria-label="App download">
-      <Container>
+      <div className="content-shell">
         <div className="py-10">
           <div className="rounded-xl border border-border bg-secondary/5 p-8">
             <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
@@ -81,7 +80,7 @@ const AppDownloadSection = () => {
           </div>
         </div>
         <div className="w-full h-px bg-border" />
-      </Container>
+      </div>
     </section>
   );
 };

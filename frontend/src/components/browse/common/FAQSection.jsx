@@ -1,6 +1,5 @@
 // frontend/src/components/browse/sections/FAQSection.jsx
 import React, { useState } from "react";
-import Container from "@/components/layout/Container";
 import { ChevronDown } from "lucide-react";
 import { useBrowse } from "@/hooks";
 
@@ -16,7 +15,7 @@ const FAQSection = ({ faqs = DEFAULT_FAQS }) => {
   const { locationLabel } = useBrowse();
   return (
     <section className="w-full bg-background" aria-label="FAQ">
-      <Container>
+      <div className="content-shell">
         <div className="py-8 max-w-2xl">
           <h2 className="text-xl font-bold text-foreground mb-5" style={{ fontFamily: "var(--font-heading)" }}>Frequently Asked Questions</h2>
           <div className="space-y-2">
@@ -38,7 +37,7 @@ const FAQSection = ({ faqs = DEFAULT_FAQS }) => {
           </div>
         </div>
         <div className="w-full h-px bg-border" />
-      </Container>
+      </div>
     </section>
   );
 };

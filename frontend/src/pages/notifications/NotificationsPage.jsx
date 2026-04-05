@@ -10,8 +10,7 @@ import PageHeader from '@/components/shared/PageHeader';
 import { formatDate } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { notificationsService } from '@/api';
-import { ROUTES } from '@/app/AppRoutes';
-import Container from '@/components/layout/Container';
+import { ROUTES } from '@/config/routes.config';
 
 const ICONS = {
   booking: '🎟️', payment: '💳', event: '📅', system: '⚙️', promo: '🎁', refund: '💰', checkin: '✅',
@@ -76,7 +75,7 @@ const NotificationsPage = () => {
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
-    <Container aria-label="Notifications" className="py-5 space-y-5 font-sans">
+    <div aria-label="Notifications" className="content-shell py-5 space-y-5 font-sans">
       <div className="flex items-start justify-between gap-3">
         <PageHeader title="Notifications" subtitle={unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'} className="mb-0" />
         <div className="flex gap-2">
@@ -125,7 +124,7 @@ const NotificationsPage = () => {
           )}
         </TabsContent>
       </Tabs>
-    </Container>
+    </div>
   );
 };
 

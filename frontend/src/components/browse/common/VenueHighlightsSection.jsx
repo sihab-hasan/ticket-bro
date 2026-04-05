@@ -1,6 +1,5 @@
 // frontend/src/components/browse/sections/VenueHighlightsSection.jsx
 import React from "react";
-import Container from "@/components/layout/Container";
 import { Building2, MapPin, Users } from "lucide-react";
 import { useBrowse } from "@/hooks";
 
@@ -15,7 +14,7 @@ const VenueHighlightsSection = ({ venues = DEFAULT_VENUES }) => {
   const { locationLabel } = useBrowse();
   return (
     <section className="w-full bg-background" aria-label="Venue highlights">
-      <Container>
+      <div className="content-shell">
         <div className="py-8">
           <div className="flex items-center gap-2.5 mb-5">
             <span className="flex items-center justify-center w-7 h-7 rounded shrink-0 bg-primary/10 text-primary border border-primary/20"><Building2 size={13} /></span>
@@ -42,7 +41,7 @@ const VenueHighlightsSection = ({ venues = DEFAULT_VENUES }) => {
           </div>
         </div>
         <div className="w-full h-px bg-border" />
-      </Container>
+      </div>
     </section>
   );
 };

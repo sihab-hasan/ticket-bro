@@ -1,6 +1,5 @@
 // frontend/src/components/browse/sections/RecentlyViewedSection.jsx
 import React from "react";
-import Container from "@/components/layout/Container";
 import { Eye } from "lucide-react";
 import BrowseEventCard from "@/components/shared/cards/EventCard";
 import { useBrowse } from "@/hooks";
@@ -20,7 +19,7 @@ const RecentlyViewedSection = () => {
   if (!events.length) return null;
   return (
     <section className="w-full bg-background" aria-label="Recently viewed">
-      <Container>
+      <div className="content-shell">
         <div className="py-8">
           <div className="flex items-center gap-2.5 mb-5">
             <span className="flex items-center justify-center w-7 h-7 rounded shrink-0 bg-primary/10 text-primary border border-primary/20">
@@ -46,7 +45,7 @@ const RecentlyViewedSection = () => {
           </div>
         </div>
         <div className="w-full h-px bg-border" />
-      </Container>
+      </div>
     </section>
   );
 };

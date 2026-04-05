@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { AvatarCircle, SectionHeading } from "./shared/EventShared.jsx";
 import { useAuth } from "@/context/AuthContext";
-import { ROUTES } from "@/app/AppRoutes";
+import { ROUTES } from "@/config/routes.config";
 
 const SOCIAL_LINKS = [
   { key: "instagram", icon: Instagram, baseUrl: "https://instagram.com/" },

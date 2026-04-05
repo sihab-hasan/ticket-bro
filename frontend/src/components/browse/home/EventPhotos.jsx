@@ -2,7 +2,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Heart, MessageSquare, ArrowRight } from "lucide-react";
-import Container from "@/components/layout/Container";
 
 const EventPhotos = () => {
   const [activeFilter, setActiveFilter] = useState("all");
@@ -75,7 +74,7 @@ const EventPhotos = () => {
 
   return (
     <section className="py-16 bg-background transition-colors duration-300">
-      <Container>
+      <div className="content-shell">
         {/* Header - Left Aligned with Specs */}
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4 border-l-4 border-lime-500 pl-5">
           <div>
@@ -155,7 +154,7 @@ const EventPhotos = () => {
             </div>
           ))}
         </div>
-      </Container>
+      </div>
     </section>
   );
 };

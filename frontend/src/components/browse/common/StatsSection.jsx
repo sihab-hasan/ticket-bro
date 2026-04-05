@@ -1,7 +1,6 @@
 // frontend/src/components/browse/sections/StatsSection.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { Calendar, Users, Ticket, Star, MapPin, TrendingUp, BadgeCheck } from "lucide-react";
-import Container from "@/components/layout/Container";
 import { useBrowse } from "@/hooks";
 
 const useCountUp = (target, duration = 1200) => {
@@ -51,7 +50,7 @@ const StatsSection = () => {
   const title = level === "root" ? "Platform Stats" : `${config.label} in Numbers`;
   return (
     <section className="w-full bg-background" aria-label="Platform stats">
-      <Container>
+      <div className="content-shell">
         <div className="py-8">
           <div className="flex items-center gap-2.5 mb-5">
             <span className="flex items-center justify-center w-7 h-7 rounded shrink-0 bg-primary/10 text-primary border border-primary/20">
@@ -67,7 +66,7 @@ const StatsSection = () => {
           </div>
         </div>
         <div className="w-full h-px bg-border" />
-      </Container>
+      </div>
     </section>
   );
 };

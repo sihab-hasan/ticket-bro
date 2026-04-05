@@ -1,7 +1,6 @@
 // frontend/src/components/home/EventMarquee.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import Container from "@/components/layout/Container";
 import { useBrowse } from "@/hooks";
 
 const EventMarquee = () => {
@@ -60,7 +59,7 @@ const EventMarquee = () => {
 
   return (
     <section className="bg-background py-16 md:py-20">
-      <Container>
+      <div className="content-shell">
         <div className="flex flex-col mb-10 border-l border-foreground/10 pl-6">
           <h2 className="text-3xl md:text-4xl text-foreground font-bold uppercase tracking-[0.15em]"
             style={{ fontFamily: "var(--font-heading)" }}>
@@ -83,7 +82,7 @@ const EventMarquee = () => {
             ))}
           </div>
         </div>
-      </Container>
+      </div>
     </section>
   );
 };
