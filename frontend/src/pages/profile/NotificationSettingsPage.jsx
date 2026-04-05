@@ -59,7 +59,7 @@ const NotificationSettingsPage = () => {
   };
 
   return (
-    <Container className="py-6 space-y-5 font-sans">
+    <Container aria-label="Notification settings"><div className="py-5 space-y-5 font-sans max-w-lg mx-auto">
       <PageHeader title="Notification Settings" subtitle="Control what you hear from us" />
 
       {loading ? (
@@ -100,7 +100,7 @@ const NotificationSettingsPage = () => {
       <Button onClick={handleSave} disabled={saving} className="w-full font-bold">
         {saving ? 'Saving…' : <><Save className="h-4 w-4 mr-2" />Save Preferences</>}
       </Button>
-    </Container>
+    </div></Container>
   );
 };
 

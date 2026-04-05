@@ -75,16 +75,15 @@ const TicketSelectionPage = () => {
   };
 
   if (loading) return (
-    <div className="p-4 sm:p-6 space-y-4 max-w-lg mx-auto">
+    <Container><div className="py-4 space-y-4 max-w-lg mx-auto">
       <Skeleton className="h-8 w-48" />
       <Skeleton className="h-40 w-full rounded-2xl" />
       {[1,2,3].map((i) => <Skeleton key={i} className="h-24 w-full rounded-2xl" />)}
-    </div>
+    </div></Container>
   );
 
   return (
-    <Container className="py-6">
-    <div className="p-4 sm:p-6 max-w-lg mx-auto space-y-5 font-sans">
+    <Container aria-label="Select tickets"><div className="py-5 max-w-lg mx-auto space-y-5 font-sans">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4" />
@@ -172,8 +171,7 @@ const TicketSelectionPage = () => {
       <Button onClick={handleAddToCart} disabled={totalTickets === 0 || adding} className="w-full h-11 font-bold text-base">
         {adding ? <><span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />Adding…</> : <><ShoppingCart className="h-5 w-5 mr-2" />Add to Cart{totalTickets > 0 ? ` (${totalTickets})` : ''}</>}
       </Button>
-    </div>
-    </Container>
+    </div></Container>
   );
 };
 

@@ -108,10 +108,10 @@ const CartPage = () => {
   const serviceFee = subtotal > 0 ? subtotal * 0.05 : 0;
   const total = Math.max(0, subtotal - discount + serviceFee);
 
-  if (loading) return <Container className="py-6 max-w-xl mx-auto">{[1,2].map((i) => <Skeleton key={i} className="h-32 rounded-2xl" />)}</Container>;
+  if (loading) return <Container><div className="py-4 space-y-4 max-w-lg mx-auto">{[1,2].map((i) => <Skeleton key={i} className="h-32 rounded-2xl" />)}</div></Container>;
 
   return (
-    <Container className="py-6 space-y-5 font-sans">
+    <Container aria-label="Cart"><div className="py-5 max-w-lg mx-auto space-y-5 font-sans">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-xl font-extrabold font-heading flex items-center gap-2">
           <ShoppingCart className="h-5 w-5" />Cart
@@ -215,7 +215,7 @@ const CartPage = () => {
           </Button>
         </>
       )}
-    </Container>
+    </div></Container>
   );
 };
 

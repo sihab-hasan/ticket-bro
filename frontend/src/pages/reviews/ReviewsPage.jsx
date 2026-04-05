@@ -88,8 +88,7 @@ const ReviewsPage = () => {
   const ratingDistribution = summary?.ratingDistribution || [];
 
   return (
-    <Container className="py-6">
-    <div className="mx-auto max-w-3xl space-y-5 p-4 font-sans sm:p-6">
+    <Container aria-label="Reviews"><div className="mx-auto max-w-3xl space-y-5 py-4 font-sans sm:py-6">
       <PageHeader
         title="Reviews"
         subtitle="App-wide feedback from the Ticket Bro community"
@@ -234,8 +233,7 @@ const ReviewsPage = () => {
           )}
         </>
       )}
-    </div>
-    </Container>
+    </div></Container>
   );
 };
 

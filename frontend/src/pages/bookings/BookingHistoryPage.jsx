@@ -74,7 +74,7 @@ const BookingHistoryPage = () => {
   useEffect(() => { fetch(); }, [fetch]);
 
   return (
-    <Container className="py-6 space-y-6 font-sans">
+    <Container aria-label="My bookings" className="py-6 space-y-6 font-sans">
       <PageHeader title="My Bookings" subtitle="View and manage your ticket bookings"
         actions={[{ label: 'Refresh', icon: RefreshCw, onClick: fetch, variant: 'outline' }]}
       />

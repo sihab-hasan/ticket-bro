@@ -68,22 +68,21 @@ const CancelBookingPage = () => {
     }
   };
 
-  if (loading) return <div className="p-4 sm:p-6 space-y-4"><Skeleton className="h-8 w-48" /><Skeleton className="h-64 w-full rounded-2xl" /></div>;
+  if (loading) return <Container><div className="py-4 space-y-4"><Skeleton className="h-8 w-48" /><Skeleton className="h-64 w-full rounded-2xl" /></div></Container>;
 
   if (cancelled) return (
-    <Container className="py-6 text-center space-y-4 font-sans">
+    <Container><div className="py-6 max-w-md mx-auto text-center space-y-4 font-sans">
       <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mx-auto">
         <CheckCircle2 className="h-8 w-8 text-green-500" />
       </div>
       <h2 className="text-xl font-extrabold font-heading">Booking Cancelled</h2>
       <p className="text-sm text-muted-foreground">Your booking has been cancelled. {refundInfo.amount > 0 ? `A refund of ${formatPrice(refundInfo.amount)} will be processed to your original payment method within 5-10 business days.` : 'No refund is applicable for this cancellation.'}</p>
       <Button onClick={() => navigate(ROUTES.BOOKINGS.ROOT)} className="w-full font-bold">Back to My Bookings</Button>
-    </div>
+    </div></Container>
   );
 
   return (
-    <Container className="py-6 font-sans">
-    <div className="p-4 sm:p-6 max-w-lg mx-auto space-y-5 font-sans">
+    <Container aria-label="Cancel booking"><div className="py-5 max-w-lg mx-auto space-y-5 font-sans">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate(ROUTES.BOOKINGS.DETAIL(bookingId))}>
           <ArrowLeft className="h-4 w-4" />
@@ -161,7 +160,7 @@ const CancelBookingPage = () => {
           {cancelling ? <><span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />Cancelling…</> : <><XCircle className="h-4 w-4 mr-2" />Confirm Cancel</>}
         </Button>
       </div>
-    </Container>
+    </div></Container>
   );
 };
 

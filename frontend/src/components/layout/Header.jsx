@@ -454,8 +454,8 @@ const Header = () => {
   const { setQuery }                         = useSearch();
   const { selectedLocation, changeLocation, locations } = useLocationCtx();
   const { navigationItems } = useBrowse();
-  const msgUnreadCount    = useSelector(selectUnreadCount);
-  const notifUnreadCount  = useNotifCount(isAuthenticated);
+  const msgUnreadCount   = useSelector(selectUnreadCount);
+  const notifUnreadCount = useNotifCount(isAuthenticated);
 
   // "Create Event" CTA — only for organizer / admin
   const canCreateEvent = isAuthenticated && hasPermission("event:create");
