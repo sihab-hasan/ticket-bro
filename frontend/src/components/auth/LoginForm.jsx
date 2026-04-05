@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 
 import { useDispatch, useSelector } from "react-redux";
@@ -81,6 +81,11 @@ const LoginForm = () => {
   const [showPw, setShowPw] = useState(false);
   const [unverified, setUnverified] = useState(false);
 
+  // Show OAuth failure message when redirected back with ?error=oauth_failed
+  const oauthError = searchParams.get("error") === "oauth_failed"
+    ? "Social sign-in failed. Please try again or use email instead."
+    : null;
+
   const {
     register,
     handleSubmit,
@@ -144,6 +149,9 @@ const LoginForm = () => {
       <Divider label="or sign in with email" />
 
       {unverified && <UnverifiedBanner />}
+      {oauthError && (
+        <p className="text-[0.75rem] text-destructive mb-3 text-center">{oauthError}</p>
+      )}
       {error && !unverified && (
         <p className="text-[0.75rem] text-destructive mb-3 text-center">
           {error}

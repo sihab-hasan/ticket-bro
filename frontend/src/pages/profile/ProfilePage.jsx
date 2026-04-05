@@ -518,7 +518,7 @@ const ProfilePage = () => {
           desc="Sign out of your account"
           danger
           onClick={() =>
-            dispatch(logoutUser()).then(() => navigate(ROUTES.AUTH.LOGIN))
+            dispatch(logoutUser()).then(() => navigate('/?auth=login'))
           }
         />
       </Card>
