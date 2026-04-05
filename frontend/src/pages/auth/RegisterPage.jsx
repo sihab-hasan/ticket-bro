@@ -53,7 +53,7 @@ const RegisterPage = () => {
     const result = await dispatch(registerUser(data));
     if (!result.error) {
       // Navigate to verify-email notice page (System B)
-      navigate(`${ROUTES.AUTH.VERIFY_EMAIL}?notice=true`, { replace: true });
+      navigate(`${ROUTES.AUTH.VERIFY_EMAIL}?notice=true`, { replace: true, state: { email: data.email } });
     }
   };
 
