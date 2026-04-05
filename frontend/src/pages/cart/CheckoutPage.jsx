@@ -101,11 +101,11 @@ const CheckoutPage = () => {
 
   if (loading)
     return (
-      <Container aria-label="Checkout loading"><div className="py-4 space-y-4 max-w-lg mx-auto">
+      <Container className="py-6">
         {[1, 2, 3].map((i) => (
           <Skeleton key={i} className="h-36 rounded-2xl" />
         ))}
-      </div>
+      </Container>
     );
 
   const items = cart?.items || [];
@@ -117,7 +117,7 @@ const CheckoutPage = () => {
   const total = Math.max(0, subtotal - discount + serviceFee);
 
   return (
-    <Container aria-label="Checkout"><div className="py-5 max-w-lg mx-auto space-y-5 font-sans">
+    <Container className="py-6 space-y-5 font-sans">
       <div className="flex items-center gap-3">
         <Button
           variant="ghost"
@@ -296,7 +296,7 @@ const CheckoutPage = () => {
         By placing your order you agree to our Terms of Service and Privacy
         Policy.
       </p>
-    </div></Container>
+    </Container>
   );
 };
 

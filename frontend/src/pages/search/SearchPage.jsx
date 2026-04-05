@@ -28,7 +28,7 @@ const SearchPage = () => {
   };
 
   return (
-    <Container aria-label="Search page" className="py-6 space-y-8 font-sans">
+    <Container className="py-6 space-y-8 font-sans">
       {/* Hero search */}
       <div className="pt-6 pb-2 text-center space-y-4">
         <h1 className="text-2xl font-extrabold font-heading">Find Your Next Experience</h1>

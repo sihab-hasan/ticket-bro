@@ -5,6 +5,7 @@ import { XCircle, RefreshCw, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ROUTES } from '@/app/AppRoutes';
+import Container from '@/components/layout/Container';
 
 const PaymentFailedPage = () => {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ const PaymentFailedPage = () => {
   const bookingRef = searchParams.get('bookingRef') || searchParams.get('bookingId');
 
   return (
+    <Container className="py-6">
     <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center font-sans space-y-5">
       <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center">
         <XCircle className="h-10 w-10 text-red-500" />
@@ -38,6 +40,7 @@ const PaymentFailedPage = () => {
         <Link to={ROUTES.BOOKINGS.ROOT}><Button variant="outline" className="w-full"><ArrowLeft className="h-4 w-4 mr-2" />Back to Bookings</Button></Link>
       </div>
     </div>
+    </Container>
   );
 };
 

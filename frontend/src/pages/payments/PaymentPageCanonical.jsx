@@ -12,6 +12,7 @@ import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
 import { bookingService, paymentsService } from '@/api';
 import { getApiErrorMessage } from '@/api/client';
+import Container from '@/components/layout/Container';
 
 const stripePublicKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY || '';
 const stripePromise = stripePublicKey ? loadStripe(stripePublicKey) : null;
@@ -224,6 +225,7 @@ const PaymentPageCanonical = () => {
   }
 
   return (
+    <Container className="py-6">
     <div className="p-4 sm:p-6 max-w-lg mx-auto space-y-5 font-sans">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate(-1)}>
@@ -271,6 +273,7 @@ const PaymentPageCanonical = () => {
         />
       )}
     </div>
+    </Container>
   );
 };
 
