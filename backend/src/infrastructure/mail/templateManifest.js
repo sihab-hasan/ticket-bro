@@ -18,12 +18,12 @@ const getGreetingName = (data = {}) =>
 const manifest = {
   welcome: {
     fileName: "welcome.html",
-    subject: "Welcome to {{appName}}, {{greetingName}}! Please verify your email",
-    previewText: "Welcome to {{appName}}",
-    required: ["verificationUrl"],
+    subject: "Welcome to {{appName}}, {{greetingName}}! You're all set 🎉",
+    previewText: "Your account is active — start exploring events",
+    required: ["browseUrl"],
     prepare: (data) => ({
       greetingName: getGreetingName(data),
-      verificationExpiresIn: env.EMAIL_VERIFICATION_EXPIRES_IN || "24h",
+      browseUrl: data.browseUrl || `${FRONTEND_URL}/events`,
     }),
   },
   verifyEmail: {
