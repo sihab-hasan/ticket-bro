@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ROUTES } from '@/app/AppRoutes';
+import Container from '@/components/layout/Container';
 
 const CATEGORIES = [
   { label: 'Music', icon: Music, color: 'bg-purple-500/10 text-purple-500 border-purple-500/20' },
@@ -27,7 +28,7 @@ const SearchPage = () => {
   };
 
   return (
-    <div className="p-4 sm:p-6 space-y-8 font-sans">
+    <Container aria-label="Search page" className="py-6 space-y-8 font-sans">
       {/* Hero search */}
       <div className="pt-6 pb-2 text-center space-y-4">
         <h1 className="text-2xl font-extrabold font-heading">Find Your Next Experience</h1>
@@ -76,7 +77,7 @@ const SearchPage = () => {
         </div>
         <Button variant="outline" size="sm" className="font-semibold" onClick={() => go('events in Dhaka')}>Explore</Button>
       </div>
-    </div>
+    </Container>
   );
 };
 
