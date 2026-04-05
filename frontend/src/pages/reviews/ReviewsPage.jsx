@@ -11,6 +11,7 @@ import { formatDate } from "@/utils/formatters";
 import { toast } from "@/components/shared/common";
 import { ROUTES } from "@/app/AppRoutes";
 import { reviewsService } from "@/api";
+import Container from '@/components/layout/Container';
 
 const Stars = ({ rating, size = "sm" }) => (
   <div className="flex items-center gap-0.5">
@@ -87,7 +88,7 @@ const ReviewsPage = () => {
   const ratingDistribution = summary?.ratingDistribution || [];
 
   return (
-    <div className="mx-auto max-w-3xl space-y-5 p-4 font-sans sm:p-6">
+    <Container aria-label="Reviews"><div className="mx-auto max-w-3xl space-y-5 py-4 font-sans sm:py-6">
       <PageHeader
         title="Reviews"
         subtitle="App-wide feedback from the Ticket Bro community"
@@ -232,7 +233,7 @@ const ReviewsPage = () => {
           )}
         </>
       )}
-    </div>
+    </div></Container>
   );
 };
 

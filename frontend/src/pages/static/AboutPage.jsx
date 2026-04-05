@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '@/app/AppRoutes';
+import Container from '@/components/layout/Container';
 
 const StatBox = ({ value, label }) => (
   <div className="text-center">
@@ -14,7 +15,7 @@ const StatBox = ({ value, label }) => (
 );
 
 const AboutPage = () => (
-  <div className="font-sans">
+  <Container aria-label="About" className="font-sans">
     {/* Hero */}
     <div className="px-6 py-14 text-center bg-gradient-to-b from-primary/10 to-transparent">
       <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-4">
@@ -68,7 +69,7 @@ const AboutPage = () => (
         <Link to={ROUTES.BROWSE.ROOT}><Button className="font-bold px-8">Explore Events</Button></Link>
       </div>
     </div>
-  </div>
+  </Container>
 );
 
 export default AboutPage;

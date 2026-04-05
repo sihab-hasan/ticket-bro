@@ -22,7 +22,7 @@ import {
   Menu, Search, ShoppingBag, Sun, Moon, Monitor,
   MapPin, ChevronDown, Check, Locate, X,
   ChevronLeft, Calendar, ChevronRight,
-  PlusCircle, Tag, TrendingUp, MessageSquare,
+  PlusCircle, Tag, TrendingUp, MessageSquare, Bell,
 } from "lucide-react";
 import { Button }    from "@/components/ui/button";
 import { Badge }     from "@/components/ui/badge";
@@ -43,6 +43,26 @@ import darkLogo      from "@/assets/images/ticket-bro-logo-dark-mode.png";
 import UserMenu      from "@/components/layout/UserMenu";
 import { useSelector } from "react-redux";
 import { selectUnreadCount } from "@/store/slices/messagingSlice";
+import { notificationsService } from "@/api";
+
+// Lightweight hook — polls notification unread count every 60 s
+const useNotifCount = (isAuthenticated) => {
+  const [count, setCount] = React.useState(0);
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let cancelled = false;
+    const fetch = async () => {
+      try {
+        const data = await notificationsService.getUnreadCount();
+        if (!cancelled) setCount(data?.count ?? data?.unreadCount ?? 0);
+      } catch {}
+    };
+    fetch();
+    const id = setInterval(fetch, 60_000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [isAuthenticated]);
+  return count;
+};
 
 /* ════════════════════════════════════════════════════════════════
    LOCATION SELECTOR
@@ -434,7 +454,8 @@ const Header = () => {
   const { setQuery }                         = useSearch();
   const { selectedLocation, changeLocation, locations } = useLocationCtx();
   const { navigationItems } = useBrowse();
-  const msgUnreadCount = useSelector(selectUnreadCount);
+  const msgUnreadCount    = useSelector(selectUnreadCount);
+  const notifUnreadCount  = useNotifCount(isAuthenticated);
 
   // "Create Event" CTA — only for organizer / admin
   const canCreateEvent = isAuthenticated && hasPermission("event:create");
@@ -527,6 +548,19 @@ const Header = () => {
                 </Button>
               )}
 
+              {isAuthenticated && (
+                <Button variant="ghost" size="icon" className="relative h-8 w-8 xs:h-9 xs:w-9 shrink-0" asChild>
+                  <Link to="/notifications" aria-label={notifUnreadCount > 0 ? `Notifications, ${notifUnreadCount} unread` : "Notifications"}>
+                    <Bell className="h-4 w-4" />
+                    {notifUnreadCount > 0 && (
+                      <Badge className="absolute -top-0.5 -right-0.5 h-4 w-4 flex items-center justify-center p-0 bg-primary text-primary-foreground rounded-full text-[9px] font-bold">
+                        {notifUnreadCount > 9 ? "9+" : notifUnreadCount}
+                      </Badge>
+                    )}
+                  </Link>
+                </Button>
+              )}
+
               <ThemeSwitcher theme={theme} setThemeMode={setThemeMode} size="sm" />
             </div>
           </div>
@@ -607,6 +641,19 @@ const Header = () => {
                   {msgUnreadCount > 0 && (
                     <Badge className="absolute -top-0.5 -right-0.5 h-4 w-4 flex items-center justify-center p-0 bg-primary text-primary-foreground rounded-full text-[9px] font-bold">
                       {msgUnreadCount > 9 ? "9+" : msgUnreadCount}
+                    </Badge>
+                  )}
+                </Link>
+              </Button>
+            )}
+
+            {isAuthenticated && (
+              <Button variant="ghost" size="icon" className="relative h-9 w-9 shrink-0" asChild>
+                <Link to="/notifications" aria-label={notifUnreadCount > 0 ? `Notifications, ${notifUnreadCount} unread` : "Notifications"}>
+                  <Bell className="h-4 w-4" />
+                  {notifUnreadCount > 0 && (
+                    <Badge className="absolute -top-0.5 -right-0.5 h-4 w-4 flex items-center justify-center p-0 bg-primary text-primary-foreground rounded-full text-[9px] font-bold">
+                      {notifUnreadCount > 9 ? "9+" : notifUnreadCount}
                     </Badge>
                   )}
                 </Link>
