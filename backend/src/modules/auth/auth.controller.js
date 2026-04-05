@@ -300,10 +300,10 @@ const googleOAuthCallback = async (req, res) => {
 
     setRefreshTokenCookie(res, result.tokens.refreshToken);
 
-    return res.redirect(`${env.FRONTEND_URL}/auth/oauth-success`);
+    return res.redirect(`${env.FRONTEND_URL}/?auth=oauth-success`);
   } catch (error) {
     clearRefreshTokenCookie(res);
-    return res.redirect(`${env.FRONTEND_URL}/auth/login?error=oauth_failed`);
+    return res.redirect(`${env.FRONTEND_URL}/?auth=login&error=oauth_failed`);
   }
 };
 
@@ -317,10 +317,10 @@ const facebookOAuthCallback = async (req, res) => {
 
     setRefreshTokenCookie(res, result.tokens.refreshToken);
 
-    return res.redirect(`${env.FRONTEND_URL}/auth/oauth-success`);
+    return res.redirect(`${env.FRONTEND_URL}/?auth=oauth-success`);
   } catch (error) {
     clearRefreshTokenCookie(res);
-    return res.redirect(`${env.FRONTEND_URL}/auth/login?error=oauth_failed`);
+    return res.redirect(`${env.FRONTEND_URL}/?auth=login&error=oauth_failed`);
   }
 };
 

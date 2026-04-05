@@ -141,7 +141,7 @@ const ChangePasswordPage = () => {
       });
       setDone(true);
       setTimeout(
-        () => dispatch(logoutUser()).then(() => navigate(ROUTES.AUTH.LOGIN)),
+        () => dispatch(logoutUser()).then(() => navigate('/?auth=login')),
         3000,
       );
     } catch (err) {
