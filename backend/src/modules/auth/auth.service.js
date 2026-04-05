@@ -77,7 +77,7 @@ class AuthService {
     );
 
     const verificationUrl = `${env.FRONTEND_URL}/auth/verify-email?token=${verificationToken}`;
-    await emailService.sendWelcomeEmail({
+    await emailService.sendVerificationEmail({
       to: user.email,
       firstName: user.firstName,
       verificationUrl,
@@ -324,6 +324,16 @@ class AuthService {
 
     const updatedUser = await authRepository.markEmailAsVerified(user._id);
 
+    // Send welcome email now that the address is confirmed
+    const browseUrl = `${env.FRONTEND_URL}/browse`;
+    await emailService.sendWelcomeEmail({
+      to: updatedUser.email,
+      firstName: updatedUser.firstName,
+      browseUrl,
+    }).catch((err) =>
+      logger.warn(`Failed to send welcome email for ${updatedUser.email}: ${err.message}`)
+    );
+
     logger.info(`Email verified for user: ${user.email}`);
 
     return {
@@ -333,17 +343,15 @@ class AuthService {
   }
 
   async resendVerificationEmail(email) {
+    const GENERIC_MSG =
+      "If an account with this email exists, a new verification link has been sent.";
+
     const user = await authRepository.findUserByEmail(email);
 
-    if (!user) {
-      return {
-        message:
-          "If an account with this email exists, a verification email has been sent.",
-      };
-    }
-
-    if (user.isEmailVerified) {
-      throw new BadRequestError("This email address is already verified.");
+    // Always return the generic message for not-found, already-verified,
+    // or inactive accounts — avoids leaking account existence.
+    if (!user || user.isEmailVerified || !user.isActive) {
+      return { message: GENERIC_MSG };
     }
 
     const verificationToken = generateEmailVerificationToken({
@@ -353,7 +361,7 @@ class AuthService {
     });
 
     const hashedToken = hashToken(verificationToken);
-    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
     await authRepository.setEmailVerificationToken(
       user._id,
       hashedToken,
@@ -361,16 +369,19 @@ class AuthService {
     );
 
     const verificationUrl = `${env.FRONTEND_URL}/auth/verify-email?token=${verificationToken}`;
-    await emailService.sendVerificationEmail({
+
+    // Non-blocking — a mail failure should not surface a 500 to the user
+    emailService.sendVerificationEmail({
       to: user.email,
       firstName: user.firstName,
       verificationUrl,
-    });
+    }).catch((err) =>
+      logger.warn(`Failed to resend verification email to ${user.email}: ${err.message}`)
+    );
 
-    return {
-      message:
-        "If an account with this email exists, a verification email has been sent.",
-    };
+    logger.info(`Verification email resent to: ${user.email}`);
+
+    return { message: GENERIC_MSG };
   }
 
   // ── Forgot Password ─────────────────────────────────────────────────────────
