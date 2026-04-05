@@ -1,18 +1,8 @@
 // frontend/src/app/AppRoutes.jsx
 //
-// ╔══════════════════════════════════════════════════════════════╗
-// ║  DUAL AUTH SYSTEM ROUTING                                    ║
-// ║                                                              ║
-// ║  System A — AuthModal (query-param)                         ║
-// ║    Triggered by ?auth=login etc., rendered by <AuthModal />  ║
-// ║    mounted in App.jsx. No route entries needed here.         ║
-// ║    ProtectedRoute redirects to /?auth=login.                 ║
-// ║                                                              ║
-// ║  System B — AuthLayout (dedicated /auth/* routes)            ║
-// ║    Full-page versions for direct nav & backend email links.  ║
-// ║    AuthLayout redirects authenticated users to "/".          ║
-// ║    /auth/verify-email and /auth/oauth-success are PUBLIC.    ║
-// ╚══════════════════════════════════════════════════════════════╝
+// Single auth system: Modal-based (?auth=<type> query param).
+// All auth flows — including email verification and OAuth callbacks —
+// are handled by AuthModal mounted in App.jsx. No dedicated auth routes.
 
 import React, { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
@@ -20,7 +10,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { PageLoader } from "@/components/shared/Loader";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
-// ── Layouts ──────────────────────────────────────────────────────────────────
+// ── Layouts ───────────────────────────────────────────────────────────────────
 import MainLayout from "@/components/layout/MainLayout";
 import UserLayout from "@/components/layout/UserLayout";
 import OrganizerLayout from "@/components/layout/OrganizerLayout";
@@ -36,155 +26,72 @@ import SubCategoryPage from "@/pages/browse/SubCategory/SubCategoryPage";
 import EventTypePage from "@/pages/browse/EventType/EventTypePage";
 import EventDetailsPage from "@/pages/browse/EventDetails/EventDetailsPage";
 import MaintenancePage from "@/pages/error/MaintenancePage";
-
-// Auth pages — eager (email links must land instantly)
-import LoginPage from "@/pages/auth/LoginPage";
-import RegisterPage from "@/pages/auth/RegisterPage";
-import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
-import ResetPasswordPage from "@/pages/auth/ResetPasswordPage";
-import OTPVerificationPage from "@/pages/auth/OTPVerificationPage";
-import VerifyEmailPage from "@/pages/auth/VerifyEmailPage";
-import OAuthSuccessPage from "@/pages/auth/OAuthSuccessPage";
 import SystemSecurityPage from "@/pages/admin/SystemSecurityPage";
 import SystemHealthPage from "@/pages/admin/SystemHealthPage";
 import TrandingsPage from "@/pages/browse/Highlighted/TrandingsPage";
 import OffersPage from "@/pages/browse/Highlighted/OffersPage";
 
+// Standalone auth-adjacent pages — eager (email links must land instantly)
+
 // ── Lazy loaded ───────────────────────────────────────────────────────────────
 const HomePage = lazy(() => import("@/pages/home/HomePage"));
 const SearchPage = lazy(() => import("@/pages/search/SearchPage"));
-const SearchResultsPage = lazy(
-  () => import("@/pages/search/SearchResultsPage"),
-);
+const SearchResultsPage = lazy(() => import("@/pages/search/SearchResultsPage"));
 const CartPage = lazy(() => import("@/pages/cart/CartPage"));
 const CheckoutPage = lazy(() => import("@/pages/cart/CheckoutPage"));
 const PaymentPage = lazy(() => import("@/pages/payments/PaymentPage"));
-const PaymentSuccessPage = lazy(
-  () => import("@/pages/payments/PaymentSuccessPage"),
-);
-const PaymentFailedPage = lazy(
-  () => import("@/pages/payments/PaymentFailedPage"),
-);
-const PaymentHistoryPage = lazy(
-  () => import("@/pages/payments/PaymentHistoryPage"),
-);
-const PaymentDetailsPage = lazy(
-  () => import("@/pages/payments/PaymentDetailsPage"),
-);
-const TicketSelectionPage = lazy(
-  () => import("@/pages/tickets/TicketSelectionPage"),
-);
-const SeatSelectionPage = lazy(
-  () => import("@/pages/tickets/SeatSelectionPage"),
-);
-const TicketBookingPage = lazy(
-  () => import("@/pages/tickets/TicketBookingPage"),
-);
-const TicketPaymentPage = lazy(
-  () => import("@/pages/tickets/TicketPaymentPage"),
-);
-const TicketConfirmationPage = lazy(
-  () => import("@/pages/tickets/TicketConfirmationPage"),
-);
-const TicketDownloadPage = lazy(
-  () => import("@/pages/tickets/TicketDownloadPage"),
-);
-const BookingHistoryPage = lazy(
-  () => import("@/pages/bookings/BookingHistoryPage"),
-);
-const BookingDetailsPage = lazy(
-  () => import("@/pages/bookings/BookingDetailsPage"),
-);
-const CancelBookingPage = lazy(
-  () => import("@/pages/bookings/CancelBookingPage"),
-);
+const PaymentSuccessPage = lazy(() => import("@/pages/payments/PaymentSuccessPage"));
+const PaymentFailedPage = lazy(() => import("@/pages/payments/PaymentFailedPage"));
+const PaymentHistoryPage = lazy(() => import("@/pages/payments/PaymentHistoryPage"));
+const PaymentDetailsPage = lazy(() => import("@/pages/payments/PaymentDetailsPage"));
+const TicketSelectionPage = lazy(() => import("@/pages/tickets/TicketSelectionPage"));
+const SeatSelectionPage = lazy(() => import("@/pages/tickets/SeatSelectionPage"));
+const TicketBookingPage = lazy(() => import("@/pages/tickets/TicketBookingPage"));
+const TicketPaymentPage = lazy(() => import("@/pages/tickets/TicketPaymentPage"));
+const TicketConfirmationPage = lazy(() => import("@/pages/tickets/TicketConfirmationPage"));
+const TicketDownloadPage = lazy(() => import("@/pages/tickets/TicketDownloadPage"));
+const BookingHistoryPage = lazy(() => import("@/pages/bookings/BookingHistoryPage"));
+const BookingDetailsPage = lazy(() => import("@/pages/bookings/BookingDetailsPage"));
+const CancelBookingPage = lazy(() => import("@/pages/bookings/CancelBookingPage"));
 const WaitlistPage = lazy(() => import("@/pages/bookings/WaitlistPage"));
 const ProfilePage = lazy(() => import("@/pages/profile/ProfilePage"));
 const EditProfilePage = lazy(() => import("@/pages/profile/EditProfilePage"));
-const ChangePasswordPage = lazy(
-  () => import("@/pages/profile/ChangePasswordPage"),
-);
-const NotificationSettingsPage = lazy(
-  () => import("@/pages/profile/NotificationSettingsPage"),
-);
+const ChangePasswordPage = lazy(() => import("@/pages/profile/ChangePasswordPage"));
+const NotificationSettingsPage = lazy(() => import("@/pages/profile/NotificationSettingsPage"));
 const InboxPage = lazy(() => import("@/pages/messaging/InboxPage"));
-const ConversationPage = lazy(
-  () => import("@/pages/messaging/ConversationPage"),
-);
+const ConversationPage = lazy(() => import("@/pages/messaging/ConversationPage"));
 const ChatPage = lazy(() => import("@/pages/messaging/ChatPage"));
-const NotificationsPage = lazy(
-  () => import("@/pages/notifications/NotificationsPage"),
-);
-const NotificationDetailPage = lazy(
-  () => import("@/pages/notifications/NotificationDetailPage"),
-);
+const NotificationsPage = lazy(() => import("@/pages/notifications/NotificationsPage"));
+const NotificationDetailPage = lazy(() => import("@/pages/notifications/NotificationDetailPage"));
 const ReviewsPage = lazy(() => import("@/pages/reviews/ReviewsPage"));
 const WriteReviewPage = lazy(() => import("@/pages/reviews/WriteReviewPage"));
-const OrganizerDashboard = lazy(
-  () => import("@/pages/organizer/OrganizerDashboard"),
-);
+const OrganizerDashboard = lazy(() => import("@/pages/organizer/OrganizerDashboard"));
 const CreateEventPage = lazy(() => import("@/pages/organizer/CreateEventPage"));
 const EditEventPage = lazy(() => import("@/pages/organizer/EditEventPage"));
-const OrgEventManagementPage = lazy(
-  () => import("@/pages/organizer/EventManagementPage"),
-);
-const OrgTicketManagementPage = lazy(
-  () => import("@/pages/organizer/TicketManagementPage"),
-);
-const OrgBookingManagementPage = lazy(
-  () => import("@/pages/organizer/BookingManagementPage"),
-);
+const OrgEventManagementPage = lazy(() => import("@/pages/organizer/EventManagementPage"));
+const OrgTicketManagementPage = lazy(() => import("@/pages/organizer/TicketManagementPage"));
+const OrgBookingManagementPage = lazy(() => import("@/pages/organizer/BookingManagementPage"));
 const OrgRevenuePage = lazy(() => import("@/pages/organizer/RevenuePage"));
 const OrgAnalyticsPage = lazy(() => import("@/pages/organizer/AnalyticsPage"));
-const OrganizerSettingsPage = lazy(
-  () => import("@/pages/organizer/SettingsPage"),
-);
+const OrganizerSettingsPage = lazy(() => import("@/pages/organizer/SettingsPage"));
 const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
-const AdminUserManagementPage = lazy(
-  () => import("@/pages/admin/UserManagementPage"),
-);
-const AdminEventManagementPage = lazy(
-  () => import("@/pages/admin/EventManagementPage"),
-);
-const AdminBookingManagementPage = lazy(
-  () => import("@/pages/admin/BookingManagementPage"),
-);
-const AdminPaymentManagementPage = lazy(
-  () => import("@/pages/admin/PaymentManagementPage"),
-);
-const AdminAnalyticsDashboard = lazy(
-  () => import("@/pages/admin/AnalyticsDashboard"),
-);
+const AdminUserManagementPage = lazy(() => import("@/pages/admin/UserManagementPage"));
+const AdminEventManagementPage = lazy(() => import("@/pages/admin/EventManagementPage"));
+const AdminBookingManagementPage = lazy(() => import("@/pages/admin/BookingManagementPage"));
+const AdminPaymentManagementPage = lazy(() => import("@/pages/admin/PaymentManagementPage"));
+const AdminAnalyticsDashboard = lazy(() => import("@/pages/admin/AnalyticsDashboard"));
 const AdminReportsPage = lazy(() => import("@/pages/admin/ReportsPage"));
 const AdminPromotionsPage = lazy(() => import("@/pages/admin/PromotionsPage"));
-const AdminSystemSettingsPage = lazy(
-  () => import("@/pages/admin/SystemSettingsPage"),
-);
+const AdminSystemSettingsPage = lazy(() => import("@/pages/admin/SystemSettingsPage"));
 const AdminLogsPage = lazy(() => import("@/pages/admin/LogsPage"));
-const ModeratorDashboard = lazy(
-  () => import("@/pages/moderator/ModeratorDashboard"),
-);
-const ReportsQueuePage = lazy(
-  () => import("@/pages/moderator/ReportsQueuePage"),
-);
-const EventModerationPage = lazy(
-  () => import("@/pages/moderator/EventModerationPage"),
-);
-const UserModerationPage = lazy(
-  () => import("@/pages/moderator/UserModerationPage"),
-);
-const SuperAdminDashboard = lazy(
-  () => import("@/pages/super-admin/SuperAdminDashboard"),
-);
-const RoleManagementPage = lazy(
-  () => import("@/pages/super-admin/RoleManagementPage"),
-);
-const AuditCenterPage = lazy(
-  () => import("@/pages/super-admin/AuditCenterPage"),
-);
-const PlatformControlPage = lazy(
-  () => import("@/pages/super-admin/PlatformControlPage"),
-);
+const ModeratorDashboard = lazy(() => import("@/pages/moderator/ModeratorDashboard"));
+const ReportsQueuePage = lazy(() => import("@/pages/moderator/ReportsQueuePage"));
+const EventModerationPage = lazy(() => import("@/pages/moderator/EventModerationPage"));
+const UserModerationPage = lazy(() => import("@/pages/moderator/UserModerationPage"));
+const SuperAdminDashboard = lazy(() => import("@/pages/super-admin/SuperAdminDashboard"));
+const RoleManagementPage = lazy(() => import("@/pages/super-admin/RoleManagementPage"));
+const AuditCenterPage = lazy(() => import("@/pages/super-admin/AuditCenterPage"));
+const PlatformControlPage = lazy(() => import("@/pages/super-admin/PlatformControlPage"));
 const AboutPage = lazy(() => import("@/pages/static/AboutPage"));
 const ContactPage = lazy(() => import("@/pages/static/ContactPage"));
 const FAQPage = lazy(() => import("@/pages/static/FAQPage"));
@@ -193,9 +100,7 @@ const TermsPage = lazy(() => import("@/pages/static/TermsPage"));
 const NotFoundPage = lazy(() => import("@/pages/error/NotFoundPage"));
 const ForbiddenPage = lazy(() => import("@/pages/error/ForbiddenPage"));
 const ServerErrorPage = lazy(() => import("@/pages/error/ServerErrorPage"));
-const HttpVersionNotSupportedPage = lazy(
-  () => import("@/pages/error/HttpVersionNotSupportedPage"),
-);
+const HttpVersionNotSupportedPage = lazy(() => import("@/pages/error/HttpVersionNotSupportedPage"));
 
 // ── Route constants ───────────────────────────────────────────────────────────
 export const ROUTES = {
@@ -209,12 +114,11 @@ export const ROUTES = {
     EVENT: (cat, sub, type, slug) => `/${cat}/${sub}/${type}/${slug}`,
   },
 
-  // Legacy — use BROWSE.EVENT when category context is available
   EVENT: (slug) => `/events/${slug}`,
   SEARCH: { ROOT: "/search", RESULTS: "/search/results" },
   CART: { ROOT: "/cart", CHECKOUT: "/cart/checkout" },
 
-  // System A — modal routes (query param)
+  // Auth — modal system (query-param)
   AUTH_MODAL: {
     LOGIN: "/?auth=login",
     REGISTER: "/?auth=register",
@@ -224,16 +128,7 @@ export const ROUTES = {
     VERIFY_NOTICE: "/?auth=verify-notice",
   },
 
-  // System B — full-page /auth/* routes
-  AUTH: {
-    LOGIN: "/auth/login",
-    REGISTER: "/auth/register",
-    FORGOT_PASSWORD: "/auth/forgot-password",
-    RESET_PASSWORD: "/auth/reset-password",
-    VERIFY_OTP: "/auth/verify-otp",
-    VERIFY_EMAIL: "/auth/verify-email",
-    OAUTH_SUCCESS: "/auth/oauth-success",
-  },
+  // Standalone auth-adjacent pages (not modals)
 
   PROFILE: {
     ROOT: "/profile",
@@ -359,25 +254,14 @@ const AppRoutes = () => (
       <Route element={<MainLayout />}>
         <Route path="/" element={<HomePage />} />
 
-        {/* All Events page — only route that uses /browse */}
         <Route path="/browse" element={<BrowsePage />} />
 
-        {/* Category → SubCategory → EventType → EventDetails (no /browse/ prefix) */}
         <Route path="/:categorySlug" element={<CategoryPage />} />
-        <Route
-          path="/:categorySlug/:subCategorySlug"
-          element={<SubCategoryPage />}
-        />
-        <Route
-          path="/:categorySlug/:subCategorySlug/:eventTypeSlug"
-          element={<EventTypePage />}
-        />
-        <Route
-          path="/:categorySlug/:subCategorySlug/:eventTypeSlug/:eventSlug"
-          element={<EventDetailsPage />}
-        />
+        <Route path="/:categorySlug/:subCategorySlug" element={<SubCategoryPage />} />
+        <Route path="/:categorySlug/:subCategorySlug/:eventTypeSlug" element={<EventTypePage />} />
+        <Route path="/:categorySlug/:subCategorySlug/:eventTypeSlug/:eventSlug" element={<EventDetailsPage />} />
 
-        {/* Legacy /events/:slug — keeps old links working */}
+        {/* Legacy /events/:slug */}
         <Route path="/events/:eventSlug" element={<EventDetailsPage />} />
 
         <Route path="/search">
@@ -395,49 +279,12 @@ const AppRoutes = () => (
         <Route path="/faq" element={<FAQPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
-        {/* Redirects for nav links that point to unbuilt pages */}
         <Route path="/offers" element={<OffersPage />} />
         <Route path="/trending" element={<TrandingsPage />} />
         <Route path="/favorites" element={<Navigate to="/profile" replace />} />
         <Route path="/settings" element={<Navigate to="/profile" replace />} />
         <Route path="/calendar" element={<Navigate to="/bookings" replace />} />
       </Route>
-
-      {/* ══════════════════════════════════════════════════════════
-          SYSTEM B — Auth pages (/auth/*)
-          AuthLayout handles redirect-if-authenticated for all
-          EXCEPT verify-email and oauth-success (public=true).
-          Each page imports and renders AuthLayout itself.
-      ══════════════════════════════════════════════════════════ */}
-      <Route path="/auth">
-        {/* Guest-only pages (AuthLayout redirects logged-in users to /) */}
-        <Route path="login" element={<LoginPage />} />
-        <Route path="register" element={<RegisterPage />} />
-        <Route path="forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="reset-password" element={<ResetPasswordPage />} />
-        <Route path="verify-otp" element={<OTPVerificationPage />} />
-
-        {/* Public pages — accessible logged-in or not */}
-        {/* VerifyEmailPage marks its own AuthLayout usages as public */}
-        <Route path="verify-email" element={<VerifyEmailPage />} />
-        {/* OAuthSuccessPage has no AuthLayout — it processes the token then redirects */}
-        <Route path="oauth-success" element={<OAuthSuccessPage />} />
-      </Route>
-
-      {/* Convenience redirects */}
-      <Route path="/login" element={<Navigate to="/auth/login" replace />} />
-      <Route
-        path="/register"
-        element={<Navigate to="/auth/register" replace />}
-      />
-      <Route
-        path="/signup"
-        element={<Navigate to="/auth/register" replace />}
-      />
-      <Route
-        path="/forgot-password"
-        element={<Navigate to="/auth/forgot-password" replace />}
-      />
 
       {/* ══════════════════════════════════════════════════════════
           PROTECTED — Messaging (full-height, no footer)
@@ -500,29 +347,19 @@ const AppRoutes = () => (
       </Route>
 
       {/* ══════════════════════════════════════════════════════════
-          PROTECTED — Organizer + Admin + Super Admin
+          PROTECTED — Organizer
       ══════════════════════════════════════════════════════════ */}
-      <Route
-        element={
-          <ProtectedRoute requiredPanel="organizer" />
-        }
-      >
+      <Route element={<ProtectedRoute requiredPanel="organizer" />}>
         <Route element={<OrganizerLayout />}>
           <Route path="/organizer">
-            <Route
-              index
-              element={<Navigate to="/organizer/dashboard" replace />}
-            />
+            <Route index element={<Navigate to="/organizer/dashboard" replace />} />
             <Route path="dashboard" element={<OrganizerDashboard />} />
             <Route path="events">
               <Route index element={<OrgEventManagementPage />} />
               <Route path="create" element={<CreateEventPage />} />
               <Route path="edit/:eventId" element={<EditEventPage />} />
               <Route path="tickets" element={<OrgTicketManagementPage />} />
-              <Route
-                path="tickets/:eventId"
-                element={<OrgTicketManagementPage />}
-              />
+              <Route path="tickets/:eventId" element={<OrgTicketManagementPage />} />
             </Route>
             <Route path="bookings">
               <Route index element={<OrgBookingManagementPage />} />
@@ -536,13 +373,9 @@ const AppRoutes = () => (
       </Route>
 
       {/* ══════════════════════════════════════════════════════════
-          PROTECTED — Admin + Super Admin only
+          PROTECTED — Admin
       ══════════════════════════════════════════════════════════ */}
-      <Route
-        element={
-          <ProtectedRoute requiredPanel="admin" />
-        }
-      >
+      <Route element={<ProtectedRoute requiredPanel="admin" />}>
         <Route element={<AdminLayout />}>
           <Route path="/admin">
             <Route index element={<Navigate to="/admin/dashboard" replace />} />
@@ -557,17 +390,11 @@ const AppRoutes = () => (
             </Route>
             <Route path="bookings">
               <Route index element={<AdminBookingManagementPage />} />
-              <Route
-                path=":bookingId"
-                element={<AdminBookingManagementPage />}
-              />
+              <Route path=":bookingId" element={<AdminBookingManagementPage />} />
             </Route>
             <Route path="payments">
               <Route index element={<AdminPaymentManagementPage />} />
-              <Route
-                path=":paymentId"
-                element={<AdminPaymentManagementPage />}
-              />
+              <Route path=":paymentId" element={<AdminPaymentManagementPage />} />
             </Route>
             <Route path="analytics" element={<AdminAnalyticsDashboard />} />
             <Route path="reports" element={<AdminReportsPage />} />
@@ -583,15 +410,12 @@ const AppRoutes = () => (
       </Route>
 
       {/* ══════════════════════════════════════════════════════════
-          PROTECTED — Moderator + Admin + Super Admin
+          PROTECTED — Moderator
       ══════════════════════════════════════════════════════════ */}
       <Route element={<ProtectedRoute requiredPanel="moderator" />}>
         <Route element={<ModeratorLayout />}>
           <Route path="/moderator">
-            <Route
-              index
-              element={<Navigate to="/moderator/dashboard" replace />}
-            />
+            <Route index element={<Navigate to="/moderator/dashboard" replace />} />
             <Route path="dashboard" element={<ModeratorDashboard />} />
             <Route path="reports" element={<ReportsQueuePage />} />
             <Route path="events" element={<EventModerationPage />} />
@@ -601,15 +425,12 @@ const AppRoutes = () => (
       </Route>
 
       {/* ══════════════════════════════════════════════════════════
-          PROTECTED — Super Admin only
+          PROTECTED — Super Admin
       ══════════════════════════════════════════════════════════ */}
       <Route element={<ProtectedRoute requiredPanel="super_admin" />}>
         <Route element={<SuperAdminLayout />}>
           <Route path="/super-admin">
-            <Route
-              index
-              element={<Navigate to="/super-admin/dashboard" replace />}
-            />
+            <Route index element={<Navigate to="/super-admin/dashboard" replace />} />
             <Route path="dashboard" element={<SuperAdminDashboard />} />
             <Route path="roles" element={<RoleManagementPage />} />
             <Route path="audit" element={<AuditCenterPage />} />
@@ -627,7 +448,6 @@ const AppRoutes = () => (
         <Route path="/404" element={<NotFoundPage />} />
         <Route path="/500" element={<ServerErrorPage />} />
         <Route path="/505" element={<HttpVersionNotSupportedPage />} />
-        {/* FIX: wildcard — catches all unmatched URLs and shows 404 */}
         <Route path="*" element={<Navigate to="/404" replace />} />
       </Route>
     </Routes>

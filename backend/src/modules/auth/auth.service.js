@@ -76,7 +76,7 @@ class AuthService {
       expires,
     );
 
-    const verificationUrl = `${env.FRONTEND_URL}/auth/verify-email?token=${verificationToken}`;
+    const verificationUrl = `${env.FRONTEND_URL}/?auth=verify-email&token=${verificationToken}`;
     await emailService.sendVerificationEmail({
       to: user.email,
       firstName: user.firstName,
@@ -368,7 +368,7 @@ class AuthService {
       expires,
     );
 
-    const verificationUrl = `${env.FRONTEND_URL}/auth/verify-email?token=${verificationToken}`;
+    const verificationUrl = `${env.FRONTEND_URL}/?auth=verify-email&token=${verificationToken}`;
 
     // Non-blocking — a mail failure should not surface a 500 to the user
     emailService.sendVerificationEmail({
@@ -402,7 +402,7 @@ class AuthService {
     const expires = new Date(Date.now() + 60 * 60 * 1000); // 1h
     await authRepository.setPasswordResetToken(email, hashedToken, expires);
 
-    const resetUrl = `${env.FRONTEND_URL}/auth/reset-password?token=${resetToken}`;
+    const resetUrl = `${env.FRONTEND_URL}/?auth=reset&token=${resetToken}`;
     await emailService.sendPasswordResetEmail({
       to: user.email,
       firstName: user.firstName,
@@ -702,7 +702,7 @@ class AuthService {
         expires,
       );
 
-      const verificationUrl = `${env.FRONTEND_URL}/auth/verify-email?token=${verificationToken}`;
+      const verificationUrl = `${env.FRONTEND_URL}/?auth=verify-email&token=${verificationToken}`;
       await emailService.sendVerificationEmail({
         to: user.email,
         firstName: user.firstName,

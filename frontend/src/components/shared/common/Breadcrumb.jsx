@@ -253,12 +253,6 @@ function buildCrumbs(pathname, params) {
   // ── Auth pages ─────────────────────────────
   if (pathname.startsWith("/auth")) {
     const authMap = {
-      "/auth/login":           "Log In",
-      "/auth/register":        "Create Account",
-      "/auth/forgot-password": "Forgot Password",
-      "/auth/reset-password":  "Reset Password",
-      "/auth/verify-otp":      "Verify OTP",
-      "/auth/verify-email":    "Verify Email",
     };
     crumbs.push({ label: authMap[pathname] || "Auth", to: null });
     return crumbs;

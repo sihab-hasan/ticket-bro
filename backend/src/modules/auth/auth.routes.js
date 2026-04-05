@@ -79,7 +79,7 @@ router.get(
   '/oauth/google/callback',
   passport.authenticate('google', {
     session: false,
-    failureRedirect: `${env.FRONTEND_URL}/auth/login?error=oauth_failed`,
+    failureRedirect: `${env.FRONTEND_URL}/?auth=login&error=oauth_failed`,
   }),
   asyncHandler(controller.googleOAuthCallback),
 );
@@ -99,7 +99,7 @@ router.get(
   '/oauth/facebook/callback',
   passport.authenticate('facebook', {
     session: false,
-    failureRedirect: `${env.FRONTEND_URL}/auth/login?error=oauth_failed`,
+    failureRedirect: `${env.FRONTEND_URL}/?auth=login&error=oauth_failed`,
   }),
   asyncHandler(controller.facebookOAuthCallback),
 );

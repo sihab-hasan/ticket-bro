@@ -1,52 +1,28 @@
 // frontend/src/config/auth.config.js
 //
-// ╔══════════════════════════════════════════════════════════════════╗
-// ║  DUAL AUTH SYSTEM                                                ║
-// ║                                                                  ║
-// ║  System A — AuthModal   (query params, e.g. ?auth=login)        ║
-// ║    • Opened by: ProtectedRoute redirect, nav "Sign in" buttons  ║
-// ║    • Closes by: deleting ?auth param from URL                   ║
-// ║    • Components: AuthModal → LoginForm/RegisterForm/…           ║
-// ║                                                                  ║
-// ║  System B — AuthLayout  (dedicated routes, e.g. /auth/login)    ║
-// ║    • Used by: backend email links, direct navigation            ║
-// ║    • Components: AuthLayout → LoginPage/RegisterPage/…          ║
-// ║                                                                  ║
-// ║  Both systems share the same Redux store (authSlice) and useAuth ║
-// ╚══════════════════════════════════════════════════════════════════╝
+// All auth is query-param modal. No dedicated /auth/* or standalone pages.
+//
+// Every flow is triggered by ?auth=<type> on whatever URL the user is on.
+// The AuthModal component (mounted once in App.jsx) reads this param and
+// renders the appropriate panel as an overlay.
 
 const authConfig = {
-  apiBaseUrl: '/api/v1',  // Use relative path — goes through Vite proxy
+  apiBaseUrl: '/api/v1',
   appName: import.meta.env.VITE_APP_NAME || 'Ticket Bro',
 
   routes: {
-    // ── Shared ────────────────────────────────────────────────────────────────
-    home:    '/',
-    profile: '/profile',
+    home:              '/',
+    profile:           '/profile',
 
-    // ── System A: Modal routes (query-param) ──────────────────────────────────
-    // ProtectedRoute redirects unauthenticated users to routes.login
-    // which opens the modal on top of whatever page they were on.
+    // ── All auth flows (modal query-param) ───────────────────────────────────
     login:             '/?auth=login',
     register:          '/?auth=register',
     forgotPassword:    '/?auth=forgot',
-    resetPassword:     '/?auth=reset',
-    verifyEmail:       '/?auth=verify',
-    verifyEmailNotice: '/?auth=verify-notice',
+    resetPassword:     '/?auth=reset',        // ?token= also appended by backend
     otp:               '/?auth=otp',
-
-    // ── System B: Page routes (/auth/*) ───────────────────────────────────────
-    // Used by backend email links and direct navigation.
-    // AuthLayout wraps these and redirects authenticated users to home.
-    pages: {
-      login:          '/auth/login',
-      register:       '/auth/register',
-      forgotPassword: '/auth/forgot-password',
-      resetPassword:  '/auth/reset-password',
-      verifyOtp:      '/auth/verify-otp',
-      verifyEmail:    '/auth/verify-email',  // ← backend email links point here
-      oauthSuccess:   '/auth/oauth-success',
-    },
+    verifyEmailNotice: '/?auth=verify-notice', // shown right after register
+    verifyEmail:       '/?auth=verify-email',  // backend email link (?token= appended)
+    oauthSuccess:      '/?auth=oauth-success', // OAuth callback (?token= appended)
   },
 
   storage: {
@@ -57,14 +33,8 @@ const authConfig = {
   },
 
   oauth: {
-    google: {
-      redirectUri: import.meta.env.VITE_GOOGLE_REDIRECT_URI
-        || 'http://localhost:5173/auth/oauth-success',
-    },
-    facebook: {
-      redirectUri: import.meta.env.VITE_FACEBOOK_REDIRECT_URI
-        || 'http://localhost:5173/auth/oauth-success',
-    },
+    google:   { redirectUri: import.meta.env.VITE_GOOGLE_REDIRECT_URI   || 'http://localhost:5173' },
+    facebook: { redirectUri: import.meta.env.VITE_FACEBOOK_REDIRECT_URI || 'http://localhost:5173' },
   },
 };
 
