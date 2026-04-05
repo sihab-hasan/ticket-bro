@@ -1,5 +1,6 @@
 // pages/static/TermsPage.jsx
 import React from 'react';
+import Container from '@/components/layout/Container';
 
 const Section = ({ title, children }) => (
   <div className="space-y-2">
@@ -9,6 +10,7 @@ const Section = ({ title, children }) => (
 );
 
 const TermsPage = () => (
+  <Container className="py-6">
   <div className="p-4 sm:p-6 max-w-2xl mx-auto space-y-8 font-sans">
     <div>
       <h1 className="text-2xl font-extrabold font-heading">Terms of Service</h1>
@@ -42,6 +44,7 @@ const TermsPage = () => (
       <p>For questions about these Terms, contact us at legal@ticketbro.com.bd.</p>
     </Section>
   </div>
+  </Container>
 );
 
 export default TermsPage;

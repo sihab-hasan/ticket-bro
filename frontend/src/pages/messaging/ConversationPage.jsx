@@ -18,6 +18,7 @@ import useMessaging   from '@/hooks/useMessaging';
 import useAuth        from '@/context/AuthContext';
 import { messagingService } from '@/api';
 import {
+import Container from '@/components/layout/Container';
   appendMessage,
   replaceOptimisticMessage,
   removeMessage,
@@ -169,6 +170,7 @@ const ConversationPage = () => {
   }, [conversationId, dispatch, navigate]);
 
   return (
+    <Container className="py-6">
     <div className="flex flex-col h-full bg-background overflow-hidden">
 
       {/* ── Header ───────────────────────────────────────────────── */}
@@ -241,6 +243,7 @@ const ConversationPage = () => {
         placeholder={otherName ? `Message ${otherName}…` : 'Type a message…'}
       />
     </div>
+    </Container>
   );
 };
 

@@ -4,19 +4,19 @@ import { Outlet } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
-import FloatingCartWidget from "@/components/shared/FloatingCartWidget";
+import Container from "@/components/layout/Container";
 
 const UserLayout = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      {/* pb-16 xl:pb-0 — clears space for MobileBottomNav on mobile */}
       <main className="flex-1 w-full pb-16 xl:pb-0">
-        <Outlet />
+        <Container className="py-6">
+          <Outlet />
+        </Container>
       </main>
       <Footer />
       <MobileBottomNav />
-      <FloatingCartWidget />
     </div>
   );
 };

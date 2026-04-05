@@ -12,6 +12,7 @@ import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
 import { bookingService, ticketsService } from '@/api';
 import { downloadBlob } from '@/utils/downloadFile';
+import Container from '@/components/layout/Container';
 
 const TicketCard = ({ ticket, onDownload }) => (
   <Card className="overflow-hidden border-2 border-border">
@@ -92,6 +93,7 @@ const TicketDownloadPage = () => {
   };
 
   return (
+    <Container className="py-6">
     <div className="p-4 sm:p-6 max-w-lg mx-auto space-y-5 font-sans">
       <div className="flex items-center gap-3">
         <Link to={ROUTES.BOOKINGS.DETAIL(bookingId)}>
@@ -120,6 +122,7 @@ const TicketDownloadPage = () => {
         </Card>
       ) : tickets.map((t) => <TicketCard key={t._id} ticket={t} onDownload={downloadTicket} />)}
     </div>
+    </Container>
   );
 };
 

@@ -11,6 +11,7 @@ import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
 import { bookingService } from '@/api';
 import { downloadBlob } from '@/utils/downloadFile';
+import Container from '@/components/layout/Container';
 
 const TicketConfirmationPage = () => {
   const { bookingRef } = useParams();
@@ -50,6 +51,7 @@ const TicketConfirmationPage = () => {
   if (loading) return <div className="p-4 sm:p-6 space-y-4 max-w-lg mx-auto">{[1,2].map((i) => <Skeleton key={i} className="h-48 rounded-2xl" />)}</div>;
 
   return (
+    <Container className="py-6">
     <div className="p-4 sm:p-6 max-w-lg mx-auto space-y-5 font-sans">
       {/* Success hero */}
       <div className="text-center py-6 space-y-3">
@@ -150,6 +152,7 @@ const TicketConfirmationPage = () => {
         </Link>
       </div>
     </div>
+    </Container>
   );
 };
 
