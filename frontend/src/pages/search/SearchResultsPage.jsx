@@ -85,7 +85,7 @@ const SearchResultsPage = () => {
   const activeFilters = Object.values(filters).filter((v) => v && v !== false).length;
 
   return (
-    <Container className="py-6 space-y-5 font-sans">
+    <Container aria-label="Search results" className="py-5 space-y-5 font-sans">
       {/* Search bar */}
       <div className="flex gap-2">
         <div className="relative flex-1">

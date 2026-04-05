@@ -56,13 +56,12 @@ const PaymentPage = () => {
     }
   };
 
-  if (loading) return <div className="p-4 space-y-4 max-w-lg mx-auto">{[1,2].map((i) => <Skeleton key={i} className="h-40 rounded-2xl" />)}</div>;
+  if (loading) return <Container><div className="py-4 space-y-4 max-w-lg mx-auto">{[1,2].map((i) => <Skeleton key={i} className="h-40 rounded-2xl" />)}</div></Container>;
 
   const amount = booking?.totalAmount || 0;
 
   return (
-    <Container className="py-6">
-    <div className="p-4 sm:p-6 max-w-lg mx-auto space-y-5 font-sans">
+    <Container aria-label="Payment"><div className="py-5 max-w-lg mx-auto space-y-5 font-sans">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-extrabold font-heading">Complete Payment</h1>
         <div className="flex items-center gap-1 text-xs text-muted-foreground"><Lock className="h-3.5 w-3.5" />Secure</div>
@@ -99,8 +98,7 @@ const PaymentPage = () => {
       <Button onClick={handlePay} disabled={processing} className="w-full h-12 font-bold text-base">
         {processing ? <><span className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />Processing…</> : <><Lock className="h-5 w-5 mr-2" />Pay {formatPrice(amount)}</>}
       </Button>
-    </div>
-    </Container>
+    </div></Container>
   );
 };
 

@@ -2,7 +2,9 @@ import React from 'react'
 
 const OffersPage = () => {
   return (
-    <div></div>
+    <div>
+      
+    </div>
   )
 }
 

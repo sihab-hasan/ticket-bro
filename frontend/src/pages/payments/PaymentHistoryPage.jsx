@@ -31,8 +31,7 @@ const PaymentHistoryPage = () => {
   useEffect(() => { fetch(); }, [fetch]);
 
   return (
-    <Container className="py-6">
-    <div className="p-4 sm:p-6 space-y-5 font-sans">
+    <Container aria-label="Payment history" className="py-5 space-y-5 font-sans">
       <PageHeader title="Payment History" subtitle="All your transactions"
         actions={[{ label: 'Refresh', icon: RefreshCw, onClick: fetch, variant: 'outline' }]}
       />
@@ -107,7 +106,6 @@ const PaymentHistoryPage = () => {
           ))}
         </div>
       )}
-    </div>
     </Container>
   );
 };

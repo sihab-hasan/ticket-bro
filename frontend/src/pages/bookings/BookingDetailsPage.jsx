@@ -56,11 +56,11 @@ const BookingDetailsPage = () => {
   };
 
   if (loading) return (
-    <Container className="py-6 space-y-4">
+    <Container><div className="py-4 space-y-4">
       <Skeleton className="h-8 w-48" />
       <Skeleton className="h-64 w-full rounded-2xl" />
       <Skeleton className="h-48 w-full rounded-2xl" />
-    </div>
+    </div></Container>
   );
 
   const canCancel = booking?.status === 'confirmed' && new Date(booking?.event?.startDate) > new Date();
@@ -83,8 +83,7 @@ const BookingDetailsPage = () => {
     String(organizerUserId) !== String(currentUserId);
 
   return (
-    <Container className="py-6">
-    <div className="p-4 sm:p-6 space-y-5 font-sans max-w-2xl mx-auto">
+    <Container aria-label="Booking details"><div className="py-5 space-y-5 font-sans max-w-2xl mx-auto">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" className="h-9 w-9"
           onClick={() => navigate(ROUTES.BOOKINGS.ROOT)}>
@@ -200,7 +199,7 @@ const BookingDetailsPage = () => {
           </Link>
         )}
       </div>
-    </Container>
+    </div></Container>
   );
 };
 

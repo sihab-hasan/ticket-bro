@@ -76,8 +76,7 @@ const NotificationsPage = () => {
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
-    <Container className="py-6">
-    <div className="p-4 sm:p-6 space-y-5 font-sans">
+    <Container aria-label="Notifications" className="py-5 space-y-5 font-sans">
       <div className="flex items-start justify-between gap-3">
         <PageHeader title="Notifications" subtitle={unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'} className="mb-0" />
         <div className="flex gap-2">
@@ -126,7 +125,6 @@ const NotificationsPage = () => {
           )}
         </TabsContent>
       </Tabs>
-    </div>
     </Container>
   );
 };

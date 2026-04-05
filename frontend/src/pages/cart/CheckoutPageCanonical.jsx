@@ -13,7 +13,6 @@ import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
 import { formatPrice } from '@/utils/formatters';
 import { getApiErrorMessage } from '@/api/client';
-import Container from '@/components/layout/Container';
 
 const EMPTY_ATTENDEE = {
   firstName: '',
@@ -126,7 +125,6 @@ const CheckoutPageCanonical = () => {
   const total = Number(cart?.total ?? Math.max(0, subtotal - discount));
 
   return (
-    <Container className="py-6">
     <div className="p-4 sm:p-6 max-w-lg mx-auto space-y-5 font-sans">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate(ROUTES.CART.ROOT)}>
@@ -290,7 +288,6 @@ const CheckoutPageCanonical = () => {
         By placing your order you agree to our Terms of Service and Privacy Policy.
       </p>
     </div>
-    </Container>
   );
 };
 

@@ -93,8 +93,7 @@ const TicketDownloadPage = () => {
   };
 
   return (
-    <Container className="py-6">
-    <div className="p-4 sm:p-6 max-w-lg mx-auto space-y-5 font-sans">
+    <Container aria-label="Download tickets"><div className="py-5 max-w-lg mx-auto space-y-5 font-sans">
       <div className="flex items-center gap-3">
         <Link to={ROUTES.BOOKINGS.DETAIL(bookingId)}>
           <Button variant="ghost" size="icon" className="h-9 w-9"><ArrowLeft className="h-4 w-4" /></Button>
@@ -121,8 +120,7 @@ const TicketDownloadPage = () => {
           </CardContent>
         </Card>
       ) : tickets.map((t) => <TicketCard key={t._id} ticket={t} onDownload={downloadTicket} />)}
-    </div>
-    </Container>
+    </div></Container>
   );
 };
 

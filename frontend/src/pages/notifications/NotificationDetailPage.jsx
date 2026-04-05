@@ -29,11 +29,10 @@ const NotificationDetailPage = () => {
 
   const ICONS = { booking: '🎟️', payment: '💳', event: '📅', system: '⚙️', promo: '🎁', refund: '💰' };
 
-  if (loading) return <div className="p-4 space-y-4 max-w-lg mx-auto"><Skeleton className="h-8 w-48" /><Skeleton className="h-64 rounded-2xl" /></div>;
+  if (loading) return <Container><div className="py-4 space-y-4 max-w-lg mx-auto"><Skeleton className="h-8 w-48" /><Skeleton className="h-64 rounded-2xl" /></div></Container>;
 
   return (
-    <Container className="py-6">
-    <div className="p-4 sm:p-6 max-w-lg mx-auto space-y-5 font-sans">
+    <Container aria-label="Notification detail"><div className="py-5 max-w-lg mx-auto space-y-5 font-sans">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate(-1)}><ArrowLeft className="h-4 w-4" /></Button>
         <h1 className="text-lg font-extrabold font-heading">Notification</h1>
@@ -76,8 +75,7 @@ const NotificationDetailPage = () => {
           )}
         </CardContent>
       </Card>
-    </div>
-    </Container>
+    </div></Container>
   );
 };
 
