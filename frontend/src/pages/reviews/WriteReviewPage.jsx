@@ -166,17 +166,17 @@ const WriteReviewPage = () => {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-lg space-y-4 p-4 sm:p-6">
+      <Container><div className="mx-auto max-w-lg space-y-4 py-4 sm:py-6">
         {[1, 2].map((index) => (
           <Skeleton key={index} className="h-32 rounded-2xl" />
         ))}
-      </div>
+      </div></Container>
     );
   }
 
   if (submittedReview) {
     return (
-      <div className="mx-auto max-w-md space-y-4 px-4 pt-12 text-center font-sans sm:px-6">
+      <Container><div className="mx-auto max-w-md space-y-4 pt-12 text-center font-sans">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-yellow-500/10">
           <CheckCircle2 className="h-8 w-8 text-yellow-500" />
         </div>
@@ -200,7 +200,7 @@ const WriteReviewPage = () => {
             Back to Home
           </Button>
         </div>
-      </div>
+      </div></Container>
     );
   }
 
@@ -214,8 +214,7 @@ const WriteReviewPage = () => {
   }
 
   return (
-    <Container className="py-6">
-    <div className="mx-auto max-w-lg space-y-5 p-4 font-sans sm:p-6">
+    <Container aria-label="Write a review"><div className="mx-auto max-w-lg space-y-5 py-4 font-sans sm:py-6">
       <div className="flex items-center gap-3">
         <Button
           variant="ghost"
@@ -291,8 +290,7 @@ const WriteReviewPage = () => {
           </>
         )}
       </Button>
-    </div>
-    </Container>
+    </div></Container>
   );
 };
 

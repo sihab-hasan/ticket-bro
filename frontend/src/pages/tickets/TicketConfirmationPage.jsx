@@ -48,11 +48,10 @@ const TicketConfirmationPage = () => {
     }
   };
 
-  if (loading) return <div className="p-4 sm:p-6 space-y-4 max-w-lg mx-auto">{[1,2].map((i) => <Skeleton key={i} className="h-48 rounded-2xl" />)}</div>;
+  if (loading) return <Container><div className="py-4 space-y-4 max-w-lg mx-auto">{[1,2].map((i) => <Skeleton key={i} className="h-48 rounded-2xl" />)}</div></Container>;
 
   return (
-    <Container className="py-6">
-    <div className="p-4 sm:p-6 max-w-lg mx-auto space-y-5 font-sans">
+    <Container aria-label="Booking confirmed"><div className="py-5 max-w-lg mx-auto space-y-5 font-sans">
       {/* Success hero */}
       <div className="text-center py-6 space-y-3">
         <div className="w-20 h-20 rounded-full bg-green-500/10 flex items-center justify-center mx-auto animate-[bounceIn_0.5s_ease]">
@@ -151,8 +150,7 @@ const TicketConfirmationPage = () => {
           <Button variant="ghost" className="w-full text-muted-foreground">Browse More Events</Button>
         </Link>
       </div>
-    </div>
-    </Container>
+    </div></Container>
   );
 };
 

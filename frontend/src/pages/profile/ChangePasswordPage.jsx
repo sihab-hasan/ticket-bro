@@ -157,7 +157,7 @@ const ChangePasswordPage = () => {
   // ── Success ──────────────────────────────────────────────────────────────
   if (done) {
     return (
-      <Container className="py-6">
+      <Container><div className="max-w-md mx-auto py-6 font-sans">
         <div className="bg-card rounded-2xl p-10 text-center space-y-4">
           <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto">
             <CheckCircle2 size={30} className="text-emerald-500" />
@@ -176,12 +176,12 @@ const ChangePasswordPage = () => {
             Redirecting…
           </div>
         </div>
-      </Container>
+      </div></Container>
     );
   }
 
   return (
-    <Container className="py-6 space-y-4 font-sans">
+    <Container aria-label="Change password"><div className="max-w-md mx-auto py-6 space-y-4 font-sans">
       {/* Header */}
       <div className="flex items-center gap-3">
         <button
@@ -285,7 +285,7 @@ const ChangePasswordPage = () => {
           </div>
         </form>
       </div>
-    </Container>
+    </div></Container>
   );
 };
 

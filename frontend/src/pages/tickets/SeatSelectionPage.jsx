@@ -54,8 +54,7 @@ const SeatSelectionPage = () => {
   const total = selectedSeats.reduce((sum, s) => sum + (s.price || 0), 0);
 
   return (
-    <Container className="py-6">
-    <div className="p-4 sm:p-6 max-w-2xl mx-auto space-y-5 font-sans">
+    <Container aria-label="Select seats"><div className="py-5 max-w-2xl mx-auto space-y-5 font-sans">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate(-1)}><ArrowLeft className="h-4 w-4" /></Button>
         <h1 className="text-lg font-extrabold font-heading">Select Your Seats</h1>
@@ -102,8 +101,7 @@ const SeatSelectionPage = () => {
           </div>
         </div>
       )}
-    </div>
-    </Container>
+    </div></Container>
   );
 };
 

@@ -69,7 +69,7 @@ const TicketPaymentPage = () => {
     }
   };
 
-  if (loading) return <div className="p-4 sm:p-6 space-y-4 max-w-lg mx-auto">{[1,2,3].map((i) => <Skeleton key={i} className="h-40 rounded-2xl" />)}</div>;
+  if (loading) return <Container><div className="py-4 space-y-4 max-w-lg mx-auto">{[1,2,3].map((i) => <Skeleton key={i} className="h-40 rounded-2xl" />)}</div></Container>;
 
   const items = booking?.items || [];
   const subtotal = items.reduce((s, item) => s + ((item.totalPrice != null ? item.totalPrice : (item.unitPrice || 0) * (item.quantity || 0))), 0);
@@ -78,8 +78,7 @@ const TicketPaymentPage = () => {
   const total = subtotal - discount + serviceFee;
 
   return (
-    <Container className="py-6">
-    <div className="p-4 sm:p-6 max-w-lg mx-auto space-y-5 font-sans">
+    <Container aria-label="Ticket payment"><div className="py-5 max-w-lg mx-auto space-y-5 font-sans">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate(-1)}><ArrowLeft className="h-4 w-4" /></Button>
         <div>
@@ -163,8 +162,7 @@ const TicketPaymentPage = () => {
         )}
       </Button>
       <p className="text-[11px] text-center text-muted-foreground">By completing payment you agree to our Terms of Service. All transactions are encrypted.</p>
-    </div>
-    </Container>
+    </div></Container>
   );
 };
 

@@ -9,7 +9,6 @@ import { upsertConversation } from '@/store/slices/messagingSlice';
 import { ROUTES } from '@/app/AppRoutes';
 import { PageLoader } from '@/components/shared/Loader';
 import { toast } from '@/components/shared/common';
-import Container from '@/components/layout/Container';
 
 const ChatPage = () => {
   const navigate         = useNavigate();

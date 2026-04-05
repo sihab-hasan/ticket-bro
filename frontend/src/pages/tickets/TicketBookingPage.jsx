@@ -101,14 +101,13 @@ const TicketBookingPage = () => {
     }
   };
 
-  if (loading) return <div className="p-4 sm:p-6 space-y-4 max-w-lg mx-auto">{[1,2,3].map((i) => <Skeleton key={i} className="h-32 rounded-2xl" />)}</div>;
+  if (loading) return <Container><div className="py-4 space-y-4 max-w-lg mx-auto">{[1,2,3].map((i) => <Skeleton key={i} className="h-32 rounded-2xl" />)}</div></Container>;
 
   const items = cart?.items || [];
   const total = items.reduce((s, item) => s + item.totalPrice, 0);
 
   return (
-    <Container className="py-6">
-    <div className="p-4 sm:p-6 max-w-lg mx-auto space-y-5 font-sans">
+    <Container aria-label="Ticket booking"><div className="py-5 max-w-lg mx-auto space-y-5 font-sans">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate(-1)}><ArrowLeft className="h-4 w-4" /></Button>
         <div>
@@ -169,8 +168,7 @@ const TicketBookingPage = () => {
       <Button onClick={handleContinue} disabled={submitting} className="w-full h-11 font-bold text-base">
         Continue to Payment <ArrowRight className="h-5 w-5 ml-2" />
       </Button>
-    </div>
-    </Container>
+    </div></Container>
   );
 };
 

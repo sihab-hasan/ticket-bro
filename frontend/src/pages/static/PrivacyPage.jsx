@@ -10,8 +10,7 @@ const Section = ({ title, children }) => (
 );
 
 export const PrivacyPage = () => (
-  <Container className="py-6">
-  <div className="p-4 sm:p-6 max-w-2xl mx-auto space-y-8 font-sans">
+  <Container aria-label="Privacy policy"><div className="py-6 max-w-2xl mx-auto space-y-8 font-sans">
     <div>
       <h1 className="text-2xl font-extrabold font-heading">Privacy Policy</h1>
       <p className="text-xs text-muted-foreground mt-1">Last updated: March 12, 2026</p>
@@ -38,8 +37,7 @@ export const PrivacyPage = () => (
     <Section title="7. Contact Us">
       <p>If you have any questions about this Privacy Policy, please contact us at privacy@ticketbro.com.bd or write to us at our registered office in Dhaka, Bangladesh.</p>
     </Section>
-  </div>
-  </Container>
+  </div></Container>
 );
 
 export default PrivacyPage;
