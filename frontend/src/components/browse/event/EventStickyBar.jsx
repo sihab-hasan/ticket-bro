@@ -3,7 +3,6 @@
  */
 import React, { useEffect, useMemo, useState } from "react";
 import { Ticket } from "lucide-react";
-import Container from "@/components/layout/Container";
 import { fmtDateShort, fmtTime } from "./shared/EventShared.jsx";
 
 const EventStickyBar = ({ event, onBook }) => {
@@ -39,7 +38,7 @@ const EventStickyBar = ({ event, onBook }) => {
         transform: visible ? "translateY(0)" : "translateY(100%)",
       }}
     >
-      <Container>
+      <div className="content-shell">
         <div className="flex items-center justify-between gap-4 py-3">
           <div className="hidden min-w-0 sm:block">
             <p
@@ -84,7 +83,7 @@ const EventStickyBar = ({ event, onBook }) => {
             </button>
           </div>
         </div>
-      </Container>
+      </div>
     </div>
   );
 };

@@ -2,7 +2,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Search, Trophy, Heart, ArrowRight, User, Users } from "lucide-react";
-import Container from "@/components/layout/Container";
 
 const TopDonorListSimple = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -21,7 +20,7 @@ const TopDonorListSimple = () => {
 
   return (
     <section className="py-8 bg-background transition-colors duration-300">
-      <Container>
+      <div className="content-shell">
         {/* --- HEADER (More Compact) --- */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 border-l-4 border-lime-500 pl-4 gap-4">
           <div>
@@ -128,7 +127,7 @@ const TopDonorListSimple = () => {
             Support <ArrowRight size={12} />
           </Link>
         </div>
-      </Container>
+      </div>
     </section>
   );
 };

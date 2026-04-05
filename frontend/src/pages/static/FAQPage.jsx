@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { ChevronDown, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import Container from '@/components/layout/Container';
 
 const FAQS = [
   { q: 'How do I purchase a ticket?', a: 'Browse events, select the event you want to attend, choose your ticket type and quantity, then proceed to checkout. You can pay via card or mobile banking.' },
@@ -24,7 +23,7 @@ const FAQPage = () => {
   const filtered = FAQS.filter((f) => f.q.toLowerCase().includes(search.toLowerCase()) || f.a.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <Container aria-label="FAQ"><div className="py-6 max-w-2xl mx-auto space-y-6 font-sans">
+    <div className="content-shell" aria-label="FAQ"><div className="py-6 max-w-2xl mx-auto space-y-6 font-sans">
       <div>
         <h1 className="text-2xl font-extrabold font-heading">Frequently Asked Questions</h1>
         <p className="text-sm text-muted-foreground mt-1">Find answers to common questions about Ticket-Bro.</p>
@@ -51,7 +50,7 @@ const FAQPage = () => {
         ))}
         {filtered.length === 0 && <p className="text-center text-sm text-muted-foreground py-8">No results found</p>}
       </div>
-    </div></Container>
+    </div></div>
   );
 };
 

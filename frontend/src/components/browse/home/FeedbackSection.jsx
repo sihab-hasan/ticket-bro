@@ -8,8 +8,7 @@ import {
   Star,
   TrendingUp,
 } from "lucide-react";
-import Container from "@/components/layout/Container";
-import { ROUTES } from "@/app/AppRoutes";
+import { ROUTES } from "@/config/routes.config";
 import { reviewsService } from "@/api";
 import { getApiErrorMessage, normalizeApiError } from "@/api/client";
 import { useBrowseContext } from "@/context/BrowseContext";
@@ -87,7 +86,7 @@ const FeedbackSection = () => {
     event.preventDefault();
 
     if (!isAuthenticated) {
-      navigate(ROUTES.REVIEWS.WRITE);
+      navigate(ROUTES.REVIEWS.WRITE());
       return;
     }
 
@@ -139,7 +138,7 @@ const FeedbackSection = () => {
 
   return (
     <section className="bg-background py-20 transition-colors duration-300">
-      <Container>
+      <div className="content-shell">
         <div className="mb-12 flex flex-col justify-between gap-4 border-l-4 border-lime-500 pl-6 md:flex-row md:items-end">
           <div>
             <h2 className="text-3xl font-black uppercase leading-none tracking-tighter text-lime-500 md:text-4xl">
@@ -225,7 +224,7 @@ const FeedbackSection = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => navigate(ROUTES.REVIEWS.WRITE)}
+                    onClick={() => navigate(ROUTES.REVIEWS.WRITE())}
                     className="rounded-xl border border-border px-6 py-3 text-[10px] font-black uppercase tracking-widest text-foreground"
                   >
                     Open Review Page
@@ -331,7 +330,7 @@ const FeedbackSection = () => {
             </div>
           ) : null}
         </div>
-      </Container>
+      </div>
     </section>
   );
 };

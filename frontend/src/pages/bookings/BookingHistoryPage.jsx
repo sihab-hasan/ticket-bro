@@ -11,9 +11,8 @@ import FilterBar from '@/components/shared/FilterBar';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { formatDate, formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
-import { ROUTES } from '@/app/AppRoutes';
+import { ROUTES } from '@/config/routes.config';
 import { bookingService } from '@/api';
-import Container from '@/components/layout/Container';
 
 const BookingCard = ({ booking }) => (
   <Link to={ROUTES.BOOKINGS.DETAIL(booking.bookingRef || booking._id)} className="block no-underline">
@@ -74,7 +73,7 @@ const BookingHistoryPage = () => {
   useEffect(() => { fetch(); }, [fetch]);
 
   return (
-    <Container aria-label="My bookings" className="py-6 space-y-6 font-sans">
+    <div aria-label="My bookings" className="content-shell py-6 space-y-6 font-sans">
       <PageHeader title="My Bookings" subtitle="View and manage your ticket bookings"
         actions={[{ label: 'Refresh', icon: RefreshCw, onClick: fetch, variant: 'outline' }]}
       />
@@ -110,7 +109,7 @@ const BookingHistoryPage = () => {
           )}
         </TabsContent>
       </Tabs>
-    </Container>
+    </div>
   );
 };
 

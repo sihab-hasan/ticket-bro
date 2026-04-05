@@ -22,7 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PageHeader from '@/components/shared/PageHeader';
 import { ConfirmDialog, StatusBadge } from '@/components/shared/StatusBadge';
 import { toast } from '@/components/shared/common';
-import { ROUTES } from '@/app/AppRoutes';
+import { ROUTES } from '@/config/routes.config';
 
 const Field = ({ label, required, error, hint, children }) => (
   <div className="space-y-1.5">

@@ -9,9 +9,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import PageHeader from "@/components/shared/PageHeader";
 import { formatDate } from "@/utils/formatters";
 import { toast } from "@/components/shared/common";
-import { ROUTES } from "@/app/AppRoutes";
+import { ROUTES } from "@/config/routes.config";
 import { reviewsService } from "@/api";
-import Container from '@/components/layout/Container';
 
 const Stars = ({ rating, size = "sm" }) => (
   <div className="flex items-center gap-0.5">
@@ -88,7 +87,7 @@ const ReviewsPage = () => {
   const ratingDistribution = summary?.ratingDistribution || [];
 
   return (
-    <Container aria-label="Reviews"><div className="mx-auto max-w-3xl space-y-5 py-4 font-sans sm:py-6">
+    <div className="content-shell" aria-label="Reviews"><div className="mx-auto max-w-3xl space-y-5 py-4 font-sans sm:py-6">
       <PageHeader
         title="Reviews"
         subtitle="App-wide feedback from the Ticket Bro community"
@@ -102,7 +101,7 @@ const ReviewsPage = () => {
           {
             label: "Write Review",
             icon: Star,
-            onClick: () => navigate(ROUTES.REVIEWS.WRITE),
+            onClick: () => navigate(ROUTES.REVIEWS.WRITE()),
           },
         ]}
       />
@@ -160,7 +159,7 @@ const ReviewsPage = () => {
                 </p>
                 <Button
                   className="mt-4 font-bold"
-                  onClick={() => navigate(ROUTES.REVIEWS.WRITE)}
+                  onClick={() => navigate(ROUTES.REVIEWS.WRITE())}
                 >
                   <Star className="mr-2 h-4 w-4" />
                   Write Review
@@ -233,7 +232,7 @@ const ReviewsPage = () => {
           )}
         </>
       )}
-    </div></Container>
+    </div></div>
   );
 };
 

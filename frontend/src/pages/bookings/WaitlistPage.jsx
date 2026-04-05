@@ -11,9 +11,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import PageHeader from '@/components/shared/PageHeader';
 import { formatDate } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
-import { ROUTES } from '@/app/AppRoutes';
+import { ROUTES } from '@/config/routes.config';
 import { bookingService, eventsService } from '@/api';
-import Container from '@/components/layout/Container';
 
 const WaitlistPage = () => {
   const { eventId } = useParams();
@@ -47,10 +46,10 @@ const WaitlistPage = () => {
     }
   };
 
-  if (loading) return <Container><div className="py-4 space-y-4"><Skeleton className="h-8 w-48" /><Skeleton className="h-64 w-full rounded-2xl" /></div></Container>;
+  if (loading) return <div className="content-shell"><div className="py-4 space-y-4"><Skeleton className="h-8 w-48" /><Skeleton className="h-64 w-full rounded-2xl" /></div></div>;
 
   if (joined || alreadyJoined) return (
-    <Container><div className="py-12 max-w-md mx-auto text-center space-y-4 font-sans">
+    <div className="content-shell"><div className="py-12 max-w-md mx-auto text-center space-y-4 font-sans">
       <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
         <CheckCircle2 className="h-8 w-8 text-primary" />
       </div>
@@ -59,11 +58,11 @@ const WaitlistPage = () => {
         {alreadyJoined ? "You're already on the waitlist for this event. We'll notify you as soon as tickets become available." : "We'll notify you as soon as a ticket becomes available. You'll have 24 hours to complete your purchase once notified."}
       </p>
       <Button onClick={() => navigate(ROUTES.BOOKINGS.ROOT)} className="w-full font-bold">View My Bookings</Button>
-    </div></Container>
+    </div></div>
   );
 
   return (
-    <Container aria-label="Join waitlist"><div className="py-5 max-w-md mx-auto space-y-5 font-sans">
+    <div className="content-shell" aria-label="Join waitlist"><div className="py-5 max-w-md mx-auto space-y-5 font-sans">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4" />
@@ -132,7 +131,7 @@ const WaitlistPage = () => {
       <Button onClick={handleJoin} disabled={submitting} className="w-full font-bold h-11">
         {submitting ? <><span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />Joining…</> : <><Bell className="h-4 w-4 mr-2" />Join Waitlist</>}
       </Button>
-    </div></Container>
+    </div></div>
   );
 };
 

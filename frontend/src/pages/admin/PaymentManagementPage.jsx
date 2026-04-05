@@ -16,7 +16,7 @@ import StatCard from '@/components/shared/StatCard';
 import { StatusBadge, ConfirmDialog } from '@/components/shared/StatusBadge';
 import { formatDate, formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
-import { ROUTES } from '@/app/AppRoutes';
+import { ROUTES } from '@/config/routes.config';
 import { adminService } from '@/api';
 
 const PaymentManagementPage = () => {

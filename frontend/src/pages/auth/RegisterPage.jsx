@@ -27,7 +27,7 @@ import {
   clearError,
 } from "@/store/slices/authSlice";
 import { registerSchema } from "@/utils/validators";
-import { ROUTES } from "@/app/AppRoutes";
+import { ROUTES } from "@/config/routes.config";
 
 const RegisterPage = () => {
   const dispatch = useDispatch();

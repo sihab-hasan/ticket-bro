@@ -2,7 +2,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Link, useLocation as useRRLocation } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import Container from "@/components/layout/Container";
 import { useBrowse } from "@/hooks";
 
 const CategoryNavSection = () => {
@@ -38,7 +37,7 @@ const CategoryNavSection = () => {
 
   return (
     <section className="w-full bg-background border-b border-border sticky top-0 z-30" aria-label="Category navigation">
-      <Container>
+      <div className="content-shell">
         <div className="relative flex items-center">
           {canLeft && (
             <button onClick={() => scroll(-1)}
@@ -74,7 +73,7 @@ const CategoryNavSection = () => {
             </button>
           )}
         </div>
-      </Container>
+      </div>
     </section>
   );
 };

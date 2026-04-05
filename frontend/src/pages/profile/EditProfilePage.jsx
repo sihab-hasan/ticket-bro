@@ -27,8 +27,7 @@ import {
   clearUserError,
   clearSuccessMsg,
 } from "@/store/slices/userSlice";
-import { ROUTES } from "@/app/AppRoutes";
-import Container from '@/components/layout/Container';
+import { ROUTES } from "@/config/routes.config";
 
 // ── Validation ────────────────────────────────────────────────────────────────
 const schema = z.object({
@@ -162,7 +161,7 @@ const EditProfilePage = () => {
   };
 
   return (
-    <Container aria-label="Edit profile"><div className="max-w-2xl mx-auto py-6 space-y-4 font-sans">
+    <div className="content-shell" aria-label="Edit profile"><div className="max-w-2xl mx-auto py-6 space-y-4 font-sans">
       {/* Header */}
       <div className="flex items-center gap-3 mb-2">
         <button
@@ -352,7 +351,7 @@ const EditProfilePage = () => {
           </button>
         </div>
       </form>
-    </div></Container>
+    </div></div>
   );
 };
 

@@ -18,7 +18,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
-import Container from "@/components/layout/Container";
 
 const SectionShell = ({
   title,
@@ -29,6 +28,7 @@ const SectionShell = ({
   children,
   divider = true,
   scrollable = false,
+  variant = "default",
   className = "",
   innerClassName = "",
   "aria-label": ariaLabel,
@@ -37,7 +37,7 @@ const SectionShell = ({
     className={`w-full bg-background ${className}`}
     aria-label={ariaLabel || title}
   >
-    <Container>
+    <div className={`content-shell content-shell--${variant}`}>
       <div className="py-8">
         {/* Header */}
         {title && (
@@ -93,7 +93,7 @@ const SectionShell = ({
       </div>
 
       {divider && <div className="w-full h-px bg-border" />}
-    </Container>
+    </div>
   </section>
 );
 

@@ -2,7 +2,6 @@
 import React, { useState } from "react";
 import { MapPin, Calendar, Users, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import Container from "@/components/layout/Container";
 import { useBrowse } from "@/hooks";
 
 const FALLBACK = "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=500&q=80";
@@ -28,7 +27,7 @@ const EventsYouMayLike = () => {
 
   return (
     <section className="py-12 bg-background">
-      <Container>
+      <div className="content-shell">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
           <div>
             <h2 className="text-2xl md:text-3xl font-black text-foreground uppercase tracking-tighter leading-none mb-2"
@@ -133,7 +132,7 @@ const EventsYouMayLike = () => {
             </div>
           ))}
         </div>
-      </Container>
+      </div>
     </section>
   );
 };
