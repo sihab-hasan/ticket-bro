@@ -399,7 +399,10 @@ const AppRoutes = () => (
         <Route path="/trending" element={<TrandingsPage />} />
         <Route path="/favorites" element={<Navigate to="/profile" replace />} />
         <Route path="/settings" element={<Navigate to="/profile" replace />} />
-        <Route path="/calendar" element={<Navigate to="/bookings" replace />} />
+        <Route
+          path="/calendar"
+          element={<Navigate to="/browse#events-calendar" replace />}
+        />
       </Route>
 
       {/* ══════════════════════════════════════════════════════════

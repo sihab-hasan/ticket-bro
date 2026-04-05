@@ -125,7 +125,11 @@ const CalendarSection = () => {
   const title = level === "root" ? "Events Calendar" : `${config.label} Calendar`;
 
   return (
-    <section className="w-full bg-background" aria-label="Events calendar">
+    <section
+      id="events-calendar"
+      className="w-full bg-background"
+      aria-label="Events calendar"
+    >
       <Container>
         <div className="py-8">
           <div className="flex items-center gap-2.5 mb-5">

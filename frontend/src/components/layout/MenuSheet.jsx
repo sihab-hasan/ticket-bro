@@ -194,7 +194,7 @@ export const buildUserSections = (user) => {
     label: "Account",
     items: [
       { icon: Ticket, label: "My Tickets", to: "/bookings" },
-      { icon: Calendar, label: "Calendar", to: "/calendar" },
+      { icon: Calendar, label: "Calendar", to: "/browse#events-calendar" },
       { icon: CreditCard, label: "Payments", to: "/payments/history" },
       { icon: Heart, label: "Favorites", to: "/favorites" },
       { icon: User, label: "Profile", to: "/profile" },

@@ -32,7 +32,7 @@ const MobileMenu = ({ onClose }) => {
 
   const userLinks = [
     { icon: Home, label: "Home", href: "/" },
-    { icon: Calendar, label: "Calendar", href: "/calendar" },
+    { icon: Calendar, label: "Calendar", href: "/browse#events-calendar" },
     { icon: Heart, label: "Wishlist", href: "/wishlist" },
     { icon: Ticket, label: "My Tickets", href: "/tickets" },
     { icon: Settings, label: "Settings", href: "/settings" },
