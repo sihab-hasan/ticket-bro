@@ -11,6 +11,7 @@ import { formatDate } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { notificationsService } from '@/api';
 import { ROUTES } from '@/app/AppRoutes';
+import Container from '@/components/layout/Container';
 
 const ICONS = {
   booking: '🎟️', payment: '💳', event: '📅', system: '⚙️', promo: '🎁', refund: '💰', checkin: '✅',
@@ -75,7 +76,7 @@ const NotificationsPage = () => {
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
-    <div className="p-4 sm:p-6 space-y-5 font-sans">
+    <Container aria-label="Notifications" className="py-5 space-y-5 font-sans">
       <div className="flex items-start justify-between gap-3">
         <PageHeader title="Notifications" subtitle={unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'} className="mb-0" />
         <div className="flex gap-2">
@@ -124,7 +125,7 @@ const NotificationsPage = () => {
           )}
         </TabsContent>
       </Tabs>
-    </div>
+    </Container>
   );
 };
 
