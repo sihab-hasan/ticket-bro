@@ -105,11 +105,23 @@ const normalizeOrganizer = (organizer, organizerProfile) => {
   const userName = buildDisplayName(organizer);
   const name = profileName || userName || "Organizer";
 
+  // organizer = populated User doc { _id, firstName, lastName, email, avatar }
+  // organizerProfile = Organizer model doc { _id, displayName, user, ... }
+  // For chat we need the User._id — preserve it explicitly before spreads overwrite _id
+  const userAccountId =
+    organizer?._id?.toString?.() ||
+    organizer?.id?.toString?.() ||
+    organizerProfile?.user?._id?.toString?.() ||
+    organizerProfile?.user?.toString?.() ||
+    null;
+
   return {
     ...organizer,
     ...organizerProfile,
     _id: organizerProfile?._id || organizer?._id,
     id: organizerProfile?.id || organizer?.id || organizerProfile?._id || organizer?._id,
+    // userId = the User account _id (needed to open a chat conversation)
+    userId: userAccountId,
     name,
     slug: organizerProfile?.slug || organizer?.slug || organizerProfile?._id || organizer?._id,
     avatar: organizerProfile?.logo || organizer?.avatar || null,
@@ -266,7 +278,6 @@ export const normalizeLocationOption = (city) => {
 };
 
 export const normalizeBrowseReview = (review, event) => {
-  const reviewEvent = review?.event || event || null;
   const authorName =
     buildDisplayName(review?.user) || buildDisplayName(review?.author) || "Guest";
   return {
@@ -278,17 +289,17 @@ export const normalizeBrowseReview = (review, event) => {
     rating: Number(review?.rating || review?.averageRating || 0),
     averageRating: Number(review?.rating || review?.averageRating || 0),
     title: review?.title || "",
-    body: review?.body || review?.comment || review?.text || "",
-    text: review?.body || review?.comment || review?.text || "",
-    helpful: Number(review?.helpful || review?.helpfulCount || 0),
+    body: review?.body || review?.text || "",
+    text: review?.body || review?.text || "",
+    helpful: Number(review?.helpful || 0),
     verified: Boolean(review?.isVerified || review?.verified),
     createdAt: review?.createdAt || review?.date,
     date: review?.createdAt || review?.date,
-    eventTitle: reviewEvent?.title || review?.eventTitle || "",
-    city: reviewEvent?.location?.city || review?.city || "",
-    categorySlug: reviewEvent?.category?.slug || "",
-    subcategorySlug: reviewEvent?.subcategory?.slug || "",
-    eventTypeSlug: reviewEvent?.eventType?.slug || "",
+    eventTitle: event?.title || review?.eventTitle || "Event",
+    city: event?.location?.city || "",
+    categorySlug: event?.category?.slug || "",
+    subcategorySlug: event?.subcategory?.slug || "",
+    eventTypeSlug: event?.eventType?.slug || "",
   };
 };
 
