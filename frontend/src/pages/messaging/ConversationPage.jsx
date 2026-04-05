@@ -3,19 +3,19 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MoreVertical, Trash2 } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Button } from '@/components/ui/button';
+import { Button }     from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu, DropdownMenuContent,
   DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Skeleton } from '@/components/ui/skeleton';
-import ChatWindow from '@/components/features/messaging/ChatWindow';
-import ChatInput from '@/components/features/messaging/ChatInput';
-import { toast } from '@/components/shared/common';
-import { ROUTES } from '@/app/AppRoutes';
-import useMessaging from '@/hooks/useMessaging';
-import useAuth from '@/context/AuthContext';
+import { Skeleton }   from '@/components/ui/skeleton';
+import ChatWindow     from '@/components/features/messaging/ChatWindow';
+import ChatInput      from '@/components/features/messaging/ChatInput';
+import { toast }      from '@/components/shared/common';
+import { ROUTES }     from '@/app/AppRoutes';
+import useMessaging   from '@/hooks/useMessaging';
+import useAuth        from '@/context/AuthContext';
 import { messagingService } from '@/api';
 import {
   appendMessage,
@@ -29,93 +29,109 @@ import {
 let _tempId = 0;
 const nextTempId = () => `opt-${++_tempId}-${Date.now()}`;
 
+const HeaderSkeleton = () => (
+  <div className="flex items-center gap-2.5 flex-1">
+    <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+    <div className="space-y-1.5 flex-1">
+      <Skeleton className="h-3.5 w-32" />
+      <Skeleton className="h-2.5 w-24" />
+    </div>
+  </div>
+);
+
 const ConversationPage = () => {
   const { conversationId } = useParams();
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
-  const { user } = useAuth();
-  const currentUserId = user?._id || user?.id;
+  const navigate           = useNavigate();
+  const dispatch           = useDispatch();
+  const { user }           = useAuth();
+  const currentUserId      = user?._id || user?.id;
 
   const {
-    messages,
-    messagesLoading,
-    isTyping,
-    loadMessages,
-    markAsRead,
-    joinConversation,
-    leaveConversation,
-    sendTyping,
-    sendMessage,
+    messages, messagesLoading, isTyping,
+    loadMessages, markAsRead,
+    joinConversation, leaveConversation, sendTyping, sendMessage,
   } = useMessaging(conversationId);
 
-  // Get conversation from Redux store (populated when InboxPage loads list)
+  // Try to get conversation header from Redux cache (set by InboxPage loadConversations)
   const conversations = useSelector(selectConversations);
-  const cachedConv = conversations.find((c) => (c._id || c.id) === conversationId);
+  const cached        = conversations.find((c) => (c._id || c.id) === conversationId);
 
-  const [convData, setConvData] = useState(cachedConv || null);
-  const [headerLoading, setHeaderLoading] = useState(!cachedConv);
-  const [draft, setDraft] = useState('');
-  const [sending, setSending] = useState(false);
-  const recipientId = useRef(null);
+  const [convData,      setConvData]      = useState(cached || null);
+  const [headerLoading, setHeaderLoading] = useState(!cached);
+  const [draft,         setDraft]         = useState('');
+  const [sending,       setSending]       = useState(false);
+  const recipientRef = useRef(null);
 
-  // Sync convData when Redux cache populates
+  // Sync convData from Redux cache when it becomes available
   useEffect(() => {
-    if (cachedConv && !convData) setConvData(cachedConv);
-  }, [cachedConv]);
+    if (cached && !convData) setConvData(cached);
+  }, [cached]);  // eslint-disable-line
 
-  // On mount — join socket room, load messages, fetch conv header if needed
+  // Main init — runs once per conversationId
   useEffect(() => {
     if (!conversationId) return;
+
     joinConversation(conversationId);
+
+    let cancelled = false;
 
     const init = async () => {
       try {
-        // Fetch conv header only if not already cached
-        if (!cachedConv) {
+        // Fetch header if not cached
+        if (!cached) {
           const conv = await messagingService.getConversation(conversationId);
-          setConvData(conv);
+          if (!cancelled) setConvData(conv);
         }
-        setHeaderLoading(false);
+        if (!cancelled) setHeaderLoading(false);
 
         // Load messages
         dispatch(setMessagesLoading(true));
         await loadMessages(conversationId, { page: 1, limit: 60 });
+        // Mark read after messages arrive
         await markAsRead(conversationId);
       } catch {
-        toast.error('Failed to load conversation');
-        navigate(ROUTES.MESSAGES.ROOT, { replace: true });
+        if (!cancelled) {
+          toast.error('Failed to load conversation');
+          navigate(ROUTES.MESSAGES.ROOT, { replace: true });
+        }
       } finally {
-        dispatch(setMessagesLoading(false));
-        setHeaderLoading(false);
+        if (!cancelled) {
+          dispatch(setMessagesLoading(false));
+          setHeaderLoading(false);
+        }
       }
     };
 
     init();
-    return () => leaveConversation(conversationId);
-  }, [conversationId]);
+
+    return () => {
+      cancelled = true;
+      leaveConversation(conversationId);
+    };
+  }, [conversationId]); // eslint-disable-line
 
   // Keep recipient ref fresh for typing events
   useEffect(() => {
     const other = convData?.otherParticipant;
-    recipientId.current = other?._id || other?.id || null;
+    recipientRef.current = other?._id || other?.id || null;
   }, [convData]);
 
   // Derived display values
-  const other = convData?.otherParticipant;
+  const other     = convData?.otherParticipant;
   const otherName = other
     ? (other.name || [other.firstName, other.lastName].filter(Boolean).join(' ') || 'Unknown')
-    : '…';
+    : '';
   const otherInitial = (otherName[0] || '?').toUpperCase();
 
   const handleSend = useCallback(async () => {
     const body = draft.trim();
     if (!body || sending) return;
 
-    const tempId = nextTempId();
+    const tempId     = nextTempId();
     const optimistic = {
       _id: tempId, id: tempId, conversationId,
       senderId: currentUserId,
-      sender: { _id: currentUserId, id: currentUserId, name: user?.firstName || 'You' },
+      sender: { _id: currentUserId, id: currentUserId },
       body, content: body,
       isRead: false, pending: true,
       createdAt: new Date().toISOString(),
@@ -135,10 +151,10 @@ const ConversationPage = () => {
     } finally {
       setSending(false);
     }
-  }, [draft, sending, conversationId, currentUserId, dispatch, sendMessage, user]);
+  }, [draft, sending, conversationId, currentUserId, dispatch, sendMessage]);
 
   const handleTyping = useCallback((active) => {
-    if (recipientId.current) sendTyping(conversationId, recipientId.current, active);
+    if (recipientRef.current) sendTyping(conversationId, recipientRef.current, active);
   }, [conversationId, sendTyping]);
 
   const handleDelete = useCallback(async () => {
@@ -155,27 +171,16 @@ const ConversationPage = () => {
   return (
     <div className="flex flex-col h-full bg-background overflow-hidden">
 
-      {/* ── Header ──────────────────────────────────────────────── */}
-      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border shrink-0">
-        {/* Back button — mobile only */}
-        <Button
-          variant="ghost" size="icon"
+      {/* ── Header ───────────────────────────────────────────────── */}
+      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border shrink-0 min-h-[56px]">
+        {/* Back — mobile only */}
+        <Button variant="ghost" size="icon"
           className="md:hidden h-8 w-8 shrink-0 -ml-1"
-          onClick={() => navigate(ROUTES.MESSAGES.ROOT)}
-        >
+          onClick={() => navigate(ROUTES.MESSAGES.ROOT)}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
 
-        {/* Participant info */}
-        {headerLoading ? (
-          <div className="flex items-center gap-2.5 flex-1">
-            <Skeleton className="h-9 w-9 rounded-full shrink-0" />
-            <div className="space-y-1.5 flex-1">
-              <Skeleton className="h-3.5 w-32" />
-              <Skeleton className="h-2.5 w-24" />
-            </div>
-          </div>
-        ) : (
+        {headerLoading ? <HeaderSkeleton /> : (
           <div className="flex items-center gap-2.5 flex-1 min-w-0">
             <Avatar className="h-9 w-9 shrink-0">
               <AvatarImage src={other?.avatar} alt={otherName} />
@@ -184,8 +189,9 @@ const ConversationPage = () => {
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0">
-              <p className="text-sm font-bold truncate leading-tight" style={{ fontFamily: 'var(--font-heading)' }}>
-                {otherName}
+              <p className="text-sm font-bold truncate leading-tight"
+                style={{ fontFamily: 'var(--font-heading)' }}>
+                {otherName || <span className="text-muted-foreground">Unknown</span>}
               </p>
               {convData?.event?.title && (
                 <p className="text-[11px] text-primary/70 truncate font-medium leading-tight mt-0.5">
@@ -196,18 +202,18 @@ const ConversationPage = () => {
           </div>
         )}
 
-        {/* Actions */}
+        {/* More actions */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground">
+            <Button variant="ghost" size="icon"
+              className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground">
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuItem
               className="text-destructive focus:text-destructive gap-2 cursor-pointer"
-              onClick={handleDelete}
-            >
+              onClick={handleDelete}>
               <Trash2 className="h-3.5 w-3.5" />
               Delete conversation
             </DropdownMenuItem>
@@ -219,7 +225,7 @@ const ConversationPage = () => {
       <ChatWindow
         messages={messages}
         currentUserId={currentUserId}
-        loading={messagesLoading}
+        loading={messagesLoading && messages.length === 0}
         isTyping={isTyping}
         className="flex-1 min-h-0"
       />
@@ -231,8 +237,8 @@ const ConversationPage = () => {
         onSend={handleSend}
         onTyping={handleTyping}
         sending={sending}
-        disabled={messagesLoading && messages.length === 0}
-        placeholder={otherName !== '…' ? `Message ${otherName}…` : 'Type a message…'}
+        disabled={false}
+        placeholder={otherName ? `Message ${otherName}…` : 'Type a message…'}
       />
     </div>
   );
