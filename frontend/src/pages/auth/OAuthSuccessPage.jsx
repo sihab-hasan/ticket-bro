@@ -6,7 +6,9 @@ import { XCircle } from "lucide-react";
 import { setAuthFromOAuth } from "@/store/slices/authSlice";
 import { storageUtils } from "@/utils/storageUtils";
 import authService from "@/api/auth.api";
-import { ROUTES } from "@/config/routes.config";
+import { ROUTES } from "@/app/AppRoutes";
+
+import Container from "@/components/layout/Container";
 import { PageLoader } from "@/components/shared/Loader";
 
 const OAuthSuccessPage = () => {
@@ -83,7 +85,7 @@ const OAuthSuccessPage = () => {
   }
 
   return (
-    <div className="content-shell">
+    <Container>
       <div className="flex flex-col items-center justify-center text-center py-16">
         <div className="w-16 h-16 rounded-xl bg-red-100 border border-red-200 flex items-center justify-center mb-6">
           <XCircle size={28} className="text-red-500" />
@@ -99,7 +101,7 @@ const OAuthSuccessPage = () => {
           Back to sign in
         </button>
       </div>
-    </div>
+    </Container>
   );
 };
 

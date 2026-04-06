@@ -13,9 +13,10 @@ import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDate, formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
-import { ROUTES } from '@/config/routes.config';
+import { ROUTES } from '@/app/AppRoutes';
 import { searchService } from '@/api';
 import { getEventImage, getEventLocationLabel, getEventPriceLabel } from '@/utils/event-card';
+import Container from '@/components/layout/Container';
 
 const EventCard = ({ event }) => {
   const imageSrc = getEventImage(event);
@@ -84,7 +85,7 @@ const SearchResultsPage = () => {
   const activeFilters = Object.values(filters).filter((v) => v && v !== false).length;
 
   return (
-    <div aria-label="Search results" className="content-shell py-5 space-y-5 font-sans">
+    <Container aria-label="Search results" className="py-5 space-y-5 font-sans">
       {/* Search bar */}
       <div className="flex gap-2">
         <div className="relative flex-1">
@@ -177,7 +178,7 @@ const SearchResultsPage = () => {
           )}
         </>
       )}
-    </div>
+    </Container>
   );
 };
 

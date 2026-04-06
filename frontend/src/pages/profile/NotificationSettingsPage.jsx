@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import PageHeader from '@/components/shared/PageHeader';
 import { toast } from '@/components/shared/common';
 import { notificationsService } from '@/api';
+import Container from '@/components/layout/Container';
 
 const PREFS = [
   { group: 'Bookings', items: [
@@ -58,7 +59,7 @@ const NotificationSettingsPage = () => {
   };
 
   return (
-    <div className="content-shell" aria-label="Notification settings"><div className="py-5 space-y-5 font-sans max-w-lg mx-auto">
+    <Container aria-label="Notification settings"><div className="py-5 space-y-5 font-sans max-w-lg mx-auto">
       <PageHeader title="Notification Settings" subtitle="Control what you hear from us" />
 
       {loading ? (
@@ -99,7 +100,7 @@ const NotificationSettingsPage = () => {
       <Button onClick={handleSave} disabled={saving} className="w-full font-bold">
         {saving ? 'Saving…' : <><Save className="h-4 w-4 mr-2" />Save Preferences</>}
       </Button>
-    </div></div>
+    </div></Container>
   );
 };
 

@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronRight, Calendar, MapPin, Star, BadgeCheck, BookmarkCheck, Bookmark } from "lucide-react";
+import Container from "@/components/layout/Container";
 import { useBrowse } from "@/hooks";
 
 const RelatedEventsSection = () => {
@@ -12,7 +13,7 @@ const RelatedEventsSection = () => {
   if (!events.length) return null;
   return (
     <section className="w-full bg-background" aria-label="Related events">
-      <div className="content-shell">
+      <Container>
         <div className="py-8">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-xl font-bold text-foreground" style={{ fontFamily: "var(--font-heading)" }}>
@@ -62,7 +63,7 @@ const RelatedEventsSection = () => {
           </div>
         </div>
         <div className="w-full h-px bg-border" />
-      </div>
+      </Container>
     </section>
   );
 };

@@ -1,4 +1,5 @@
 // src/components/OnlineEventsSection.jsx
+import Container from "@/components/layout/Container";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -60,7 +61,7 @@ const OnlineEventsSection = () => {
 
   return (
     <section className="py-12 md:py-16 bg-background transition-colors duration-300">
-      <div className="content-shell">
+      <Container>
         {/* Header - Left Aligned with Lime Green */}
         <div className="mb-10 border-l-4 border-lime-500 pl-5">
           <h2 className="text-3xl md:text-4xl font-black text-foreground uppercase tracking-tighter leading-none">
@@ -159,7 +160,7 @@ const OnlineEventsSection = () => {
             <span className="text-lg">→</span>
           </Link>
         </div>
-      </div>
+      </Container>
     </section>
   );
 };

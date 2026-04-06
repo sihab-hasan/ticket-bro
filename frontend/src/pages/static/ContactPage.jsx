@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/components/shared/common';
 import { supportService } from '@/api';
 import { getApiErrorMessage } from '@/api/client';
+import Container from '@/components/layout/Container';
 
 const ContactPage = () => {
   const [form, setForm] = useState({ name: '', email: '', subject: '', category: '', message: '' });
@@ -32,15 +33,15 @@ const ContactPage = () => {
   };
 
   if (sent) return (
-    <div className="content-shell"><div className="flex flex-col items-center justify-center min-h-64 py-6 text-center space-y-3 font-sans">
+    <Container><div className="flex flex-col items-center justify-center min-h-64 py-6 text-center space-y-3 font-sans">
       <CheckCircle2 className="h-12 w-12 text-green-500" />
       <h2 className="text-xl font-extrabold font-heading">Message Sent!</h2>
       <p className="text-sm text-muted-foreground">We'll get back to you within 24 hours.</p>
-    </div></div>
+    </div></Container>
   );
 
   return (
-    <div className="content-shell" aria-label="Contact us"><div className="py-6 max-w-2xl mx-auto space-y-6 font-sans">
+    <Container aria-label="Contact us"><div className="py-6 max-w-2xl mx-auto space-y-6 font-sans">
       <div>
         <h1 className="text-2xl font-extrabold font-heading">Contact Us</h1>
         <p className="text-sm text-muted-foreground mt-1">We're here to help. Reach out via any of the channels below.</p>
@@ -84,7 +85,7 @@ const ContactPage = () => {
           </Button>
         </CardContent>
       </Card>
-    </div></div>
+    </div></Container>
   );
 };
 

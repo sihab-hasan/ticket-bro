@@ -9,9 +9,10 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDate, formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
-import { ROUTES } from '@/config/routes.config';
+import { ROUTES } from '@/app/AppRoutes';
 import { cartService } from '@/api';
 import { getApiErrorMessage } from '@/api/client';
+import Container from '@/components/layout/Container';
 
 const EMPTY_CART = {
   items: [],
@@ -107,10 +108,10 @@ const CartPage = () => {
   const serviceFee = subtotal > 0 ? subtotal * 0.05 : 0;
   const total = Math.max(0, subtotal - discount + serviceFee);
 
-  if (loading) return <div className="content-shell"><div className="py-4 space-y-4 max-w-lg mx-auto">{[1,2].map((i) => <Skeleton key={i} className="h-32 rounded-2xl" />)}</div></div>;
+  if (loading) return <Container><div className="py-4 space-y-4 max-w-lg mx-auto">{[1,2].map((i) => <Skeleton key={i} className="h-32 rounded-2xl" />)}</div></Container>;
 
   return (
-    <div className="content-shell" aria-label="Cart"><div className="py-5 max-w-lg mx-auto space-y-5 font-sans">
+    <Container aria-label="Cart"><div className="py-5 max-w-lg mx-auto space-y-5 font-sans">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-xl font-extrabold font-heading flex items-center gap-2">
           <ShoppingCart className="h-5 w-5" />Cart
@@ -214,7 +215,7 @@ const CartPage = () => {
           </Button>
         </>
       )}
-    </div></div>
+    </div></Container>
   );
 };
 

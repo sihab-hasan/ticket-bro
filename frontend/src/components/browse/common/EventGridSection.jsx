@@ -3,6 +3,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { LayoutGrid, List, Inbox } from "lucide-react";
 import { useBrowse, unslugify } from "@/hooks";
 import BrowseEventCard from "@/components/shared/cards/EventCard";
+import Container from "@/components/layout/Container";
 
 const EVENTS_PER_PAGE = 12;
 
@@ -143,7 +144,7 @@ const EventGridSection = () => {
 
   return (
     <section className="w-full bg-background" aria-label="All events grid">
-      <div className="content-shell">
+      <Container>
         <div className="py-8">
           <div className="flex items-center justify-between mb-5 gap-4 flex-wrap">
             <div>
@@ -251,7 +252,7 @@ const EventGridSection = () => {
           )}
         </div>
         <div className="w-full h-px bg-border" />
-      </div>
+      </Container>
     </section>
   );
 };

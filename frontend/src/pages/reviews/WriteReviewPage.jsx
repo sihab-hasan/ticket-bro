@@ -9,9 +9,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import PageHeader from "@/components/shared/PageHeader";
 import { toast } from "@/components/shared/common";
-import { ROUTES } from "@/config/routes.config";
+import { ROUTES } from "@/app/AppRoutes";
 import { reviewsService } from "@/api";
 import { getApiErrorMessage, normalizeApiError } from "@/api/client";
+import Container from '@/components/layout/Container';
 
 const StarRating = ({ rating, onChange }) => (
   <div className="flex items-center gap-2">
@@ -165,17 +166,17 @@ const WriteReviewPage = () => {
 
   if (loading) {
     return (
-      <div className="content-shell"><div className="mx-auto max-w-lg space-y-4 py-4 sm:py-6">
+      <Container><div className="mx-auto max-w-lg space-y-4 py-4 sm:py-6">
         {[1, 2].map((index) => (
           <Skeleton key={index} className="h-32 rounded-2xl" />
         ))}
-      </div></div>
+      </div></Container>
     );
   }
 
   if (submittedReview) {
     return (
-      <div className="content-shell"><div className="mx-auto max-w-md space-y-4 pt-12 text-center font-sans">
+      <Container><div className="mx-auto max-w-md space-y-4 pt-12 text-center font-sans">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-yellow-500/10">
           <CheckCircle2 className="h-8 w-8 text-yellow-500" />
         </div>
@@ -199,7 +200,7 @@ const WriteReviewPage = () => {
             Back to Home
           </Button>
         </div>
-      </div></div>
+      </div></Container>
     );
   }
 
@@ -213,7 +214,7 @@ const WriteReviewPage = () => {
   }
 
   return (
-    <div className="content-shell" aria-label="Write a review"><div className="mx-auto max-w-lg space-y-5 py-4 font-sans sm:py-6">
+    <Container aria-label="Write a review"><div className="mx-auto max-w-lg space-y-5 py-4 font-sans sm:py-6">
       <div className="flex items-center gap-3">
         <Button
           variant="ghost"
@@ -289,7 +290,7 @@ const WriteReviewPage = () => {
           </>
         )}
       </Button>
-    </div></div>
+    </div></Container>
   );
 };
 

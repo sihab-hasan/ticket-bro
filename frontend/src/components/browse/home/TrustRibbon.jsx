@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { ShieldCheck, QrCode, Lock, X, ArrowRight, Shield } from "lucide-react";
+import Container from "@/components/layout/Container";
 
 const TrustRibbon = () => {
   const [activeTab, setActiveTab] = useState(null);
@@ -41,7 +42,7 @@ const TrustRibbon = () => {
   return (
     <div className="w-full bg-white dark:bg-[#0a0a0a] border-y border-slate-200 dark:border-white/5 transition-all duration-500 ease-in-out">
       {/* The Main Ribbon */}
-      <div className="content-shell">
+      <Container>
         <div className="flex flex-row items-center justify-between py-6 md:py-8 gap-4 md:gap-10">
           {Object.entries(trustDetails).map(([key, details]) => {
             const Icon =
@@ -105,7 +106,7 @@ const TrustRibbon = () => {
             );
           })}
         </div>
-      </div>
+      </Container>
 
       {/* Interactive Reveal Section */}
       <div

@@ -1,5 +1,6 @@
 // src/components/shared/Loader.jsx
 import React from "react";
+import Container from "@/components/layout/Container";
 
 // Size configuration constants
 const SIZE_CONFIG = {
@@ -142,13 +143,13 @@ export const Loader = ({
   if (withContainer) {
     return (
       <section className="w-full">
-        <div className="content-shell content-shell--default">
+        <Container>
           <div
             className={`w-full ${minHeight} flex items-center justify-center rounded-sm ${containerClassName}`}
           >
             {loaderContent}
           </div>
-        </div>
+        </Container>
       </section>
     );
   }

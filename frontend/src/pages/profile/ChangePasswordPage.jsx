@@ -17,8 +17,9 @@ import {
   Check,
 } from "lucide-react";
 import { logoutUser } from "@/store/slices/authSlice";
-import { ROUTES } from "@/config/routes.config";
+import { ROUTES } from "@/app/AppRoutes";
 import authService from "@/api/auth.api";
+import Container from '@/components/layout/Container';
 
 // ── Validation ────────────────────────────────────────────────────────────────
 const schema = z
@@ -156,7 +157,7 @@ const ChangePasswordPage = () => {
   // ── Success ──────────────────────────────────────────────────────────────
   if (done) {
     return (
-      <div className="content-shell"><div className="max-w-md mx-auto py-6 font-sans">
+      <Container><div className="max-w-md mx-auto py-6 font-sans">
         <div className="bg-card rounded-2xl p-10 text-center space-y-4">
           <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto">
             <CheckCircle2 size={30} className="text-emerald-500" />
@@ -175,12 +176,12 @@ const ChangePasswordPage = () => {
             Redirecting…
           </div>
         </div>
-      </div></div>
+      </div></Container>
     );
   }
 
   return (
-    <div className="content-shell" aria-label="Change password"><div className="max-w-md mx-auto py-6 space-y-4 font-sans">
+    <Container aria-label="Change password"><div className="max-w-md mx-auto py-6 space-y-4 font-sans">
       {/* Header */}
       <div className="flex items-center gap-3">
         <button
@@ -284,7 +285,7 @@ const ChangePasswordPage = () => {
           </div>
         </form>
       </div>
-    </div></div>
+    </div></Container>
   );
 };
 

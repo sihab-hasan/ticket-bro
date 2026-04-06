@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Star, ThumbsUp, Quote, ChevronLeft, ChevronRight } from "lucide-react";
 import { useBrowse } from "@/hooks";
-import { ROUTES } from "@/config/routes.config";
+import { ROUTES } from "@/app/AppRoutes";
 import SectionShell from "./SectionShell";
 
 const timeAgo = (iso) => {

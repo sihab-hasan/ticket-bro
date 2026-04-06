@@ -9,9 +9,10 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDate, formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
-import { ROUTES } from '@/config/routes.config';
+import { ROUTES } from '@/app/AppRoutes';
 import { bookingService, ticketsService } from '@/api';
 import { downloadBlob } from '@/utils/downloadFile';
+import Container from '@/components/layout/Container';
 
 const TicketCard = ({ ticket, onDownload }) => (
   <Card className="overflow-hidden border-2 border-border">
@@ -92,7 +93,7 @@ const TicketDownloadPage = () => {
   };
 
   return (
-    <div className="content-shell" aria-label="Download tickets"><div className="py-5 max-w-lg mx-auto space-y-5 font-sans">
+    <Container aria-label="Download tickets"><div className="py-5 max-w-lg mx-auto space-y-5 font-sans">
       <div className="flex items-center gap-3">
         <Link to={ROUTES.BOOKINGS.DETAIL(bookingId)}>
           <Button variant="ghost" size="icon" className="h-9 w-9"><ArrowLeft className="h-4 w-4" /></Button>
@@ -119,7 +120,7 @@ const TicketDownloadPage = () => {
           </CardContent>
         </Card>
       ) : tickets.map((t) => <TicketCard key={t._id} ticket={t} onDownload={downloadTicket} />)}
-    </div></div>
+    </div></Container>
   );
 };
 

@@ -11,7 +11,7 @@ import AuthLayout from "@/components/layout/AuthLayout";
 import { SubmitBtn, ErrorBanner, AuthHeading } from "./_authShared";
 import { select2FAEmail, selectRequires2FA } from "@/store/slices/authSlice";
 import useAuth from "@/context/AuthContext";
-import { ROUTES } from "@/config/routes.config";
+import { ROUTES } from "@/app/AppRoutes";
 
 const OTP_LENGTH = 6;
 
