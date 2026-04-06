@@ -7,7 +7,7 @@ import { useSearchParams, useNavigate, useLocation, Link } from "react-router-do
 import { Loader2, CheckCircle2, MailX, MailCheck, ArrowRight, Send } from "lucide-react";
 import AuthLayout from "@/components/layout/AuthLayout";
 import { StatusCard } from "./_authShared";
-import { ROUTES } from "@/config/routes.config";
+import { ROUTES } from "@/app/AppRoutes";
 import authService from "@/api/auth.api";
 
 const STATUS = {

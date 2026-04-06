@@ -2,6 +2,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { MapPin, Navigation } from "lucide-react";
+import Container from "@/components/layout/Container";
 import { useBrowse } from "@/hooks";
 
 // Map placeholder — in production replace with react-leaflet or Google Maps
@@ -44,7 +45,7 @@ const MapSection = () => {
 
   return (
     <section className="w-full bg-background" aria-label="Events map">
-      <div className="content-shell">
+      <Container>
         <div className="py-8">
           <div className="flex items-center gap-2.5 mb-5">
             <span className="flex items-center justify-center w-7 h-7 rounded shrink-0 bg-primary/10 text-primary border border-primary/20">
@@ -79,7 +80,7 @@ const MapSection = () => {
           </div>
         </div>
         <div className="w-full h-px bg-border" />
-      </div>
+      </Container>
     </section>
   );
 };

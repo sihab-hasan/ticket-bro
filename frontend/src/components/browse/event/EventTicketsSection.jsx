@@ -1,7 +1,7 @@
 import React, { forwardRef, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, Clock, Info, Shield, Ticket, Zap } from "lucide-react";
-import { ROUTES } from "@/config/routes.config";
+import { ROUTES } from "@/app/AppRoutes";
 import { CapacityBar } from "./shared/EventShared.jsx";
 
 const formatTicketPrice = (ticket) => {

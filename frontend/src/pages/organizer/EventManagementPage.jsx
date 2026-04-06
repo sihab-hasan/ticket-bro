@@ -26,7 +26,7 @@ import DataTable from '@/components/shared/DataTable';
 import FilterBar from '@/components/shared/FilterBar';
 import { ConfirmDialog, StatusBadge } from '@/components/shared/StatusBadge';
 import { toast } from '@/components/shared/common';
-import { ROUTES } from '@/config/routes.config';
+import { ROUTES } from '@/app/AppRoutes';
 import { formatDate, formatPrice } from '@/utils/formatters';
 
 const LIMIT = 12;

@@ -10,13 +10,14 @@ import {
   RefreshCcw,
   Star,
 } from "lucide-react";
+import Container from "@/components/layout/Container";
 import Breadcrumb from "@/components/shared/common/Breadcrumb";
 import eventsService from "@/api/events.api";
 import {
   normalizeEvent,
   normalizeTicketType,
 } from "@/utils/browse.utils";
-import { ROUTES } from "@/config/routes.config";
+import { ROUTES } from "@/app/AppRoutes";
 import {
   EventAboutSection,
   EventAgendaSection,
@@ -451,15 +452,15 @@ const EventDetailsPage = () => {
         className="border-b border-border"
         style={{ background: "var(--background)" }}
       >
-        <div className="content-shell">
+        <Container>
           <div className="py-3">
             <Breadcrumb />
           </div>
-        </div>
+        </Container>
       </div>
 
       {previewBanner && (
-        <div className="content-shell">
+        <Container>
           <div
             className={`mt-4 flex flex-col gap-3 rounded-2xl border px-4 py-4 shadow-sm ${bannerToneClass[previewBanner.tone]}`}
           >
@@ -489,7 +490,7 @@ const EventDetailsPage = () => {
               </div>
             )}
           </div>
-        </div>
+        </Container>
       )}
 
       <EventHeroSection
@@ -500,7 +501,7 @@ const EventDetailsPage = () => {
         onBook={scrollToTickets}
       />
 
-      <div className="content-shell">
+      <Container>
         <div className="grid grid-cols-1 gap-8 py-8 xl:grid-cols-[minmax(0,1fr)_400px] xl:gap-12 xl:py-12">
           <div className="flex min-w-0 flex-col gap-10">
             <EventAboutSection event={event} />
@@ -575,7 +576,7 @@ const EventDetailsPage = () => {
                     <MessageSquare size={14} /> View Reviews
                   </Link>
                   <Link
-                    to={ROUTES.REVIEWS.WRITE()}
+                    to={ROUTES.REVIEWS.WRITE}
                     className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold"
                     style={{
                       background: "var(--foreground)",
@@ -666,7 +667,7 @@ const EventDetailsPage = () => {
             </div>
           </div>
         </div>
-      </div>
+      </Container>
 
       <EventRelatedSection event={event} events={relatedEvents} />
       <EventStickyBar event={event} onBook={scrollToTickets} />

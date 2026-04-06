@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
-import { ROUTES } from '@/config/routes.config';
+import { ROUTES } from '@/app/AppRoutes';
 import { bookingService, paymentsService } from '@/api';
 import { getApiErrorMessage } from '@/api/client';
 

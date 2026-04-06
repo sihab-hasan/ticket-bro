@@ -1,10 +1,8 @@
 // frontend/src/app/AppRoutes.jsx
 //
-// App route tree
-// - Public browsing flows use MainLayout
-// - Auth fallbacks use AuthLayout
-// - Signed-in user pages use UserLayout
-// - Control-panel roles use dedicated panel layouts
+// Single auth system: Modal-based (?auth=<type> query param).
+// All auth flows — including email verification and OAuth callbacks —
+// are handled by AuthModal mounted in App.jsx. No dedicated auth routes.
 
 import React, { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
@@ -14,14 +12,12 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 // ── Layouts ───────────────────────────────────────────────────────────────────
 import MainLayout from "@/components/layout/MainLayout";
-import AuthLayout from "@/components/layout/AuthLayout";
 import UserLayout from "@/components/layout/UserLayout";
 import OrganizerLayout from "@/components/layout/OrganizerLayout";
 import AdminLayout from "@/components/layout/AdminLayout";
 import ModeratorLayout from "@/components/layout/ModeratorLayout";
 import SuperAdminLayout from "@/components/layout/SuperAdminLayout";
 import MessagingLayout from "@/components/layout/MessagingLayout";
-import { ROUTES } from "@/config/routes.config";
 
 // ── Critical path — eager ─────────────────────────────────────────────────────
 import BrowsePage from "@/pages/browse/BrowseAllPage";
@@ -105,13 +101,148 @@ const NotFoundPage = lazy(() => import("@/pages/error/NotFoundPage"));
 const ForbiddenPage = lazy(() => import("@/pages/error/ForbiddenPage"));
 const ServerErrorPage = lazy(() => import("@/pages/error/ServerErrorPage"));
 const HttpVersionNotSupportedPage = lazy(() => import("@/pages/error/HttpVersionNotSupportedPage"));
-const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
-const RegisterPage = lazy(() => import("@/pages/auth/RegisterPage"));
-const ForgotPasswordPage = lazy(() => import("@/pages/auth/ForgotPasswordPage"));
-const ResetPasswordPage = lazy(() => import("@/pages/auth/ResetPasswordPage"));
-const VerifyEmailPage = lazy(() => import("@/pages/auth/VerifyEmailPage"));
-const OTPVerificationPage = lazy(() => import("@/pages/auth/OTPVerificationPage"));
-const OAuthSuccessPage = lazy(() => import("@/pages/auth/OAuthSuccessPage"));
+
+// ── Route constants ───────────────────────────────────────────────────────────
+export const ROUTES = {
+  HOME: "/",
+
+  BROWSE: {
+    ROOT: "/browse",
+    CATEGORY: (cat) => `/${cat}`,
+    SUBCATEGORY: (cat, sub) => `/${cat}/${sub}`,
+    EVENT_TYPE: (cat, sub, type) => `/${cat}/${sub}/${type}`,
+    EVENT: (cat, sub, type, slug) => `/${cat}/${sub}/${type}/${slug}`,
+  },
+
+  EVENT: (slug) => `/events/${slug}`,
+  SEARCH: { ROOT: "/search", RESULTS: "/search/results" },
+  CART: { ROOT: "/cart", CHECKOUT: "/cart/checkout" },
+
+  // Auth — modal system (query-param)
+  AUTH_MODAL: {
+    LOGIN: "/?auth=login",
+    REGISTER: "/?auth=register",
+    FORGOT: "/?auth=forgot",
+    RESET: "/?auth=reset",
+    OTP: "/?auth=otp",
+    VERIFY_NOTICE: "/?auth=verify-notice",
+  },
+
+  // Standalone auth-adjacent pages (not modals)
+
+  PROFILE: {
+    ROOT: "/profile",
+    EDIT: "/profile/edit",
+    CHANGE_PASSWORD: "/profile/change-password",
+    NOTIFICATIONS: "/profile/notifications",
+  },
+
+  BOOKINGS: {
+    ROOT: "/bookings",
+    DETAIL: (id) => `/bookings/${id}`,
+    CANCEL: (id) => `/bookings/cancel/${id}`,
+    WAITLIST: (id) => `/bookings/waitlist/${id}`,
+  },
+
+  TICKETS: {
+    SELECT: (eventId) => `/tickets/select/${eventId}`,
+    SEATS: (eventId) => `/tickets/seats/${eventId}`,
+    BOOK: (ticketId) => `/tickets/book/${ticketId}`,
+    PAYMENT: (bookingId) => `/tickets/payment/${bookingId}`,
+    CONFIRM: (bookingId) => `/tickets/confirm/${bookingId}`,
+    DOWNLOAD: (ticketId) => `/tickets/download/${ticketId}`,
+  },
+
+  PAYMENTS: {
+    ROOT: (bookingId) => `/payments/${bookingId}`,
+    SUCCESS: (paymentId) => `/payments/success/${paymentId}`,
+    FAILED: (paymentId) => `/payments/failed/${paymentId}`,
+    HISTORY: "/payments/history",
+    DETAILS: (paymentId) => `/payments/details/${paymentId}`,
+  },
+
+  MESSAGES: {
+    ROOT: "/messages",
+    CONVERSATION: (id) => `/messages/conversation/${id}`,
+    CHAT: (id) => `/messages/chat/${id}`,
+  },
+
+  NOTIFICATIONS: {
+    ROOT: "/notifications",
+    DETAIL: (id) => `/notifications/${id}`,
+  },
+
+  REVIEWS: {
+    EVENT: (eventId) => `/reviews/event/${eventId}`,
+    WRITE: (eventId) => `/reviews/write/${eventId}`,
+  },
+
+  ORGANIZER: {
+    ROOT: "/organizer",
+    DASHBOARD: "/organizer/dashboard",
+    EVENTS: "/organizer/events",
+    CREATE_EVENT: "/organizer/events/create",
+    EDIT_EVENT: (id) => `/organizer/events/edit/${id}`,
+    TICKET_MGMT: (id) => `/organizer/events/tickets/${id}`,
+    BOOKINGS: "/organizer/bookings",
+    BOOKING: (id) => `/organizer/bookings/${id}`,
+    REVENUE: "/organizer/revenue",
+    ANALYTICS: "/organizer/analytics",
+    SETTINGS: "/organizer/settings",
+  },
+
+  MODERATOR: {
+    ROOT: "/moderator",
+    DASHBOARD: "/moderator/dashboard",
+    REPORTS: "/moderator/reports",
+    EVENTS: "/moderator/events",
+    USERS: "/moderator/users",
+  },
+
+  ADMIN: {
+    ROOT: "/admin",
+    DASHBOARD: "/admin/dashboard",
+    USERS: "/admin/users",
+    USER: (id) => `/admin/users/${id}`,
+    EVENTS: "/admin/events",
+    EVENT: (id) => `/admin/events/${id}`,
+    BOOKINGS: "/admin/bookings",
+    BOOKING: (id) => `/admin/bookings/${id}`,
+    PAYMENTS: "/admin/payments",
+    PAYMENT: (id) => `/admin/payments/${id}`,
+    ANALYTICS: "/admin/analytics",
+    REPORTS: "/admin/reports",
+    PROMOTIONS: "/admin/promotions",
+    SYSTEM_SETTINGS: "/admin/system/settings",
+    SYSTEM_SECURITY: "/admin/system/security",
+    SYSTEM_HEALTH: "/admin/system/health",
+    SYSTEM_LOGS: "/admin/system/logs",
+  },
+
+  SUPER_ADMIN: {
+    ROOT: "/super-admin",
+    DASHBOARD: "/super-admin/dashboard",
+    ROLES: "/super-admin/roles",
+    AUDIT: "/super-admin/audit",
+    PLATFORM: "/super-admin/platform",
+  },
+
+  STATIC: {
+    ABOUT: "/about",
+    CONTACT: "/contact",
+    FAQ: "/faq",
+    PRIVACY: "/privacy",
+    TERMS: "/terms",
+  },
+
+  ERROR: {
+    NOT_FOUND: "/404",
+    FORBIDDEN: "/403",
+    SERVER_ERROR: "/500",
+    HTTP_505: "/505",
+    MAINTENANCE: "/maintenance",
+  },
+};
 
 // ── App routes ────────────────────────────────────────────────────────────────
 const AppRoutes = () => (
@@ -153,19 +284,6 @@ const AppRoutes = () => (
         <Route path="/favorites" element={<Navigate to="/profile" replace />} />
         <Route path="/settings" element={<Navigate to="/profile" replace />} />
         <Route path="/calendar" element={<Navigate to="/bookings" replace />} />
-      </Route>
-
-      {/* ══════════════════════════════════════════════════════════
-          AUTH — Full page fallbacks
-      ══════════════════════════════════════════════════════════ */}
-      <Route path="/auth">
-        <Route path="login" element={<AuthLayout><LoginPage /></AuthLayout>} />
-        <Route path="register" element={<AuthLayout><RegisterPage /></AuthLayout>} />
-        <Route path="forgot-password" element={<AuthLayout><ForgotPasswordPage /></AuthLayout>} />
-        <Route path="reset-password" element={<AuthLayout><ResetPasswordPage /></AuthLayout>} />
-        <Route path="verify-email" element={<AuthLayout public><VerifyEmailPage /></AuthLayout>} />
-        <Route path="verify-otp" element={<AuthLayout><OTPVerificationPage /></AuthLayout>} />
-        <Route path="oauth-success" element={<AuthLayout public><OAuthSuccessPage /></AuthLayout>} />
       </Route>
 
       {/* ══════════════════════════════════════════════════════════
@@ -223,7 +341,6 @@ const AppRoutes = () => (
 
           <Route path="/reviews">
             <Route path="event/:eventId" element={<ReviewsPage />} />
-            <Route path="write" element={<WriteReviewPage />} />
             <Route path="write/:eventId" element={<WriteReviewPage />} />
           </Route>
         </Route>

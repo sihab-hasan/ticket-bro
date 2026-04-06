@@ -8,9 +8,10 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDate, formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
-import { ROUTES } from '@/config/routes.config';
+import { ROUTES } from '@/app/AppRoutes';
 import { bookingService } from '@/api';
 import { downloadBlob } from '@/utils/downloadFile';
+import Container from '@/components/layout/Container';
 
 const TicketConfirmationPage = () => {
   const { bookingRef } = useParams();
@@ -47,10 +48,10 @@ const TicketConfirmationPage = () => {
     }
   };
 
-  if (loading) return <div className="content-shell"><div className="py-4 space-y-4 max-w-lg mx-auto">{[1,2].map((i) => <Skeleton key={i} className="h-48 rounded-2xl" />)}</div></div>;
+  if (loading) return <Container><div className="py-4 space-y-4 max-w-lg mx-auto">{[1,2].map((i) => <Skeleton key={i} className="h-48 rounded-2xl" />)}</div></Container>;
 
   return (
-    <div className="content-shell" aria-label="Booking confirmed"><div className="py-5 max-w-lg mx-auto space-y-5 font-sans">
+    <Container aria-label="Booking confirmed"><div className="py-5 max-w-lg mx-auto space-y-5 font-sans">
       {/* Success hero */}
       <div className="text-center py-6 space-y-3">
         <div className="w-20 h-20 rounded-full bg-green-500/10 flex items-center justify-center mx-auto animate-[bounceIn_0.5s_ease]">
@@ -149,7 +150,7 @@ const TicketConfirmationPage = () => {
           <Button variant="ghost" className="w-full text-muted-foreground">Browse More Events</Button>
         </Link>
       </div>
-    </div></div>
+    </div></Container>
   );
 };
 

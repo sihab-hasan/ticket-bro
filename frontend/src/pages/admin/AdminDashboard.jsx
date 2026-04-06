@@ -17,7 +17,7 @@ import PageHeader from '@/components/shared/PageHeader';
 import StatCard from '@/components/shared/StatCard';
 import { StatusBadge, RoleBadge } from '@/components/shared/StatusBadge';
 import { formatDate, formatPrice } from '@/utils/formatters';
-import { ROUTES } from '@/config/routes.config';
+import { ROUTES } from '@/app/AppRoutes';
 import { adminService } from '@/api';
 
 // ── Revenue Mini Chart Bar ────────────────────────────────────────────────────

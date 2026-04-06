@@ -2,6 +2,7 @@
 import React from "react";
 import { MapPin, Navigation, Bell, Radio } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import Container from "@/components/layout/Container";
 import { useBrowse } from "@/hooks";
 
 const FALLBACK = "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&w=400&q=80";
@@ -30,7 +31,7 @@ const LiveNearYou = () => {
 
   return (
     <section className="py-10 bg-background">
-      <div className="content-shell">
+      <Container>
         <div className="flex items-end justify-between mb-6">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary mb-1"
@@ -108,7 +109,7 @@ const LiveNearYou = () => {
             </div>
           ))}
         </div>
-      </div>
+      </Container>
     </section>
   );
 };

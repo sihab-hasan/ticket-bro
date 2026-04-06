@@ -2,6 +2,7 @@
 import React from "react";
 import { Timer, Zap, AlertTriangle, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import Container from "@/components/layout/Container";
 import { useBrowse, spotsPercent } from "@/hooks";
 
 const LastChance = () => {
@@ -25,7 +26,7 @@ const LastChance = () => {
 
   return (
     <section className="py-12 bg-background">
-      <div className="content-shell">
+      <Container>
         <div className="flex flex-col mb-8">
           <div className="flex items-center gap-2 mb-2">
             <span className="relative flex h-3 w-3">
@@ -108,7 +109,7 @@ const LastChance = () => {
             );
           })}
         </div>
-      </div>
+      </Container>
     </section>
   );
 };

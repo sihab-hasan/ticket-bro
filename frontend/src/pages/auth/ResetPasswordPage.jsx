@@ -23,7 +23,7 @@ import {
   StatusCard,
   PasswordChecklist,
 } from "./_authShared";
-import { ROUTES } from "@/config/routes.config";
+import { ROUTES } from "@/app/AppRoutes";
 import authService from "@/api/auth.api";
 
 const schema = z

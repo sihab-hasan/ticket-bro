@@ -15,7 +15,7 @@ import DetailDrawer, { DetailField, DetailSection } from '@/components/shared/De
 import { StatusBadge, ConfirmDialog } from '@/components/shared/StatusBadge';
 import { formatDate, formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
-import { ROUTES } from '@/config/routes.config';
+import { ROUTES } from '@/app/AppRoutes';
 import { adminService } from '@/api';
 
 const BookingManagementPage = () => {

@@ -3,7 +3,7 @@ import React from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, ArrowRight, Ticket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ROUTES } from '@/config/routes.config';
+import { ROUTES } from '@/app/AppRoutes';
 
 const PaymentSuccessPage = () => {
   const [searchParams] = useSearchParams();

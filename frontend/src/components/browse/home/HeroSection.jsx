@@ -14,6 +14,7 @@ import {
   Flame,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import Container from "@/components/layout/Container";
 import { useBrowse } from "@/hooks";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -113,7 +114,7 @@ const HeroSection = () => {
   if (!spotlightEvents.length) {
     return (
       <section className="w-full bg-background pt-4">
-        <div className="content-shell">
+        <Container>
           <div className="h-[350px] md:h-[500px] flex flex-col items-center justify-center rounded-sm border border-border">
             <MapPin size={40} className="text-primary opacity-30 mb-4" />
             <p className="text-muted-foreground text-sm font-medium uppercase tracking-widest text-center px-4">
@@ -126,7 +127,7 @@ const HeroSection = () => {
               Browse All Events
             </button>
           </div>
-        </div>
+        </Container>
       </section>
     );
   }
@@ -156,7 +157,7 @@ const HeroSection = () => {
 
   return (
     <section className="bg-background pt-4">
-      <div className="content-shell">
+      <Container>
         <div className="relative h-[350px] sm:h-[420px] md:h-[520px] overflow-hidden rounded-sm group/banner">
           {/* ── IMAGE CAROUSEL ───────────────────────────────────────── */}
           <div className="absolute inset-0 z-0 touch-none">
@@ -365,7 +366,7 @@ const HeroSection = () => {
           </div>
 
         </div>
-      </div>
+      </Container>
     </section>
   );
 };

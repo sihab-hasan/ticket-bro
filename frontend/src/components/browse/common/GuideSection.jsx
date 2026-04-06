@@ -1,5 +1,6 @@
 // frontend/src/components/browse/sections/GuideSection.jsx
 import React from "react";
+import Container from "@/components/layout/Container";
 import { BookOpen } from "lucide-react";
 import { useBrowse } from "@/hooks";
 
@@ -13,7 +14,7 @@ const GuideSection = ({ guides = DEFAULT_GUIDES }) => {
   const { locationLabel } = useBrowse();
   return (
     <section className="w-full bg-background" aria-label="Event guides">
-      <div className="content-shell">
+      <Container>
         <div className="py-8">
           <div className="flex items-center gap-2.5 mb-5">
             <span className="flex items-center justify-center w-7 h-7 rounded shrink-0 bg-primary/10 text-primary border border-primary/20"><BookOpen size={13} /></span>
@@ -29,7 +30,7 @@ const GuideSection = ({ guides = DEFAULT_GUIDES }) => {
           </div>
         </div>
         <div className="w-full h-px bg-border" />
-      </div>
+      </Container>
     </section>
   );
 };

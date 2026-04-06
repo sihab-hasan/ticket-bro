@@ -10,8 +10,9 @@ import FilterBar from '@/components/shared/FilterBar';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { formatDate, formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
-import { ROUTES } from '@/config/routes.config';
+import { ROUTES } from '@/app/AppRoutes';
 import { paymentsService } from '@/api';
+import Container from '@/components/layout/Container';
 
 const PaymentHistoryPage = () => {
   const [payments, setPayments] = useState([]);
@@ -30,7 +31,7 @@ const PaymentHistoryPage = () => {
   useEffect(() => { fetch(); }, [fetch]);
 
   return (
-    <div aria-label="Payment history" className="content-shell py-5 space-y-5 font-sans">
+    <Container aria-label="Payment history" className="py-5 space-y-5 font-sans">
       <PageHeader title="Payment History" subtitle="All your transactions"
         actions={[{ label: 'Refresh', icon: RefreshCw, onClick: fetch, variant: 'outline' }]}
       />
@@ -105,7 +106,7 @@ const PaymentHistoryPage = () => {
           ))}
         </div>
       )}
-    </div>
+    </Container>
   );
 };
 

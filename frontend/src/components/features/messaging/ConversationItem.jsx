@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/utils/formatters';
-import { ROUTES } from '@/config/routes.config';
+import { ROUTES } from '@/app/AppRoutes';
 import { cn } from '@/lib/utils';
 
 const ConversationItem = ({ conversation, isActive = false }) => {

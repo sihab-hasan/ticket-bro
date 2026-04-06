@@ -1,36 +1,29 @@
+// frontend/src/components/layout/MainLayout.jsx
 import React from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Header from './Header';
 import Navbar from './Navbar';
 import Footer from './Footer';
 import MobileBottomNav from './MobileBottomNav';
-import Container from './Container';
 import FloatingCartWidget from '../shared/FloatingCartWidget';
 import FloatingTimerWidget from '../shared/FloatingClosingSoonWidget';
-import { MAIN_LAYOUT_SHELL } from '@/config/layout-shell.config';
-import { buildLayoutShellClassName } from '@/utils/layout-shell.utils';
 
 const MainLayout = () => {
   const { pathname } = useLocation();
   const isHome = pathname === '/';
-  const pageShellClassName = buildLayoutShellClassName(pathname, MAIN_LAYOUT_SHELL);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div>
       <Header />
       <Navbar />
-      <Container
-        as="main"
-        fluid
-        variant="full"
-        className={MAIN_LAYOUT_SHELL.mainClassName}
-      >
-        <div className={`layout-page ${pageShellClassName}`}>
-          <Outlet />
-        </div>
-      </Container>
+      {/* pb-16 xl:pb-0 — clears space for MobileBottomNav on mobile, removed on desktop */}
+      <main className="min-h-screen pb-16 xl:pb-0">
+        <Outlet />
+      </main>
       <Footer />
       <MobileBottomNav />
+
+      {/* ── Floating widgets ── */}
       <FloatingCartWidget />
       {isHome && <FloatingTimerWidget />}
     </div>

@@ -27,7 +27,7 @@ import {
   clearError,
 } from "@/store/slices/authSlice";
 import { loginSchema } from "@/utils/validators";
-import { ROUTES } from "@/config/routes.config";
+import { ROUTES } from "@/app/AppRoutes";
 
 const LoginPage = () => {
   const dispatch = useDispatch();

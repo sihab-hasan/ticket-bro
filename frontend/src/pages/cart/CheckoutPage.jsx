@@ -12,9 +12,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/context/AuthContext";
 import { formatPrice } from "@/utils/formatters";
 import { toast } from "@/components/shared/common";
-import { ROUTES } from "@/config/routes.config";
+import { ROUTES } from "@/app/AppRoutes";
 import { cartService } from "@/api";
 import { getApiErrorMessage } from "@/api/client";
+import Container from '@/components/layout/Container';
 
 const EMPTY_CART = {
   items: [],
@@ -100,11 +101,11 @@ const CheckoutPage = () => {
 
   if (loading)
     return (
-      <div className="content-shell"><div className="py-4 space-y-4 max-w-lg mx-auto">
+      <Container><div className="py-4 space-y-4 max-w-lg mx-auto">
         {[1, 2, 3].map((i) => (
           <Skeleton key={i} className="h-36 rounded-2xl" />
         ))}
-      </div></div>
+      </div></Container>
     );
 
   const items = cart?.items || [];
@@ -116,7 +117,7 @@ const CheckoutPage = () => {
   const total = Math.max(0, subtotal - discount + serviceFee);
 
   return (
-    <div className="content-shell" aria-label="Checkout"><div className="py-5 max-w-lg mx-auto space-y-5 font-sans">
+    <Container aria-label="Checkout"><div className="py-5 max-w-lg mx-auto space-y-5 font-sans">
       <div className="flex items-center gap-3">
         <Button
           variant="ghost"
@@ -295,7 +296,7 @@ const CheckoutPage = () => {
         By placing your order you agree to our Terms of Service and Privacy
         Policy.
       </p>
-    </div></div>
+    </div></Container>
   );
 };
 

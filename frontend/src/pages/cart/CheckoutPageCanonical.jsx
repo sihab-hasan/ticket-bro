@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { toast } from '@/components/shared/common';
-import { ROUTES } from '@/config/routes.config';
+import { ROUTES } from '@/app/AppRoutes';
 import { formatPrice } from '@/utils/formatters';
 import { getApiErrorMessage } from '@/api/client';
 
