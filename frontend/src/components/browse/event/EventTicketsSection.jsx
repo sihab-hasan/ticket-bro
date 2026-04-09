@@ -20,6 +20,28 @@ const formatTicketPrice = (ticket) => {
   return `${ticket.currency || "BDT"} ${ticket.price.toLocaleString()}`;
 };
 
+const getTicketSaleState = (ticket) => {
+  const now = Date.now();
+  const salesStart = ticket?.salesStart ? new Date(ticket.salesStart).getTime() : null;
+  const salesEnd = ticket?.salesEnd ? new Date(ticket.salesEnd).getTime() : null;
+
+  if (salesStart && now < salesStart) {
+    return {
+      canBuy: false,
+      notice: `Sales open ${new Date(ticket.salesStart).toLocaleString()}`,
+    };
+  }
+
+  if (salesEnd && now > salesEnd) {
+    return {
+      canBuy: false,
+      notice: "Sales closed",
+    };
+  }
+
+  return { canBuy: true, notice: null };
+};
+
 const getPurchaseState = (event, availableTickets) => {
   if (!event) {
     return {
@@ -106,7 +128,10 @@ const EventTicketsSection = forwardRef(({ event }, ref) => {
   const availableTickets = useMemo(
     () =>
       tickets.filter(
-        (ticket) => ticket.available !== false && ticket.isSoldOut !== true,
+        (ticket) =>
+          ticket.available !== false &&
+          ticket.isSoldOut !== true &&
+          getTicketSaleState(ticket).canBuy,
       ),
     [tickets],
   );
@@ -191,13 +216,14 @@ const EventTicketsSection = forwardRef(({ event }, ref) => {
             const isSelected = selected === ticketOption.id;
             const isSoldOut =
               ticketOption.available === false || ticketOption.isSoldOut;
+            const saleState = getTicketSaleState(ticketOption);
             const availableCount = Number(ticketOption.availableCount || 0);
 
             return (
               <button
                 key={ticketOption.id}
-                onClick={() => !isSoldOut && setSelected(ticketOption.id)}
-                disabled={isSoldOut}
+                onClick={() => !isSoldOut && saleState.canBuy && setSelected(ticketOption.id)}
+                disabled={isSoldOut || !saleState.canBuy}
                 className="flex items-start gap-3 rounded-xl border p-3.5 text-left transition-all disabled:cursor-not-allowed disabled:opacity-50"
                 style={{
                   borderColor: isSelected ? "var(--foreground)" : "var(--border)",
@@ -233,6 +259,11 @@ const EventTicketsSection = forwardRef(({ event }, ref) => {
                       {isSoldOut && (
                         <span className="ml-2 text-[10px] font-normal text-muted-foreground">
                           (Sold out)
+                        </span>
+                      )}
+                      {!isSoldOut && !saleState.canBuy && saleState.notice && (
+                        <span className="ml-2 text-[10px] font-normal text-muted-foreground">
+                          ({saleState.notice})
                         </span>
                       )}
                     </span>

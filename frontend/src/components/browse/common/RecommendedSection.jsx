@@ -6,7 +6,7 @@ import BrowseEventCard from "@/components/shared/cards/EventCard";
 import SectionShell from "./SectionShell";
 
 const RecommendedSection = () => {
-  const { getRecommended, config, locationLabel } = useBrowse();
+  const { getRecommended, locationLabel, resultsHref } = useBrowse();
   const [savedIds, setSavedIds] = useState(new Set());
   const events = getRecommended();
   if (!events.length) return null;
@@ -21,7 +21,8 @@ const RecommendedSection = () => {
       title="Recommended for You"
       subtitle={`Personalised picks in ${locationLabel}`}
       icon={Sparkles}
-      viewAllHref="/browse"
+      viewAllHref={resultsHref}
+      viewAllLabel="View all results"
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {events.slice(0, 6).map((e) => (

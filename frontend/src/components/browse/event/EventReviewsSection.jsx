@@ -205,7 +205,7 @@ const EventReviewsSection = ({ event, reviews = [] }) => {
             />
             {showAll
               ? "Show fewer reviews"
-              : `View all ${total.toLocaleString()} reviews`}
+              : `View ${reviews.length.toLocaleString()} recent reviews`}
           </span>
         </button>
       )}

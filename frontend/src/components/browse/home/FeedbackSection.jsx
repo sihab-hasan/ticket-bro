@@ -87,7 +87,7 @@ const FeedbackSection = () => {
     event.preventDefault();
 
     if (!isAuthenticated) {
-      navigate(ROUTES.REVIEWS.WRITE);
+      navigate(ROUTES.REVIEWS.WRITE());
       return;
     }
 
@@ -225,7 +225,7 @@ const FeedbackSection = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => navigate(ROUTES.REVIEWS.WRITE)}
+                    onClick={() => navigate(ROUTES.REVIEWS.WRITE())}
                     className="rounded-xl border border-border px-6 py-3 text-[10px] font-black uppercase tracking-widest text-foreground"
                   >
                     Open Review Page

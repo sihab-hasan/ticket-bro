@@ -13,6 +13,7 @@ const cartItemSchema = new mongoose.Schema({
 const cartSchema = new mongoose.Schema({
   user:      { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true, index: true },
   items:     [cartItemSchema],
+  currency:  { type: String, trim: true, uppercase: true, default: 'USD' },
   promoCode:      { type: String, trim: true, uppercase: true },
   promoId:        { type: mongoose.Schema.Types.ObjectId, ref: 'Promotion' },
   discountAmount: { type: Number, default: 0, min: 0 },

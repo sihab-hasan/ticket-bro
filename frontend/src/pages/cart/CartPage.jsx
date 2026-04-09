@@ -103,6 +103,7 @@ const CartPage = () => {
   };
 
   const items = cart?.items || [];
+  const currency = cart?.currency || items[0]?.currency || items[0]?.event?.currency || 'USD';
   const subtotal = Number(cart?.subtotal ?? items.reduce((sum, item) => sum + Number(item?.totalPrice || 0), 0));
   const discount = Number(cart?.discount ?? cart?.discountAmount ?? 0);
   const serviceFee = subtotal > 0 ? subtotal * 0.05 : 0;
@@ -138,39 +139,48 @@ const CartPage = () => {
       ) : (
         <>
           <div className="space-y-3">
-            {items.map((item) => (
-              <Card key={item._id}>
-                <CardContent className="p-4 flex gap-3">
-                  <Link to={getEventHref(item)} className="w-16 h-16 rounded-xl overflow-hidden bg-muted shrink-0 flex items-center justify-center">
-                    {item.event?.coverImage ? (
-                      <img src={item.event.coverImage} alt={item.event?.title || 'Event cover'} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-lg font-bold text-muted-foreground">{item.event?.title?.charAt(0)?.toUpperCase() || 'E'}</span>
-                    )}
-                  </Link>
-                  <div className="flex-1 min-w-0">
-                    <Link to={getEventHref(item)} className="text-sm font-bold truncate block hover:text-primary transition-colors">{item.event?.title || 'Event'}</Link>
-                    <p className="text-xs text-muted-foreground">{item.ticketType?.name || item.ticketTypeName || 'Ticket'}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{formatDate(item.event?.startDate, { dateStyle: 'medium', timeStyle: undefined })}</p>
-                    <div className="flex items-center justify-between mt-2 gap-2">
-                      <div className="flex items-center gap-2">
-                        <Button variant="outline" size="icon" className="h-7 w-7 rounded-full" onClick={() => updateQty(item._id, item.quantity - 1)} disabled={updating[item._id]}>
-                          {item.quantity === 1 ? <Trash2 className="h-3 w-3 text-red-500" /> : <Minus className="h-3 w-3" />}
-                        </Button>
-                        <span className="text-sm font-bold w-5 text-center">{item.quantity}</span>
-                        <Button variant="outline" size="icon" className="h-7 w-7 rounded-full" onClick={() => updateQty(item._id, item.quantity + 1)} disabled={updating[item._id]}>
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold text-primary">{formatPrice(item.totalPrice)}</p>
-                        <p className="text-[11px] text-muted-foreground">{formatPrice(item.unitPrice)} each</p>
+            {items.map((item) => {
+              const minPerOrder = Number(item.ticketType?.minPerOrder || 1);
+              const maxPerOrder = Number(item.ticketType?.maxPerOrder || 10);
+              const available = Number(item.ticketType?.available || 0);
+              const decrementTarget =
+                item.quantity <= minPerOrder ? 0 : item.quantity - 1;
+
+              return (
+                <Card key={item._id}>
+                  <CardContent className="p-4 flex gap-3">
+                    <Link to={getEventHref(item)} className="w-16 h-16 rounded-xl overflow-hidden bg-muted shrink-0 flex items-center justify-center">
+                      {item.event?.coverImage ? (
+                        <img src={item.event.coverImage} alt={item.event?.title || 'Event cover'} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-lg font-bold text-muted-foreground">{item.event?.title?.charAt(0)?.toUpperCase() || 'E'}</span>
+                      )}
+                    </Link>
+                    <div className="flex-1 min-w-0">
+                      <Link to={getEventHref(item)} className="text-sm font-bold truncate block hover:text-primary transition-colors">{item.event?.title || 'Event'}</Link>
+                      <p className="text-xs text-muted-foreground">{item.ticketType?.name || item.ticketTypeName || 'Ticket'}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{formatDate(item.event?.startDate, { dateStyle: 'medium', timeStyle: undefined })}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Order limit: {minPerOrder} - {maxPerOrder}</p>
+                      <div className="flex items-center justify-between mt-2 gap-2">
+                        <div className="flex items-center gap-2">
+                          <Button variant="outline" size="icon" className="h-7 w-7 rounded-full" onClick={() => updateQty(item._id, decrementTarget)} disabled={updating[item._id]}>
+                            {item.quantity <= minPerOrder ? <Trash2 className="h-3 w-3 text-red-500" /> : <Minus className="h-3 w-3" />}
+                          </Button>
+                          <span className="text-sm font-bold w-5 text-center">{item.quantity}</span>
+                          <Button variant="outline" size="icon" className="h-7 w-7 rounded-full" onClick={() => updateQty(item._id, item.quantity + 1)} disabled={updating[item._id] || item.quantity >= Math.min(maxPerOrder, available || maxPerOrder)}>
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-bold text-primary">{formatPrice(item.totalPrice, item.currency || currency)}</p>
+                          <p className="text-[11px] text-muted-foreground">{formatPrice(item.unitPrice, item.currency || currency)} each</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
 
           <Card>
@@ -180,7 +190,7 @@ const CartPage = () => {
                   <Tag className="h-4 w-4 text-green-500 shrink-0" />
                   <div className="flex-1">
                     <span className="text-sm font-bold text-green-600">"{cart.promoCode}" applied</span>
-                    <span className="text-xs text-muted-foreground ml-2">— {formatPrice(discount)} off</span>
+                    <span className="text-xs text-muted-foreground ml-2">— {formatPrice(discount, currency)} off</span>
                   </div>
                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleRemovePromo}><X className="h-3.5 w-3.5" /></Button>
                 </div>
@@ -200,12 +210,12 @@ const CartPage = () => {
 
           <Card>
             <CardContent className="p-4 space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatPrice(subtotal)}</span></div>
-              {discount > 0 && <div className="flex justify-between text-green-600"><span>Discount</span><span>-{formatPrice(discount)}</span></div>}
-              <div className="flex justify-between"><span className="text-muted-foreground">Service fee (5%)</span><span>{formatPrice(serviceFee)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatPrice(subtotal, currency)}</span></div>
+              {discount > 0 && <div className="flex justify-between text-green-600"><span>Discount</span><span>-{formatPrice(discount, currency)}</span></div>}
+              <div className="flex justify-between"><span className="text-muted-foreground">Service fee (5%)</span><span>{formatPrice(serviceFee, currency)}</span></div>
               <Separator />
               <div className="flex justify-between font-bold text-base">
-                <span>Total</span><span className="text-primary">{formatPrice(total)}</span>
+                <span>Total</span><span className="text-primary">{formatPrice(total, currency)}</span>
               </div>
             </CardContent>
           </Card>

@@ -51,6 +51,8 @@ const EMPTY_TICKET = {
   description: '',
   salesStart: '',
   salesEnd: '',
+  minPerOrder: '1',
+  maxPerOrder: '10',
   isActive: true,
 };
 
@@ -65,6 +67,7 @@ const TICKET_TYPES = [
 
 const TicketManagementPage = () => {
   const { eventId } = useParams();
+  const [event, setEvent] = useState(null);
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -83,11 +86,15 @@ const TicketManagementPage = () => {
 
     setLoading(true);
 
-    try {
-      const result = await eventsService.getTicketTypes(eventId);
-      setTickets(result || []);
+      try {
+      const [eventResult, ticketsResult] = await Promise.all([
+        eventsService.getEventBySlug(eventId),
+        eventsService.getTicketTypes(eventId),
+      ]);
+      setEvent(eventResult || null);
+      setTickets(ticketsResult || []);
     } catch (error) {
-      toast.error(getApiErrorMessage(error, 'Failed to load ticket types'));
+      toast.error(getApiErrorMessage(error, 'Failed to load event tickets'));
     } finally {
       setLoading(false);
     }
@@ -110,8 +117,10 @@ const TicketManagementPage = () => {
       quantity: ticket.quantity ?? '',
       type: ticket.type || 'general',
       description: ticket.description || '',
-      salesStart: ticket.salesStart?.split('T')[0] || '',
-      salesEnd: ticket.salesEnd?.split('T')[0] || '',
+      salesStart: ticket.salesStart?.slice(0, 16) || '',
+      salesEnd: ticket.salesEnd?.slice(0, 16) || '',
+      minPerOrder: String(ticket.minPerOrder ?? 1),
+      maxPerOrder: String(ticket.maxPerOrder ?? 10),
       isActive: ticket.isActive ?? true,
     });
     setEditingId(ticket._id);
@@ -132,6 +141,11 @@ const TicketManagementPage = () => {
       return;
     }
 
+    if (Number(form.minPerOrder || 1) > Number(form.maxPerOrder || 10)) {
+      toast.error('Minimum per order cannot be greater than maximum per order');
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -141,8 +155,10 @@ const TicketManagementPage = () => {
         type: form.type,
         price: Number.parseFloat(form.price || 0),
         quantity: Number.parseInt(form.quantity, 10),
-        salesStart: form.salesStart || undefined,
-        salesEnd: form.salesEnd || undefined,
+        salesStart: form.salesStart ? `${form.salesStart}:00` : undefined,
+        salesEnd: form.salesEnd ? `${form.salesEnd}:00` : undefined,
+        minPerOrder: Number.parseInt(form.minPerOrder || '1', 10),
+        maxPerOrder: Number.parseInt(form.maxPerOrder || '10', 10),
         isActive: form.isActive,
       };
 
@@ -185,7 +201,7 @@ const TicketManagementPage = () => {
         title="Ticket Management"
         subtitle={
           eventId
-            ? 'Manage ticket types and availability for this event'
+            ? `Manage ticket types and availability for ${event?.title || 'this event'}`
             : 'Open an event first to manage its ticket types'
         }
         actions={[
@@ -240,8 +256,9 @@ const TicketManagementPage = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {tickets.map((ticket) => {
             const sold = Number(ticket.sold || ticket.soldCount || 0);
+            const reserved = Number(ticket.reserved || 0);
             const quantity = Number(ticket.quantity || 0);
-            const fillPct = quantity ? (sold / quantity) * 100 : 0;
+            const fillPct = quantity ? ((sold + reserved) / quantity) * 100 : 0;
 
             return (
               <Card key={ticket._id} className="relative overflow-hidden">
@@ -283,7 +300,7 @@ const TicketManagementPage = () => {
                   <p className="text-2xl font-extrabold font-heading mb-4">
                     {Number(ticket.price || 0) === 0
                       ? 'FREE'
-                      : formatPrice(ticket.price)}
+                      : formatPrice(ticket.price, event?.currency || 'USD')}
                   </p>
                   <div className="space-y-2">
                     <div className="flex justify-between text-xs">
@@ -292,9 +309,16 @@ const TicketManagementPage = () => {
                         {sold} / {quantity}
                       </span>
                     </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">Reserved</span>
+                      <span className="font-semibold">{reserved}</span>
+                    </div>
                     <Progress value={fillPct} className="h-2" />
                     <p className="text-[11px] text-muted-foreground">
-                      {Math.max(quantity - sold, 0)} remaining
+                      {Math.max(quantity - sold - reserved, 0)} remaining
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Order limit: {ticket.minPerOrder || 1} - {ticket.maxPerOrder || 10}
                     </p>
                   </div>
                   {ticket.description && (
@@ -373,6 +397,28 @@ const TicketManagementPage = () => {
                 min="1"
               />
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs font-semibold">Min Per Order</Label>
+                <Input
+                  type="number"
+                  value={form.minPerOrder}
+                  onChange={(event) => setValue('minPerOrder', event.target.value)}
+                  className="mt-1.5 h-9"
+                  min="1"
+                />
+              </div>
+              <div>
+                <Label className="text-xs font-semibold">Max Per Order</Label>
+                <Input
+                  type="number"
+                  value={form.maxPerOrder}
+                  onChange={(event) => setValue('maxPerOrder', event.target.value)}
+                  className="mt-1.5 h-9"
+                  min="1"
+                />
+              </div>
+            </div>
             <div>
               <Label className="text-xs font-semibold">Description</Label>
               <Input
@@ -386,7 +432,7 @@ const TicketManagementPage = () => {
               <div>
                 <Label className="text-xs font-semibold">Sales Start</Label>
                 <Input
-                  type="date"
+                  type="datetime-local"
                   value={form.salesStart}
                   onChange={(event) => setValue('salesStart', event.target.value)}
                   className="mt-1.5 h-9"
@@ -395,7 +441,7 @@ const TicketManagementPage = () => {
               <div>
                 <Label className="text-xs font-semibold">Sales End</Label>
                 <Input
-                  type="date"
+                  type="datetime-local"
                   value={form.salesEnd}
                   onChange={(event) => setValue('salesEnd', event.target.value)}
                   className="mt-1.5 h-9"

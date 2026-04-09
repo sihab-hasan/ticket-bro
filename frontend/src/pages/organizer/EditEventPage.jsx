@@ -14,7 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
@@ -41,6 +40,7 @@ const toTimeInput = (value) => (value ? value.split('T')[1]?.slice(0, 5) || '' :
 const buildDateTime = (date, time, fallback = '00:00') => (
   date ? `${date}T${time || fallback}:00` : undefined
 );
+const LOCATION_TYPES = ['physical', 'online', 'hybrid'];
 
 const EditEventPage = () => {
   const { eventId } = useParams();
@@ -61,6 +61,7 @@ const EditEventPage = () => {
     category: '',
     subcategory: '',
     isOnline: false,
+    locationType: 'physical',
     coverImage: '',
     startDate: '',
     startTime: '',
@@ -70,8 +71,12 @@ const EditEventPage = () => {
     venueName: '',
     venueAddress: '',
     venueCity: '',
+    venueState: '',
     venueCountry: 'Bangladesh',
+    venueZip: '',
     onlineLink: '',
+    onlinePlatform: '',
+    streamPassword: '',
     ageRestriction: 'all',
   });
 
@@ -97,9 +102,8 @@ const EditEventPage = () => {
 
       try {
         const currentEvent = await eventsService.getEventBySlug(eventId);
-        const isOnline =
-          currentEvent?.location?.type === 'online' ||
-          currentEvent?.location?.type === 'hybrid';
+        const locationType = currentEvent?.location?.type || 'physical';
+        const isOnline = ['online', 'hybrid'].includes(locationType);
 
         setEvent(currentEvent);
         setForm({
@@ -108,6 +112,7 @@ const EditEventPage = () => {
           category: currentEvent?.category?._id || currentEvent?.category || '',
           subcategory: currentEvent?.subcategory?._id || currentEvent?.subcategory || '',
           isOnline,
+          locationType,
           coverImage: currentEvent?.coverImage || '',
           startDate: toDateInput(currentEvent?.startDate),
           startTime: toTimeInput(currentEvent?.startDate),
@@ -117,8 +122,12 @@ const EditEventPage = () => {
           venueName: currentEvent?.location?.name || '',
           venueAddress: currentEvent?.location?.address || '',
           venueCity: currentEvent?.location?.city || '',
+          venueState: currentEvent?.location?.state || '',
           venueCountry: currentEvent?.location?.country || 'Bangladesh',
+          venueZip: currentEvent?.location?.zip || '',
           onlineLink: currentEvent?.location?.onlineUrl || '',
+          onlinePlatform: currentEvent?.location?.onlinePlatform || '',
+          streamPassword: currentEvent?.location?.streamPassword || '',
           ageRestriction: currentEvent?.ageRestriction || 'all',
         });
       } catch (error) {
@@ -159,9 +168,15 @@ const EditEventPage = () => {
     () => ['draft', 'rejected'].includes(event?.status),
     [event?.status],
   );
+  const isDraftLikeStatus = useMemo(
+    () => ['draft', 'rejected'].includes(event?.status),
+    [event?.status],
+  );
 
   const validateForReview = () => {
     const nextErrors = {};
+    const needsVenue = ['physical', 'hybrid'].includes(form.locationType);
+    const needsOnlineLink = ['online', 'hybrid'].includes(form.locationType);
 
     if (!form.title.trim()) nextErrors.title = 'Title is required';
     if (!form.description.trim()) nextErrors.description = 'Description is required';
@@ -170,8 +185,45 @@ const EditEventPage = () => {
     if (!form.startTime) nextErrors.startTime = 'Start time is required';
     if (!form.endDate) nextErrors.endDate = 'End date is required';
     if (!form.endTime) nextErrors.endTime = 'End time is required';
-    if (!form.isOnline && !form.venueName.trim()) nextErrors.venueName = 'Venue name is required';
-    if (form.isOnline && !form.onlineLink.trim()) nextErrors.onlineLink = 'Online link is required';
+    if (needsVenue && !form.venueName.trim()) nextErrors.venueName = 'Venue name is required';
+    if (needsOnlineLink && !form.onlineLink.trim()) nextErrors.onlineLink = 'Online link is required';
+
+    if (
+      form.startDate && form.startTime && form.endDate && form.endTime
+      && new Date(`${form.endDate}T${form.endTime}:00`) <= new Date(`${form.startDate}T${form.startTime}:00`)
+    ) {
+      nextErrors.endTime = 'End date/time must be after start date/time';
+    }
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const validateForSave = () => {
+    const nextErrors = {};
+    const hasStartValue = Boolean(form.startDate || form.startTime);
+    const hasEndValue = Boolean(form.endDate || form.endTime);
+    const needsVenue = !isDraftLikeStatus && ['physical', 'hybrid'].includes(form.locationType);
+    const needsOnlineLink = !isDraftLikeStatus && ['online', 'hybrid'].includes(form.locationType);
+
+    if (!form.title.trim()) nextErrors.title = 'Title is required';
+
+    if (hasStartValue && (!form.startDate || !form.startTime)) {
+      nextErrors.startTime = 'Start date and time must both be set';
+    }
+
+    if (hasEndValue && (!form.endDate || !form.endTime)) {
+      nextErrors.endTime = 'End date and time must both be set';
+    }
+
+    if (!isDraftLikeStatus) {
+      if (!form.startDate) nextErrors.startDate = 'Start date is required';
+      if (!form.startTime) nextErrors.startTime = 'Start time is required';
+      if (!form.endDate) nextErrors.endDate = 'End date is required';
+      if (!form.endTime) nextErrors.endTime = 'End time is required';
+      if (needsVenue && !form.venueName.trim()) nextErrors.venueName = 'Venue name is required';
+      if (needsOnlineLink && !form.onlineLink.trim()) nextErrors.onlineLink = 'Online link is required';
+    }
 
     if (
       form.startDate && form.startTime && form.endDate && form.endTime
@@ -186,38 +238,63 @@ const EditEventPage = () => {
 
   const buildPayload = () => ({
     title: form.title.trim(),
-    description: form.description.trim(),
+    description: form.description.trim() || undefined,
     category: form.category || undefined,
     subcategory: form.subcategory || undefined,
     coverImage: form.coverImage.trim() || undefined,
     startDate: buildDateTime(form.startDate, form.startTime),
     endDate: buildDateTime(form.endDate, form.endTime, '23:59'),
     timezone: form.timezone,
-    location: form.isOnline
-      ? {
-          type: 'online',
-          onlineUrl: form.onlineLink.trim() || undefined,
-        }
-      : {
-          type: 'physical',
-          name: form.venueName.trim() || undefined,
-          address: form.venueAddress.trim() || undefined,
-          city: form.venueCity.trim() || undefined,
-          country: form.venueCountry.trim() || undefined,
-        },
+    location: {
+      type: form.locationType,
+      name:
+        ['physical', 'hybrid'].includes(form.locationType)
+          ? form.venueName.trim() || undefined
+          : undefined,
+      address:
+        ['physical', 'hybrid'].includes(form.locationType)
+          ? form.venueAddress.trim() || undefined
+          : undefined,
+      city:
+        ['physical', 'hybrid'].includes(form.locationType)
+          ? form.venueCity.trim() || undefined
+          : undefined,
+      state:
+        ['physical', 'hybrid'].includes(form.locationType)
+          ? form.venueState.trim() || undefined
+          : undefined,
+      country:
+        ['physical', 'hybrid'].includes(form.locationType)
+          ? form.venueCountry.trim() || undefined
+          : undefined,
+      zip:
+        ['physical', 'hybrid'].includes(form.locationType)
+          ? form.venueZip.trim() || undefined
+          : undefined,
+      coordinates:
+        ['physical', 'hybrid'].includes(form.locationType)
+          ? event?.location?.coordinates || undefined
+          : undefined,
+      onlineUrl:
+        ['online', 'hybrid'].includes(form.locationType)
+          ? form.onlineLink.trim() || undefined
+          : undefined,
+      onlinePlatform:
+        ['online', 'hybrid'].includes(form.locationType)
+          ? form.onlinePlatform.trim() || undefined
+          : undefined,
+      streamPassword:
+        ['online', 'hybrid'].includes(form.locationType)
+          ? form.streamPassword.trim() || undefined
+          : undefined,
+    },
     ageRestriction: form.ageRestriction,
   });
 
   const handleSave = async () => {
     const eventKey = event?.slug || eventId;
-    if (!form.title.trim()) {
-      setErrors((current) => ({ ...current, title: 'Title is required' }));
-      toast.error('Title is required');
-      return;
-    }
-
-    if (!form.startDate || !form.startTime || !form.endDate || !form.endTime) {
-      toast.error('Start and end date/time are required');
+    if (!validateForSave()) {
+      toast.error(isDraftLikeStatus ? 'Please fix the draft errors before saving' : 'Please complete the required event details');
       return;
     }
 
@@ -394,18 +471,37 @@ const EditEventPage = () => {
                   </SelectContent>
                 </Select>
               </Field>
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 border border-border">
-                <div className="flex-1">
-                  <p className="text-sm font-semibold">Online Event</p>
-                  <p className="text-xs text-muted-foreground">
-                    Toggle between virtual and in-person attendance.
-                  </p>
-                </div>
-                <Switch
-                  checked={form.isOnline}
-                  onCheckedChange={(value) => setValue('isOnline', value)}
-                />
-              </div>
+              <Field
+                label="Location Type"
+                hint="Choose whether attendees join in person, online, or both."
+              >
+                <Select
+                  value={form.locationType}
+                  onValueChange={(value) => {
+                    setForm((current) => ({
+                      ...current,
+                      locationType: value,
+                      isOnline: value !== 'physical',
+                    }));
+                    setErrors((current) => ({
+                      ...current,
+                      venueName: undefined,
+                      onlineLink: undefined,
+                    }));
+                  }}
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LOCATION_TYPES.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type.charAt(0).toUpperCase() + type.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
             </CardContent>
           </Card>
         </TabsContent>
@@ -479,7 +575,7 @@ const EditEventPage = () => {
                   </SelectContent>
                 </Select>
               </Field>
-              {!form.isOnline ? (
+              {['physical', 'hybrid'].includes(form.locationType) && (
                 <>
                   <Separator />
                   <Field label="Venue Name" required error={errors.venueName}>
@@ -510,6 +606,15 @@ const EditEventPage = () => {
                         className="h-9"
                       />
                     </Field>
+                    <Field label="State / Province">
+                      <Input
+                        value={form.venueState}
+                        onChange={(eventValue) =>
+                          setValue('venueState', eventValue.target.value)
+                        }
+                        className="h-9"
+                      />
+                    </Field>
                     <Field label="Country">
                       <Input
                         value={form.venueCountry}
@@ -519,19 +624,55 @@ const EditEventPage = () => {
                         className="h-9"
                       />
                     </Field>
+                    <Field label="Postal Code">
+                      <Input
+                        value={form.venueZip}
+                        onChange={(eventValue) =>
+                          setValue('venueZip', eventValue.target.value)
+                        }
+                        className="h-9"
+                      />
+                    </Field>
                   </div>
                 </>
-              ) : (
-                <Field label="Streaming / Meeting Link" required error={errors.onlineLink}>
-                  <Input
-                    value={form.onlineLink}
-                    onChange={(eventValue) =>
-                      setValue('onlineLink', eventValue.target.value)
-                    }
-                    placeholder="https://..."
-                    className="h-9"
-                  />
-                </Field>
+              )}
+
+              {['online', 'hybrid'].includes(form.locationType) && (
+                <>
+                  <Separator />
+                  <Field label="Streaming / Meeting Link" required error={errors.onlineLink}>
+                    <Input
+                      value={form.onlineLink}
+                      onChange={(eventValue) =>
+                        setValue('onlineLink', eventValue.target.value)
+                      }
+                      placeholder="https://..."
+                      className="h-9"
+                    />
+                  </Field>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Field label="Platform">
+                      <Input
+                        value={form.onlinePlatform}
+                        onChange={(eventValue) =>
+                          setValue('onlinePlatform', eventValue.target.value)
+                        }
+                        placeholder="Zoom, YouTube Live, Google Meet"
+                        className="h-9"
+                      />
+                    </Field>
+                    <Field label="Access Password">
+                      <Input
+                        value={form.streamPassword}
+                        onChange={(eventValue) =>
+                          setValue('streamPassword', eventValue.target.value)
+                        }
+                        placeholder="Optional"
+                        className="h-9"
+                      />
+                    </Field>
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>

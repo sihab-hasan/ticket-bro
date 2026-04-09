@@ -109,6 +109,7 @@ const CheckoutPage = () => {
     );
 
   const items = cart?.items || [];
+  const currency = cart?.currency || items[0]?.currency || items[0]?.event?.currency || "USD";
   const subtotal = Number(
     cart?.subtotal ?? items.reduce((s, i) => s + Number(i?.totalPrice || 0), 0),
   );
@@ -166,7 +167,7 @@ const CheckoutPage = () => {
                 </p>
               </div>
               <p className="text-sm font-bold shrink-0">
-                {formatPrice(item.totalPrice)}
+                {formatPrice(item.totalPrice, item.currency || currency)}
               </p>
             </div>
           ))}
@@ -174,22 +175,22 @@ const CheckoutPage = () => {
           <div className="space-y-1 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Subtotal</span>
-              <span>{formatPrice(subtotal)}</span>
+              <span>{formatPrice(subtotal, currency)}</span>
             </div>
             {discount > 0 && (
               <div className="flex justify-between text-green-600">
                 <span>Discount</span>
-                <span>-{formatPrice(discount)}</span>
+                <span>-{formatPrice(discount, currency)}</span>
               </div>
             )}
             <div className="flex justify-between">
               <span className="text-muted-foreground">Service fee</span>
-              <span>{formatPrice(serviceFee)}</span>
+              <span>{formatPrice(serviceFee, currency)}</span>
             </div>
             <Separator />
             <div className="flex justify-between font-bold text-base">
               <span>Total</span>
-              <span className="text-primary">{formatPrice(total)}</span>
+              <span className="text-primary">{formatPrice(total, currency)}</span>
             </div>
           </div>
         </CardContent>
@@ -288,7 +289,7 @@ const CheckoutPage = () => {
         ) : (
           <>
             <Lock className="h-5 w-5 mr-2" />
-            Place Order — {formatPrice(total)}
+            Place Order — {formatPrice(total, currency)}
           </>
         )}
       </Button>

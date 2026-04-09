@@ -137,12 +137,48 @@ const validateEventChronology = (value, helpers) => {
     return helpers.message('recurrence is required when isRecurring is true.');
   }
 
+  if (
+    value.isRecurring
+    && ['weekly', 'biweekly'].includes(value.recurrence?.frequency)
+    && (!value.recurrence?.daysOfWeek || !value.recurrence.daysOfWeek.length)
+  ) {
+    return helpers.message('recurrence.daysOfWeek is required for weekly and biweekly events.');
+  }
+
+  const reviewLikeStatus = value.status && value.status !== 'draft';
+  const locationType = value.location?.type || 'physical';
+
+  if (reviewLikeStatus && ['physical', 'hybrid'].includes(locationType) && !value.location?.name?.trim()) {
+    return helpers.message('Venue name is required for physical or hybrid events.');
+  }
+
+  if (reviewLikeStatus && ['online', 'hybrid'].includes(locationType) && !value.location?.onlineUrl?.trim()) {
+    return helpers.message('onlineUrl is required for online or hybrid events.');
+  }
+
   return value;
 };
 
+const validateCreateEventState = (value, helpers) => {
+  const reviewLikeStatus = value.status && value.status !== 'draft';
+  const missing = [];
+
+  if (reviewLikeStatus && !value.title?.trim()) missing.push('title');
+  if (reviewLikeStatus && !value.description?.trim()) missing.push('description');
+  if (reviewLikeStatus && !value.category) missing.push('category');
+  if (reviewLikeStatus && !value.startDate) missing.push('startDate');
+  if (reviewLikeStatus && !value.endDate) missing.push('endDate');
+
+  if (missing.length) {
+    return helpers.message(`Complete these fields before review or publish: ${missing.join(', ')}.`);
+  }
+
+  return validateEventChronology(value, helpers);
+};
+
 const createEventSchema = Joi.object(eventBodyFields)
-  .fork(['title', 'description', 'startDate', 'endDate'], (schema) => schema.required())
-  .custom(validateEventChronology);
+  .fork(['title'], (schema) => schema.required())
+  .custom(validateCreateEventState);
 
 const updateEventSchema = Joi.object(eventBodyFields)
   .min(1)
@@ -159,6 +195,14 @@ const eventListQuerySchema = Joi.object({
 
 const relatedEventsQuerySchema = Joi.object({
   limit: Joi.number().integer().min(1).max(20).default(6),
+});
+
+const eventReviewQuerySchema = Joi.object({
+  ...paginationFields,
+  sort: Joi.string()
+    .valid('-createdAt', 'createdAt', '-rating', 'rating')
+    .default('-createdAt'),
+  search: optionalString(200),
 });
 
 const eventSlugParamsSchema = Joi.object({
@@ -234,6 +278,7 @@ module.exports = {
   updateEventSchema,
   eventListQuerySchema,
   relatedEventsQuerySchema,
+  eventReviewQuerySchema,
   eventSlugParamsSchema,
   eventSlugAndIdParamsSchema,
   createTicketTypeSchema,

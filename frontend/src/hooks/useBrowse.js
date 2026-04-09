@@ -282,6 +282,21 @@ const useBrowse = () => {
   const buildEventTypeUrl = (category, subcategory, type) =>
     ROUTES.BROWSE.EVENT_TYPE(category, subcategory, type);
 
+  const currentBrowsePath = useMemo(() => {
+    if (level === "root") {
+      return ROUTES.BROWSE.ROOT;
+    }
+    if (level === "category") {
+      return ROUTES.BROWSE.CATEGORY(categorySlug);
+    }
+    if (level === "subCategory") {
+      return ROUTES.BROWSE.SUBCATEGORY(categorySlug, subCategorySlug);
+    }
+    return ROUTES.BROWSE.EVENT_TYPE(categorySlug, subCategorySlug, eventTypeSlug);
+  }, [categorySlug, eventTypeSlug, level, subCategorySlug]);
+
+  const resultsHref = `${currentBrowsePath}#browse-results`;
+
   const getEvents = () => filteredEvents;
 
   const getFeatured = () => {
@@ -408,6 +423,8 @@ const useBrowse = () => {
     buildCategoryUrl,
     buildSubCategoryUrl,
     buildEventTypeUrl,
+    currentBrowsePath,
+    resultsHref,
     unslugify,
     toSlug,
     spotsPercent,

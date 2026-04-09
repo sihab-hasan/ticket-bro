@@ -129,7 +129,14 @@ const eventSchema = new mongoose.Schema({
   // ── Core identity ────────────────────────────────────────────────────────
   title:            { type: String, required: true, trim: true, minlength: 3, maxlength: 200 },
   slug:             { type: String, unique: true, lowercase: true, index: true },
-  description:      { type: String, required: true, trim: true, maxlength: 10000 },
+  description:      {
+    type: String,
+    required() {
+      return this.status !== EVENT_STATUS.DRAFT;
+    },
+    trim: true,
+    maxlength: 10000,
+  },
   shortDescription: { type: String, trim: true, maxlength: 500 },
 
   // ── Ownership ────────────────────────────────────────────────────────────
@@ -161,8 +168,19 @@ const eventSchema = new mongoose.Schema({
   tags:        [{ type: mongoose.Schema.Types.ObjectId, ref: 'Tag' }],
 
   // ── Schedule ─────────────────────────────────────────────────────────────
-  startDate:   { type: Date, required: true, index: true },
-  endDate:     { type: Date, required: true },
+  startDate:   {
+    type: Date,
+    required() {
+      return this.status !== EVENT_STATUS.DRAFT;
+    },
+    index: true,
+  },
+  endDate:     {
+    type: Date,
+    required() {
+      return this.status !== EVENT_STATUS.DRAFT;
+    },
+  },
   timezone:    { type: String, default: 'Asia/Dhaka' },
   doorsOpen:   { type: Date },    // when venue opens (before startDate)
   isRecurring: { type: Boolean, default: false },

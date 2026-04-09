@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { MessageSquare, RefreshCw, Star, ThumbsUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import PageHeader from "@/components/shared/PageHeader";
 import { formatDate } from "@/utils/formatters";
 import { toast } from "@/components/shared/common";
 import { ROUTES } from "@/app/AppRoutes";
-import { reviewsService } from "@/api";
+import { eventsService, reviewsService } from "@/api";
 import Container from '@/components/layout/Container';
 
 const Stars = ({ rating, size = "sm" }) => (
@@ -30,10 +30,35 @@ const Stars = ({ rating, size = "sm" }) => (
   </div>
 );
 
+const buildEventSummary = (eventData, reviews = []) => {
+  const totalReviews = Number(eventData?.reviewCount || reviews.length || 0);
+  const averageRating = Number(
+    eventData?.averageRating ||
+      (reviews.length
+        ? reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) /
+          reviews.length
+        : 0),
+  );
+
+  return {
+    averageRating,
+    totalReviews,
+    ratingDistribution: [5, 4, 3, 2, 1].map((rating) => ({
+      rating,
+      count: reviews.filter(
+        (review) => Math.round(Number(review.rating || 0)) === rating,
+      ).length,
+    })),
+  };
+};
+
 const ReviewsPage = () => {
   const navigate = useNavigate();
+  const { eventId } = useParams();
+  const isEventContext = Boolean(eventId);
   const [summary, setSummary] = useState(null);
   const [reviews, setReviews] = useState([]);
+  const [eventContext, setEventContext] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
@@ -48,20 +73,48 @@ const ReviewsPage = () => {
     }
 
     try {
-      const [reviewsData, summaryData] = await Promise.all([
-        reviewsService.getAll({
-          page: targetPage,
-          limit: 10,
-          sort: "-createdAt",
-        }),
-        isFirstPage ? reviewsService.getSummary() : Promise.resolve(null),
-      ]);
+      let nextReviews = [];
+      let pagination = {};
 
-      const nextReviews = reviewsData?.reviews || [];
-      const pagination = reviewsData?.pagination || {};
+      if (isEventContext) {
+        const [reviewsData, eventData] = await Promise.all([
+          eventsService.getEventReviews(eventId, {
+            page: targetPage,
+            limit: 10,
+            sort: "-createdAt",
+          }),
+          isFirstPage
+            ? eventsService.getEventBySlug(eventId).catch(() => null)
+            : Promise.resolve(null),
+        ]);
+
+        nextReviews = reviewsData?.items || [];
+        pagination = reviewsData?.pagination || {};
+
+        if (isFirstPage) {
+          setEventContext(eventData || null);
+          setSummary(buildEventSummary(eventData, nextReviews));
+        }
+      } else {
+        const [reviewsData, summaryData] = await Promise.all([
+          reviewsService.getAll({
+            page: targetPage,
+            limit: 10,
+            sort: "-createdAt",
+          }),
+          isFirstPage ? reviewsService.getSummary() : Promise.resolve(null),
+        ]);
+
+        nextReviews = reviewsData?.reviews || [];
+        pagination = reviewsData?.pagination || {};
+
+        if (isFirstPage) {
+          setSummary(summaryData || null);
+          setEventContext(null);
+        }
+      }
 
       if (isFirstPage) {
-        setSummary(summaryData || null);
         setReviews(nextReviews);
       } else {
         setReviews((current) => [...current, ...nextReviews]);
@@ -72,12 +125,12 @@ const ReviewsPage = () => {
         Number(pagination.page || targetPage) < Number(pagination.totalPages || 1),
       );
     } catch {
-      toast.error("Failed to load reviews");
+      toast.error(isEventContext ? "Failed to load event reviews" : "Failed to load reviews");
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, []);
+  }, [eventId, isEventContext]);
 
   useEffect(() => {
     loadReviews(1);
@@ -90,8 +143,12 @@ const ReviewsPage = () => {
   return (
     <Container aria-label="Reviews"><div className="mx-auto max-w-3xl space-y-5 py-4 font-sans sm:py-6">
       <PageHeader
-        title="Reviews"
-        subtitle="App-wide feedback from the Ticket Bro community"
+        title={eventContext?.title ? `${eventContext.title} Reviews` : isEventContext ? "Event Reviews" : "Reviews"}
+        subtitle={
+          isEventContext
+            ? "Recent attendee feedback for this event"
+            : "App-wide feedback from the Ticket Bro community"
+        }
         actions={[
           {
             label: "Refresh",
@@ -100,9 +157,14 @@ const ReviewsPage = () => {
             variant: "outline",
           },
           {
-            label: "Write Review",
+            label: isEventContext ? "Write Event Review" : "Write Review",
             icon: Star,
-            onClick: () => navigate(ROUTES.REVIEWS.WRITE),
+            onClick: () =>
+              navigate(
+                ROUTES.REVIEWS.WRITE(
+                  eventContext?._id || eventContext?.id,
+                ),
+              ),
           },
         ]}
       />
@@ -156,14 +218,22 @@ const ReviewsPage = () => {
                 <MessageSquare className="mb-3 h-10 w-10 text-muted-foreground/30" />
                 <p className="text-sm font-semibold">No reviews yet</p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Be the first person to rate the Ticket Bro experience.
+                  {isEventContext
+                    ? "Be the first attendee to leave feedback for this event."
+                    : "Be the first person to rate the Ticket Bro experience."}
                 </p>
                 <Button
                   className="mt-4 font-bold"
-                  onClick={() => navigate(ROUTES.REVIEWS.WRITE)}
+                  onClick={() =>
+                    navigate(
+                      ROUTES.REVIEWS.WRITE(
+                        eventContext?._id || eventContext?.id,
+                      ),
+                    )
+                  }
                 >
                   <Star className="mr-2 h-4 w-4" />
-                  Write Review
+                  {isEventContext ? "Write Event Review" : "Write Review"}
                 </Button>
               </CardContent>
             </Card>
@@ -202,7 +272,7 @@ const ReviewsPage = () => {
                             {review.body}
                           </p>
                         ) : null}
-                        {review.event?.title ? (
+                        {!isEventContext && review.event?.title ? (
                           <p className="mt-2 text-[11px] text-muted-foreground">
                             Legacy event context: {review.event.title}
                           </p>

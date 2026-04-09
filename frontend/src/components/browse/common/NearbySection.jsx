@@ -6,7 +6,7 @@ import BrowseEventCard from "@/components/shared/cards/EventCard";
 import SectionShell from "./SectionShell";
 
 const NearbySection = () => {
-  const { getNearby, config, locationLabel, level } = useBrowse();
+  const { getNearby, config, locationLabel, level, resultsHref } = useBrowse();
   const [savedIds, setSavedIds] = useState(new Set());
   const events = getNearby();
   if (!events.length) return null;
@@ -25,7 +25,8 @@ const NearbySection = () => {
       title={title}
       subtitle={`Events closest to you in ${locationLabel}`}
       icon={Navigation}
-      viewAllHref="/browse"
+      viewAllHref={resultsHref}
+      viewAllLabel="View all results"
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {events.slice(0, 8).map((e) => (

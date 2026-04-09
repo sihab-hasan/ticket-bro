@@ -15,10 +15,125 @@ const {
 const Event = require('../events/event.model');
 const ticketRepository = require('../tickets/ticket.repository');
 const ticketService = require('../tickets/ticket.service');
+const TicketType = require('../tickets/ticketType.model');
 
 const getId = (user) => user?.id || user?._id?.toString() || user?.userId;
 
 class BookingService {
+  _assertTicketOnSale(ticketType) {
+    const now = Date.now();
+    const salesStart = ticketType?.salesStart
+      ? new Date(ticketType.salesStart).getTime()
+      : null;
+    const salesEnd = ticketType?.salesEnd
+      ? new Date(ticketType.salesEnd).getTime()
+      : null;
+
+    if (salesStart && now < salesStart) {
+      throw new BadRequestError(`Sales for ${ticketType.name} have not opened yet.`);
+    }
+
+    if (salesEnd && now > salesEnd) {
+      throw new BadRequestError(`Sales for ${ticketType.name} have ended.`);
+    }
+  }
+
+  async _syncEventInventorySummary(eventId) {
+    if (!eventId) {
+      return;
+    }
+
+    const summary = await TicketType.aggregate([
+      { $match: { event: eventId, deletedAt: null } },
+      {
+        $group: {
+          _id: null,
+          sold: { $sum: '$sold' },
+          reserved: { $sum: '$reserved' },
+          capacity: { $sum: '$quantity' },
+        },
+      },
+    ]);
+
+    await Event.findByIdAndUpdate(eventId, {
+      totalSold: summary[0]?.sold || 0,
+      totalReserved: summary[0]?.reserved || 0,
+      totalCapacity: summary[0]?.capacity || 0,
+    });
+  }
+
+  async _buildBookingItems(eventId, items = []) {
+    const groupedItems = items.reduce((map, item) => {
+      const ticketTypeId = item?.ticketTypeId?.toString?.() || item?.ticketTypeId;
+      const quantity = Number(item?.quantity || 0);
+
+      if (!ticketTypeId || !Number.isInteger(quantity) || quantity < 1) {
+        throw new BadRequestError('Each booking item must include a valid ticket type and quantity.');
+      }
+
+      const current = map.get(ticketTypeId) || {
+        ticketTypeId,
+        quantity: 0,
+        seats: [],
+        attendees: [],
+      };
+
+      current.quantity += quantity;
+      current.seats.push(...(item.seats || []));
+      current.attendees.push(...(item.attendees || []));
+      map.set(ticketTypeId, current);
+      return map;
+    }, new Map());
+
+    const bookingItems = [];
+    let subtotal = 0;
+
+    for (const grouped of groupedItems.values()) {
+      const type = await ticketRepository.findTypeById(grouped.ticketTypeId);
+
+      if (!type || !type.isActive) {
+        throw new BadRequestError('Invalid ticket type.');
+      }
+
+      if (String(type.event) !== String(eventId)) {
+        throw new BadRequestError('Ticket type does not belong to the selected event.');
+      }
+
+      this._assertTicketOnSale(type);
+
+      if (type.minPerOrder && grouped.quantity < Number(type.minPerOrder)) {
+        throw new BadRequestError(
+          `${type.name} requires at least ${type.minPerOrder} tickets per order.`,
+        );
+      }
+
+      if (type.maxPerOrder && grouped.quantity > Number(type.maxPerOrder)) {
+        throw new BadRequestError(
+          `${type.name} allows at most ${type.maxPerOrder} tickets per order.`,
+        );
+      }
+
+      const available = (type.quantity || 0) - (type.sold || 0) - (type.reserved || 0);
+      if (grouped.quantity > available) {
+        throw new BadRequestError(`Not enough tickets available for ${type.name}. Requested ${grouped.quantity}, available ${available}.`);
+      }
+
+      const unitPrice = Number(type.price || 0);
+      const totalPrice = unitPrice * grouped.quantity;
+      subtotal += totalPrice;
+      bookingItems.push({
+        ticketTypeId: type._id,
+        ticketTypeName: type.name,
+        quantity: grouped.quantity,
+        unitPrice,
+        totalPrice,
+        seats: grouped.seats,
+        attendees: grouped.attendees,
+      });
+    }
+
+    return { bookingItems, subtotal };
+  }
 
   async createBooking(data, user) {
     const { eventId, items, contactName, contactEmail, contactPhone, promoCode, cartId } = data;
@@ -26,7 +141,9 @@ class BookingService {
       throw new BadRequestError('Booking must have at least one item.');
     }
     // Fetch event to ensure it exists and retrieve organizer
-    const event = await Event.findById(eventId).select('organizer status title').exec();
+    const event = await Event.findById(eventId)
+      .select('organizer status title currency startDate endDate location')
+      .exec();
     if (!event) {
       throw new NotFoundError('Event not found.');
     }
@@ -34,55 +151,56 @@ class BookingService {
     if (!['published'].includes(event.status)) {
       throw new BadRequestError('Event is not available for booking.');
     }
-    // Build booking items from provided items, pulling authoritative data from ticket types
-    const bookingItems = [];
-    let subtotal = 0;
-    for (const item of items) {
-      const type = await ticketRepository.findTypeById(item.ticketTypeId);
-      if (!type || !type.isActive) {
-        throw new BadRequestError('Invalid ticket type.');
-      }
-      // Validate requested quantity against available inventory
-      const available = (type.quantity || 0) - (type.sold || 0) - (type.reserved || 0);
-      if (item.quantity > available) {
-        throw new BadRequestError(`Not enough tickets available for ${type.name}. Requested ${item.quantity}, available ${available}.`);
-      }
-      // Determine price from ticket type; ignore client-provided unitPrice
-      const unitPrice = Number(type.price || 0);
-      const totalPrice = unitPrice * Number(item.quantity);
-      subtotal += totalPrice;
-      // Reserve inventory until booking is confirmed or cancelled
-      await ticketRepository.incrementReserved(type._id, item.quantity);
-      bookingItems.push({
-        ticketTypeId:   type._id,
-        ticketTypeName: type.name,
-        quantity:       Number(item.quantity),
-        unitPrice,
-        totalPrice,
-        seats:     item.seats || [],
-        attendees: item.attendees || [],
-      });
-    }
+    const { bookingItems, subtotal } = await this._buildBookingItems(eventId, items);
     const totalAmount = subtotal; // promotions/fees handled elsewhere
 
-    const booking = await bookingRepository.create({
-      user:         getId(user),
-      event:        eventId,
-      organizer:    event.organizer,
-      items:        bookingItems,
-      subtotal,
-      totalAmount,
-      currency:     data.currency || 'USD',
-      contactName:  contactName || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-      contactEmail: contactEmail || user.email,
-      contactPhone,
-      promoCode,
-      cartId,
-      status:       'pending',
-      paymentStatus:'pending',
-    });
-    logger.info(`Booking created: ${booking.bookingRef} by user ${getId(user)}`);
-    return booking;
+    const reservedItems = [];
+
+    try {
+      for (const item of bookingItems) {
+        await ticketRepository.incrementReserved(item.ticketTypeId, item.quantity);
+        reservedItems.push(item);
+      }
+
+      const booking = await bookingRepository.create({
+        user:         getId(user),
+        event:        eventId,
+        organizer:    event.organizer,
+        items:        bookingItems,
+        subtotal,
+        totalAmount,
+        currency:     data.currency || event.currency || 'USD',
+        contactName:  contactName || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+        contactEmail: contactEmail || user.email,
+        contactPhone,
+        promoCode,
+        cartId,
+        status:       'pending',
+        paymentStatus:'pending',
+      });
+
+      await this._syncEventInventorySummary(eventId);
+      logger.info(`Booking created: ${booking.bookingRef} by user ${getId(user)}`);
+      return booking;
+    } catch (error) {
+      for (const item of reservedItems) {
+        try {
+          await ticketRepository.decrementReserved(item.ticketTypeId, item.quantity);
+        } catch (rollbackError) {
+          logger.error(`Failed to rollback reservation for ticketType ${item.ticketTypeId}: ${rollbackError.message}`);
+        }
+      }
+
+      if (reservedItems.length) {
+        try {
+          await this._syncEventInventorySummary(eventId);
+        } catch (syncError) {
+          logger.error(`Failed to resync event inventory after rollback for event ${eventId}: ${syncError.message}`);
+        }
+      }
+
+      throw error;
+    }
   }
 
   async getMyBookings(userId, query = {}) {
@@ -127,6 +245,8 @@ class BookingService {
         }
       }
     }
+
+    await this._syncEventInventorySummary(booking.event?._id || booking.event);
 
     await this._sendTicketCancelledEmail(booking, updated);
     return updated;
@@ -219,23 +339,10 @@ class BookingService {
       }
     }
 
-    // After adjusting ticketType counts, update the event's totalSold count. This ensures
-    // organizer dashboards reflect accurate sales numbers. We aggregate the sold
-    // values across all ticket types for the event and persist it on the event document.
     try {
-      const eventId = booking.event?._id || booking.event;
-      if (eventId) {
-        const TicketType = require('../tickets/ticketType.model');
-        const agg = await TicketType.aggregate([
-          { $match: { event: eventId, deletedAt: null } },
-          { $group: { _id: null, sold: { $sum: '$sold' } } },
-        ]);
-        const totalSold = agg[0]?.sold || 0;
-        const Event = require('../events/event.model');
-        await Event.findByIdAndUpdate(eventId, { totalSold }, { new: false });
-      }
+      await this._syncEventInventorySummary(booking.event?._id || booking.event);
     } catch (err) {
-      logger.error(`Error updating event totalSold for booking ${bookingRef}: ${err.message}`);
+      logger.error(`Error updating event inventory summary for booking ${bookingRef}: ${err.message}`);
     }
     await this._sendBookingConfirmationEmail(booking || updated);
     return updated;

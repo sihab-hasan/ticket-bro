@@ -6,7 +6,7 @@ import BrowseEventCard from "@/components/shared/cards/EventCard";
 import SectionShell from "./SectionShell";
 
 const UpcomingSection = () => {
-  const { getUpcoming, config, locationLabel, level } = useBrowse();
+  const { getUpcoming, config, locationLabel, level, resultsHref } = useBrowse();
   const [savedIds, setSavedIds] = useState(new Set());
   const events = getUpcoming();
   if (!events.length) return null;
@@ -23,7 +23,8 @@ const UpcomingSection = () => {
       title={title}
       subtitle={`Happening soon in ${locationLabel}`}
       icon={Clock}
-      viewAllHref="/browse"
+      viewAllHref={resultsHref}
+      viewAllLabel="View all results"
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {events.slice(0, 8).map((e) => (

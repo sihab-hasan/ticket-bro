@@ -192,7 +192,7 @@ const BookingDetailsPage = () => {
         )}
 
         {canReview && (
-          <Link to={ROUTES.REVIEWS.WRITE(booking?.event?.slug || booking?.event?._id)} className="flex-1">
+          <Link to={ROUTES.REVIEWS.WRITE(booking?.event?._id || booking?.event?.slug)} className="flex-1">
             <Button className="w-full font-bold">
               <Star className="h-4 w-4 mr-2" /> Write Review
             </Button>

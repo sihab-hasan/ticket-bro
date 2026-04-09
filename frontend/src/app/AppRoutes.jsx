@@ -173,8 +173,9 @@ export const ROUTES = {
   },
 
   REVIEWS: {
+    ROOT: "/reviews",
     EVENT: (eventId) => `/reviews/event/${eventId}`,
-    WRITE: (eventId) => `/reviews/write/${eventId}`,
+    WRITE: (eventId) => (eventId ? `/reviews/write/${eventId}` : "/reviews/write"),
   },
 
   ORGANIZER: {
@@ -340,7 +341,9 @@ const AppRoutes = () => (
           </Route>
 
           <Route path="/reviews">
+            <Route index element={<ReviewsPage />} />
             <Route path="event/:eventId" element={<ReviewsPage />} />
+            <Route path="write" element={<WriteReviewPage />} />
             <Route path="write/:eventId" element={<WriteReviewPage />} />
           </Route>
         </Route>

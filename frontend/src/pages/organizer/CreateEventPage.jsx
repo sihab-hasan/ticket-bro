@@ -76,7 +76,10 @@ const Field = ({ label, required, error, hint, children }) => (
 );
 
 const inputCls = 'h-9 text-sm';
-const STEPS = ['Basic Info', 'Date & Venue', 'Tickets', 'Media & Publish'];
+const STEPS = ['Essentials', 'Schedule & Access', 'Tickets', 'Media, Policy & Review'];
+const LOCATION_TYPES = ['physical', 'online', 'hybrid'];
+const VISIBILITY_OPTIONS = ['public', 'unlisted', 'private'];
+const CURRENCY_OPTIONS = ['BDT', 'USD', 'EUR', 'GBP', 'INR', 'SGD', 'AED'];
 const TICKET_TYPES = ['general', 'vip', 'early_bird', 'group', 'backstage', 'online'];
 
 const EMPTY_TICKET = {
@@ -85,37 +88,71 @@ const EMPTY_TICKET = {
   quantity: '',
   description: '',
   type: 'general',
+  salesStart: '',
+  salesEnd: '',
+  minPerOrder: '',
+  maxPerOrder: '',
+  benefitsText: '',
 };
+
+const splitTextList = (value) =>
+  String(value || '')
+    .split(/\r?\n|,/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const buildLocalDateTime = (value) => (
+  value ? `${value}:00` : undefined
+);
 
 const createReviewErrors = (form) => {
   const errors = {};
 
   if (!form.title.trim()) errors.title = 'Title is required';
+  if (!form.shortDescription.trim()) {
+    errors.shortDescription = 'Short description is required';
+  }
   if (!form.category) errors.category = 'Category is required';
   if (!form.description.trim()) errors.description = 'Description is required';
   if (!form.startDate) errors.startDate = 'Start date is required';
   if (!form.startTime) errors.startTime = 'Start time is required';
   if (!form.endDate) errors.endDate = 'End date is required';
   if (!form.endTime) errors.endTime = 'End time is required';
-  if (!form.isOnline && !form.venueName.trim()) {
+  if (['physical', 'hybrid'].includes(form.locationType) && !form.venueName.trim()) {
     errors.venueName = 'Venue name is required';
   }
-  if (form.isOnline && !form.onlineLink.trim()) {
+  if (['online', 'hybrid'].includes(form.locationType) && !form.onlineLink.trim()) {
     errors.onlineLink = 'Online event link is required';
+  }
+  if ((form.doorsOpenDate && !form.doorsOpenTime) || (!form.doorsOpenDate && form.doorsOpenTime)) {
+    errors.doorsOpenTime = 'Doors open date and time must both be set';
   }
 
   if (!form.tickets.length) {
     errors.tickets = 'At least one ticket type is required';
-  } else if (form.isFree) {
-    if (!form.tickets[0]?.quantity) {
-      errors.tickets = 'Capacity is required for free events';
-    }
+  } else if (form.tickets.some((ticket) => !ticket.name.trim() || !ticket.quantity)) {
+    errors.tickets = 'Each ticket needs a name and quantity';
   } else if (
-    form.tickets.some(
-      (ticket) => !ticket.name.trim() || ticket.price === '' || !ticket.quantity,
+    !form.isFree &&
+    form.tickets.some((ticket) => ticket.price === '')
+  ) {
+    errors.tickets = 'Each paid ticket needs a price';
+  } else if (
+    form.tickets.some((ticket) =>
+      ticket.minPerOrder
+      && ticket.maxPerOrder
+      && Number.parseInt(ticket.minPerOrder, 10) > Number.parseInt(ticket.maxPerOrder, 10),
     )
   ) {
-    errors.tickets = 'Each ticket needs a name, price, and quantity';
+    errors.tickets = 'Ticket minimum per order cannot be greater than the maximum';
+  } else if (
+    form.tickets.some((ticket) =>
+      ticket.salesStart
+      && ticket.salesEnd
+      && new Date(`${ticket.salesEnd}:00`) <= new Date(`${ticket.salesStart}:00`),
+    )
+  ) {
+    errors.tickets = 'Ticket sales end must be after sales start';
   }
 
   if (
@@ -123,6 +160,16 @@ const createReviewErrors = (form) => {
     && new Date(`${form.endDate}T${form.endTime}:00`) <= new Date(`${form.startDate}T${form.startTime}:00`)
   ) {
     errors.endTime = 'End date/time must be after start date/time';
+  }
+
+  if (
+    form.doorsOpenDate
+    && form.doorsOpenTime
+    && form.startDate
+    && form.startTime
+    && new Date(`${form.doorsOpenDate}T${form.doorsOpenTime}:00`) > new Date(`${form.startDate}T${form.startTime}:00`)
+  ) {
+    errors.doorsOpenTime = 'Doors open must be before the event starts';
   }
 
   return errors;
@@ -132,17 +179,34 @@ const createDraftErrors = (form) => {
   const errors = {};
 
   if (!form.title.trim()) errors.title = 'Title is required to save a draft';
-  if (!form.description.trim()) errors.description = 'Description is required to save a draft';
-  if (!form.startDate) errors.startDate = 'Start date is required to save a draft';
-  if (!form.startTime) errors.startTime = 'Start time is required to save a draft';
-  if (!form.endDate) errors.endDate = 'End date is required to save a draft';
-  if (!form.endTime) errors.endTime = 'End time is required to save a draft';
+
+  if ((form.startDate && !form.startTime) || (!form.startDate && form.startTime)) {
+    errors.startTime = 'Start date and time must both be set';
+  }
+
+  if ((form.endDate && !form.endTime) || (!form.endDate && form.endTime)) {
+    errors.endTime = 'End date and time must both be set';
+  }
+
+  if ((form.doorsOpenDate && !form.doorsOpenTime) || (!form.doorsOpenDate && form.doorsOpenTime)) {
+    errors.doorsOpenTime = 'Doors open date and time must both be set';
+  }
 
   if (
     form.startDate && form.startTime && form.endDate && form.endTime
     && new Date(`${form.endDate}T${form.endTime}:00`) <= new Date(`${form.startDate}T${form.startTime}:00`)
   ) {
     errors.endTime = 'End date/time must be after start date/time';
+  }
+
+  if (
+    form.doorsOpenDate
+    && form.doorsOpenTime
+    && form.startDate
+    && form.startTime
+    && new Date(`${form.doorsOpenDate}T${form.doorsOpenTime}:00`) > new Date(`${form.startDate}T${form.startTime}:00`)
+  ) {
+    errors.doorsOpenTime = 'Doors open must be before the event starts';
   }
 
   return errors;
@@ -153,98 +217,146 @@ const buildDateTime = (date, time) => (
 );
 
 const buildLocationPayload = (form, status) => {
-  if (form.isOnline) {
-    if (!form.onlineLink.trim() && status === 'draft') {
-      return undefined;
-    }
-
-    return {
-      type: 'online',
-      onlineUrl: form.onlineLink.trim() || undefined,
-    };
-  }
-
   const hasPhysicalLocation = [
     form.venueName,
     form.venueAddress,
     form.venueCity,
+    form.venueState,
     form.venueCountry,
+    form.venueZip,
   ].some((value) => value?.trim());
 
-  if (!hasPhysicalLocation && status === 'draft') {
+  const hasOnlineLocation = [
+    form.onlineLink,
+    form.onlinePlatform,
+    form.streamPassword,
+  ].some((value) => value?.trim());
+
+  if (!hasPhysicalLocation && !hasOnlineLocation && status === 'draft') {
     return undefined;
   }
 
+  const latitude = Number.parseFloat(form.venueLat);
+  const longitude = Number.parseFloat(form.venueLng);
+
   return {
-    type: 'physical',
-    name: form.venueName.trim() || undefined,
-    address: form.venueAddress.trim() || undefined,
-    city: form.venueCity.trim() || undefined,
-    country: form.venueCountry.trim() || undefined,
+    type: form.locationType,
+    name: ['physical', 'hybrid'].includes(form.locationType)
+      ? form.venueName.trim() || undefined
+      : undefined,
+    address: ['physical', 'hybrid'].includes(form.locationType)
+      ? form.venueAddress.trim() || undefined
+      : undefined,
+    city: ['physical', 'hybrid'].includes(form.locationType)
+      ? form.venueCity.trim() || undefined
+      : undefined,
+    state: ['physical', 'hybrid'].includes(form.locationType)
+      ? form.venueState.trim() || undefined
+      : undefined,
+    country: ['physical', 'hybrid'].includes(form.locationType)
+      ? form.venueCountry.trim() || undefined
+      : undefined,
+    zip: ['physical', 'hybrid'].includes(form.locationType)
+      ? form.venueZip.trim() || undefined
+      : undefined,
+    coordinates:
+      ['physical', 'hybrid'].includes(form.locationType)
+      && Number.isFinite(latitude)
+      && Number.isFinite(longitude)
+        ? {
+            type: 'Point',
+            coordinates: [longitude, latitude],
+          }
+        : undefined,
+    onlineUrl: ['online', 'hybrid'].includes(form.locationType)
+      ? form.onlineLink.trim() || undefined
+      : undefined,
+    onlinePlatform: ['online', 'hybrid'].includes(form.locationType)
+      ? form.onlinePlatform.trim() || undefined
+      : undefined,
+    streamPassword: ['online', 'hybrid'].includes(form.locationType)
+      ? form.streamPassword.trim() || undefined
+      : undefined,
   };
 };
 
 const buildEventPayload = (form, status) => ({
   title: form.title.trim(),
-  description: form.description.trim(),
+  shortDescription: form.shortDescription.trim() || undefined,
+  description: form.description.trim() || undefined,
   category: form.category || undefined,
   subcategory: form.subcategory || undefined,
   startDate: buildDateTime(form.startDate, form.startTime),
   endDate: buildDateTime(form.endDate, form.endTime),
   timezone: form.timezone,
+  doorsOpen: buildDateTime(form.doorsOpenDate, form.doorsOpenTime),
   location: buildLocationPayload(form, status),
   ageRestriction: form.ageRestriction,
   isFree: form.isFree,
+  currency: form.currency,
+  visibility: form.visibility,
+  requiresApproval: form.requiresApproval,
   coverImage: form.coverImage.trim() || undefined,
+  images: splitTextList(form.galleryImagesText),
+  videoUrl: form.videoUrl.trim() || undefined,
+  refundPolicy: form.hasRefundPolicy
+    ? {
+        allowRefunds: form.allowRefunds,
+        cutoffHours: Number.parseInt(form.refundCutoffHours || '0', 10),
+        percentageBack: Number.parseInt(form.refundPercentageBack || '0', 10),
+        notes: form.refundNotes.trim() || undefined,
+      }
+    : undefined,
+  termsAndConditions: form.termsAndConditions.trim() || undefined,
+  dressCode: form.dressCode.trim() || undefined,
+  accessibilityInfo: form.accessibilityInfo.trim() || undefined,
+  seo:
+    form.seoMetaTitle.trim()
+    || form.seoMetaDescription.trim()
+    || form.seoKeywordsText.trim()
+    || form.seoCanonicalUrl.trim()
+    || form.seoOgImage.trim()
+      ? {
+          metaTitle: form.seoMetaTitle.trim() || undefined,
+          metaDescription: form.seoMetaDescription.trim() || undefined,
+          keywords: splitTextList(form.seoKeywordsText),
+          canonicalUrl: form.seoCanonicalUrl.trim() || undefined,
+          ogImage: form.seoOgImage.trim() || undefined,
+        }
+      : undefined,
   status,
 });
 
 const getReviewTicketPayloads = (form) => (
-  form.isFree
-    ? [
-        {
-          name: form.tickets[0]?.name?.trim() || 'Free Admission',
-          type: 'general',
-          price: 0,
-          quantity: Number.parseInt(form.tickets[0]?.quantity || '0', 10),
-          description: form.tickets[0]?.description || undefined,
-          isActive: true,
-        },
-      ]
-    : form.tickets.map((ticket) => ({
+  form.tickets.map((ticket) => ({
         name: ticket.name.trim(),
         type: ticket.type,
-        price: Number.parseFloat(ticket.price),
+        price: form.isFree ? 0 : Number.parseFloat(ticket.price),
         quantity: Number.parseInt(ticket.quantity, 10),
         description: ticket.description || undefined,
+        salesStart: buildLocalDateTime(ticket.salesStart),
+        salesEnd: buildLocalDateTime(ticket.salesEnd),
+        minPerOrder: Number.parseInt(ticket.minPerOrder || '1', 10),
+        maxPerOrder: Number.parseInt(ticket.maxPerOrder || '10', 10),
+        benefits: splitTextList(ticket.benefitsText),
         isActive: true,
       }))
 );
 
 const getDraftTicketPayloads = (form) => {
-  if (form.isFree) {
-    if (!form.tickets[0]?.quantity) return [];
-
-    return [
-      {
-        name: form.tickets[0]?.name?.trim() || 'Free Admission',
-        type: 'general',
-        price: 0,
-        quantity: Number.parseInt(form.tickets[0]?.quantity || '0', 10),
-        description: form.tickets[0]?.description || undefined,
-        isActive: true,
-      },
-    ];
-  }
-
   return form.tickets
-    .filter((ticket) => ticket.name.trim() && ticket.price !== '' && ticket.quantity)
+    .filter((ticket) => ticket.name.trim() && ticket.quantity && (form.isFree || ticket.price !== ''))
     .map((ticket) => ({
       name: ticket.name.trim(),
       type: ticket.type,
-      price: Number.parseFloat(ticket.price),
+      price: form.isFree ? 0 : Number.parseFloat(ticket.price),
       quantity: Number.parseInt(ticket.quantity, 10),
       description: ticket.description || undefined,
+      salesStart: buildLocalDateTime(ticket.salesStart),
+      salesEnd: buildLocalDateTime(ticket.salesEnd),
+      minPerOrder: Number.parseInt(ticket.minPerOrder || '1', 10),
+      maxPerOrder: Number.parseInt(ticket.maxPerOrder || '10', 10),
+      benefits: splitTextList(ticket.benefitsText),
       isActive: true,
     }));
 };
@@ -261,24 +373,51 @@ const CreateEventPage = () => {
 
   const [form, setForm] = useState({
     title: '',
+    shortDescription: '',
     description: '',
     category: '',
     subcategory: '',
-    isOnline: false,
+    visibility: 'public',
+    locationType: 'physical',
     ageRestriction: 'all',
     startDate: '',
     startTime: '',
     endDate: '',
     endTime: '',
     timezone: 'Asia/Dhaka',
+    doorsOpenDate: '',
+    doorsOpenTime: '',
     venueName: '',
     venueAddress: '',
     venueCity: '',
+    venueState: '',
     venueCountry: 'Bangladesh',
+    venueZip: '',
+    venueLat: '',
+    venueLng: '',
     onlineLink: '',
+    onlinePlatform: '',
+    streamPassword: '',
+    requiresApproval: false,
+    accessibilityInfo: '',
+    dressCode: '',
     isFree: false,
+    currency: 'BDT',
     tickets: [{ ...EMPTY_TICKET, name: 'General Admission' }],
     coverImage: '',
+    galleryImagesText: '',
+    videoUrl: '',
+    hasRefundPolicy: false,
+    allowRefunds: true,
+    refundCutoffHours: '24',
+    refundPercentageBack: '100',
+    refundNotes: '',
+    termsAndConditions: '',
+    seoMetaTitle: '',
+    seoMetaDescription: '',
+    seoKeywordsText: '',
+    seoCanonicalUrl: '',
+    seoOgImage: '',
   });
 
   useEffect(() => {
@@ -324,13 +463,13 @@ const CreateEventPage = () => {
     const scopedErrors = {};
 
     if (step === 0) {
-      ['title', 'category', 'description'].forEach((key) => {
+      ['title', 'shortDescription', 'category', 'description'].forEach((key) => {
         if (nextErrors[key]) scopedErrors[key] = nextErrors[key];
       });
     }
 
     if (step === 1) {
-      ['startDate', 'startTime', 'endDate', 'endTime', 'venueName'].forEach(
+      ['startDate', 'startTime', 'endDate', 'endTime', 'venueName', 'onlineLink', 'doorsOpenTime'].forEach(
         (key) => {
           if (nextErrors[key]) scopedErrors[key] = nextErrors[key];
         },
@@ -492,6 +631,22 @@ const CreateEventPage = () => {
                 />
               </Field>
               <Field
+                label="Short Description"
+                required
+                error={errors.shortDescription}
+                hint="Use this as the one-line summary on browse cards and event previews."
+              >
+                <Textarea
+                  value={form.shortDescription}
+                  onChange={(event) =>
+                    setValue('shortDescription', event.target.value)
+                  }
+                  placeholder="A clean one- or two-sentence summary that makes people want to click."
+                  rows={3}
+                  className="text-sm resize-none"
+                />
+              </Field>
+              <Field
                 label="Description"
                 required
                 error={errors.description}
@@ -554,6 +709,26 @@ const CreateEventPage = () => {
                   </Select>
                 </Field>
               </div>
+              <Field
+                label="Visibility"
+                hint="Public events appear in browse. Unlisted events are link-only. Private events are invite-focused."
+              >
+                <Select
+                  value={form.visibility}
+                  onValueChange={(value) => setValue('visibility', value)}
+                >
+                  <SelectTrigger className={inputCls}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {VISIBILITY_OPTIONS.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
               <Field label="Age Restriction">
                 <Select
                   value={form.ageRestriction}
@@ -569,19 +744,6 @@ const CreateEventPage = () => {
                   </SelectContent>
                 </Select>
               </Field>
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 border border-border">
-                <Globe className="h-4 w-4 text-muted-foreground" />
-                <div className="flex-1">
-                  <p className="text-sm font-semibold">Online Event</p>
-                  <p className="text-xs text-muted-foreground">
-                    This is a virtual or streamed event
-                  </p>
-                </div>
-                <Switch
-                  checked={form.isOnline}
-                  onCheckedChange={(value) => setValue('isOnline', value)}
-                />
-              </div>
             </>
           )}
 
@@ -649,22 +811,53 @@ const CreateEventPage = () => {
                   </SelectContent>
                 </Select>
               </Field>
-              <Separator />
-              {form.isOnline ? (
+              <div className="grid grid-cols-2 gap-4">
                 <Field
-                  label="Online Event Link"
-                  hint="Zoom, Google Meet, YouTube Live, or another event URL."
+                  label="Doors Open Date"
+                  hint="Optional. Useful for venue entry or early access."
                 >
                   <Input
-                    value={form.onlineLink}
+                    type="date"
+                    value={form.doorsOpenDate}
                     onChange={(event) =>
-                      setValue('onlineLink', event.target.value)
+                      setValue('doorsOpenDate', event.target.value)
                     }
-                    placeholder="https://..."
                     className={inputCls}
                   />
                 </Field>
-              ) : (
+                <Field label="Doors Open Time" error={errors.doorsOpenTime}>
+                  <Input
+                    type="time"
+                    value={form.doorsOpenTime}
+                    onChange={(event) =>
+                      setValue('doorsOpenTime', event.target.value)
+                    }
+                    className={inputCls}
+                  />
+                </Field>
+              </div>
+              <Separator />
+              <Field
+                label="Location Type"
+                hint="Choose physical, online, or hybrid so the event can display the right access details."
+              >
+                <Select
+                  value={form.locationType}
+                  onValueChange={(value) => setValue('locationType', value)}
+                >
+                  <SelectTrigger className={inputCls}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LOCATION_TYPES.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+              {['physical', 'hybrid'].includes(form.locationType) && (
                 <>
                   <Field label="Venue Name" required error={errors.venueName}>
                     <Input
@@ -697,6 +890,16 @@ const CreateEventPage = () => {
                         className={inputCls}
                       />
                     </Field>
+                    <Field label="State / Region">
+                      <Input
+                        value={form.venueState}
+                        onChange={(event) =>
+                          setValue('venueState', event.target.value)
+                        }
+                        placeholder="Dhaka Division"
+                        className={inputCls}
+                      />
+                    </Field>
                     <Field label="Country">
                       <Input
                         value={form.venueCountry}
@@ -708,25 +911,165 @@ const CreateEventPage = () => {
                       />
                     </Field>
                   </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Field label="Postal Code">
+                      <Input
+                        value={form.venueZip}
+                        onChange={(event) =>
+                          setValue('venueZip', event.target.value)
+                        }
+                        placeholder="1207"
+                        className={inputCls}
+                      />
+                    </Field>
+                    <div />
+                    <Field
+                      label="Latitude"
+                      hint="Optional. Add coordinates for accurate mapping."
+                    >
+                      <Input
+                        value={form.venueLat}
+                        onChange={(event) =>
+                          setValue('venueLat', event.target.value)
+                        }
+                        placeholder="23.777176"
+                        className={inputCls}
+                      />
+                    </Field>
+                    <Field label="Longitude">
+                      <Input
+                        value={form.venueLng}
+                        onChange={(event) =>
+                          setValue('venueLng', event.target.value)
+                        }
+                        placeholder="90.399452"
+                        className={inputCls}
+                      />
+                    </Field>
+                  </div>
                 </>
               )}
+              {['online', 'hybrid'].includes(form.locationType) && (
+                <>
+                  <Separator />
+                  <Field
+                    label="Online Event Link"
+                    error={errors.onlineLink}
+                    hint="Zoom, Google Meet, YouTube Live, or another event URL."
+                  >
+                    <Input
+                      value={form.onlineLink}
+                      onChange={(event) =>
+                        setValue('onlineLink', event.target.value)
+                      }
+                      placeholder="https://..."
+                      className={inputCls}
+                    />
+                  </Field>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Field label="Platform">
+                      <Input
+                        value={form.onlinePlatform}
+                        onChange={(event) =>
+                          setValue('onlinePlatform', event.target.value)
+                        }
+                        placeholder="Zoom"
+                        className={inputCls}
+                      />
+                    </Field>
+                    <Field label="Access Password">
+                      <Input
+                        value={form.streamPassword}
+                        onChange={(event) =>
+                          setValue('streamPassword', event.target.value)
+                        }
+                        placeholder="Optional"
+                        className={inputCls}
+                      />
+                    </Field>
+                  </div>
+                </>
+              )}
+              <Separator />
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 border border-border">
+                <Globe className="h-4 w-4 text-muted-foreground" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold">Manual Approval</p>
+                  <p className="text-xs text-muted-foreground">
+                    Hold registrations for organizer approval before attendance is confirmed.
+                  </p>
+                </div>
+                <Switch
+                  checked={form.requiresApproval}
+                  onCheckedChange={(value) => setValue('requiresApproval', value)}
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field
+                  label="Accessibility Info"
+                  hint="Share wheelchair access, elevators, seating support, or other entry notes."
+                >
+                  <Textarea
+                    value={form.accessibilityInfo}
+                    onChange={(event) =>
+                      setValue('accessibilityInfo', event.target.value)
+                    }
+                    rows={4}
+                    className="text-sm resize-none"
+                    placeholder="Accessible entrance at Gate 2, elevator access available."
+                  />
+                </Field>
+                <Field
+                  label="Dress Code"
+                  hint="Optional. Add clear guidance if the event has an expected dress style."
+                >
+                  <Textarea
+                    value={form.dressCode}
+                    onChange={(event) =>
+                      setValue('dressCode', event.target.value)
+                    }
+                    rows={4}
+                    className="text-sm resize-none"
+                    placeholder="Business casual"
+                  />
+                </Field>
+              </div>
             </>
           )}
 
           {step === 2 && (
             <>
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 border border-border">
-                <Ticket className="h-4 w-4 text-muted-foreground" />
-                <div className="flex-1">
-                  <p className="text-sm font-semibold">Free Event</p>
-                  <p className="text-xs text-muted-foreground">
-                    Switch on for a free registration flow
-                  </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="Currency">
+                  <Select
+                    value={form.currency}
+                    onValueChange={(value) => setValue('currency', value)}
+                  >
+                    <SelectTrigger className={inputCls}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CURRENCY_OPTIONS.map((currency) => (
+                        <SelectItem key={currency} value={currency}>
+                          {currency}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 border border-border">
+                  <Ticket className="h-4 w-4 text-muted-foreground" />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold">Free Event</p>
+                    <p className="text-xs text-muted-foreground">
+                      Switch on for a free registration flow
+                    </p>
+                  </div>
+                  <Switch
+                    checked={form.isFree}
+                    onCheckedChange={(value) => setValue('isFree', value)}
+                  />
                 </div>
-                <Switch
-                  checked={form.isFree}
-                  onCheckedChange={(value) => setValue('isFree', value)}
-                />
               </div>
 
               {errors.tickets && (
@@ -837,6 +1180,68 @@ const CreateEventPage = () => {
                         className={inputCls}
                       />
                     </Field>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Field label="Sales Start">
+                        <Input
+                          type="datetime-local"
+                          value={ticket.salesStart}
+                          onChange={(event) =>
+                            updateTicket(index, 'salesStart', event.target.value)
+                          }
+                          className={inputCls}
+                        />
+                      </Field>
+                      <Field label="Sales End">
+                        <Input
+                          type="datetime-local"
+                          value={ticket.salesEnd}
+                          onChange={(event) =>
+                            updateTicket(index, 'salesEnd', event.target.value)
+                          }
+                          className={inputCls}
+                        />
+                      </Field>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Field label="Min Per Order">
+                        <Input
+                          type="number"
+                          value={ticket.minPerOrder}
+                          onChange={(event) =>
+                            updateTicket(index, 'minPerOrder', event.target.value)
+                          }
+                          placeholder="1"
+                          className={inputCls}
+                          min="1"
+                        />
+                      </Field>
+                      <Field label="Max Per Order">
+                        <Input
+                          type="number"
+                          value={ticket.maxPerOrder}
+                          onChange={(event) =>
+                            updateTicket(index, 'maxPerOrder', event.target.value)
+                          }
+                          placeholder="10"
+                          className={inputCls}
+                          min="1"
+                        />
+                      </Field>
+                    </div>
+                    <Field
+                      label="Benefits"
+                      hint="Comma-separated or one per line, for example: priority entry, reserved seating"
+                    >
+                      <Textarea
+                        value={ticket.benefitsText}
+                        onChange={(event) =>
+                          updateTicket(index, 'benefitsText', event.target.value)
+                        }
+                        rows={3}
+                        className="text-sm resize-none"
+                        placeholder="Priority entry, welcome kit"
+                      />
+                    </Field>
                   </div>
                 ))}
 
@@ -873,14 +1278,185 @@ const CreateEventPage = () => {
                   }}
                 />
               )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field
+                  label="Gallery Image URLs"
+                  hint="Add one image URL per line for extra detail-page media."
+                >
+                  <Textarea
+                    value={form.galleryImagesText}
+                    onChange={(event) =>
+                      setValue('galleryImagesText', event.target.value)
+                    }
+                    rows={4}
+                    className="text-sm resize-none"
+                    placeholder={'https://...\nhttps://...'}
+                  />
+                </Field>
+                <Field
+                  label="Promo Video URL"
+                  hint="Optional YouTube, Vimeo, or hosted video link."
+                >
+                  <Input
+                    value={form.videoUrl}
+                    onChange={(event) =>
+                      setValue('videoUrl', event.target.value)
+                    }
+                    placeholder="https://..."
+                    className={inputCls}
+                  />
+                </Field>
+              </div>
               <Separator />
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 border border-border">
+                <Globe className="h-4 w-4 text-muted-foreground" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold">Refund Policy</p>
+                  <p className="text-xs text-muted-foreground">
+                    Turn this on if you want buyer-facing refund rules on the event page.
+                  </p>
+                </div>
+                <Switch
+                  checked={form.hasRefundPolicy}
+                  onCheckedChange={(value) => setValue('hasRefundPolicy', value)}
+                />
+              </div>
+              {form.hasRefundPolicy && (
+                <div className="space-y-4 rounded-xl border border-border bg-muted/20 p-4">
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-background border border-border">
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold">Allow Refunds</p>
+                      <p className="text-xs text-muted-foreground">
+                        Switch off if the event is fully non-refundable.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={form.allowRefunds}
+                      onCheckedChange={(value) => setValue('allowRefunds', value)}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Field label="Refund Cutoff (Hours)">
+                      <Input
+                        type="number"
+                        value={form.refundCutoffHours}
+                        onChange={(event) =>
+                          setValue('refundCutoffHours', event.target.value)
+                        }
+                        className={inputCls}
+                        min="0"
+                      />
+                    </Field>
+                    <Field label="Refund Percentage">
+                      <Input
+                        type="number"
+                        value={form.refundPercentageBack}
+                        onChange={(event) =>
+                          setValue('refundPercentageBack', event.target.value)
+                        }
+                        className={inputCls}
+                        min="0"
+                        max="100"
+                      />
+                    </Field>
+                  </div>
+                  <Field label="Refund Notes">
+                    <Textarea
+                      value={form.refundNotes}
+                      onChange={(event) =>
+                        setValue('refundNotes', event.target.value)
+                      }
+                      rows={3}
+                      className="text-sm resize-none"
+                      placeholder="Refunds available up to 48 hours before event start."
+                    />
+                  </Field>
+                </div>
+              )}
+              <Field
+                label="Terms & Conditions"
+                hint="Optional buyer-facing terms, photo policy, prohibited items, or entry rules."
+              >
+                <Textarea
+                  value={form.termsAndConditions}
+                  onChange={(event) =>
+                    setValue('termsAndConditions', event.target.value)
+                  }
+                  rows={4}
+                  className="text-sm resize-none"
+                  placeholder="Tickets are non-transferable. Entry may be denied for prohibited items or disruptive behavior."
+                />
+              </Field>
+              <Separator />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field
+                  label="SEO Meta Title"
+                  hint="Optional search title, usually under 70 characters."
+                >
+                  <Input
+                    value={form.seoMetaTitle}
+                    onChange={(event) =>
+                      setValue('seoMetaTitle', event.target.value)
+                    }
+                    placeholder="Dhaka Design Summit 2026 | TicketBro"
+                    className={inputCls}
+                  />
+                </Field>
+                <Field
+                  label="SEO Meta Description"
+                  hint="Optional description for search and social previews."
+                >
+                  <Textarea
+                    value={form.seoMetaDescription}
+                    onChange={(event) =>
+                      setValue('seoMetaDescription', event.target.value)
+                    }
+                    rows={3}
+                    className="text-sm resize-none"
+                    placeholder="Two days of talks, workshops, and networking with designers and founders."
+                  />
+                </Field>
+                <Field
+                  label="SEO Keywords"
+                  hint="Comma-separated keywords."
+                >
+                  <Input
+                    value={form.seoKeywordsText}
+                    onChange={(event) =>
+                      setValue('seoKeywordsText', event.target.value)
+                    }
+                    placeholder="design summit, startup event, UX conference"
+                    className={inputCls}
+                  />
+                </Field>
+                <Field label="Canonical URL">
+                  <Input
+                    value={form.seoCanonicalUrl}
+                    onChange={(event) =>
+                      setValue('seoCanonicalUrl', event.target.value)
+                    }
+                    placeholder="https://..."
+                    className={inputCls}
+                  />
+                </Field>
+                <Field label="Open Graph Image URL">
+                  <Input
+                    value={form.seoOgImage}
+                    onChange={(event) =>
+                      setValue('seoOgImage', event.target.value)
+                    }
+                    placeholder="https://..."
+                    className={inputCls}
+                  />
+                </Field>
+              </div>
               <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
                 <p className="text-sm font-bold font-heading mb-1">
-                  Ready to publish?
+                  Ready to submit?
                 </p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   Save as Draft if you want to keep editing. Submit for Review to
-                  move the event into the organizer approval flow.
+                  move the event into the organizer approval flow with a richer, buyer-facing listing.
                 </p>
               </div>
             </>

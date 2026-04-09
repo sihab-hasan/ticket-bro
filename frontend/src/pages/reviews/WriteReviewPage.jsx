@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, MessageSquare, Star } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,11 @@ const ExistingReviewState = ({ review, onViewReviews }) => (
     <p className="text-sm text-muted-foreground">
       You can only keep one active Ticket Bro review at a time.
     </p>
+    {review?.event?.title ? (
+      <p className="text-xs text-muted-foreground">
+        Current review context: {review.event.title}
+      </p>
+    ) : null}
     <Card className="text-left">
       <CardContent className="space-y-3 p-5">
         <div className="flex items-center justify-between gap-2">
@@ -87,11 +92,16 @@ const ExistingReviewState = ({ review, onViewReviews }) => (
 
 const WriteReviewPage = () => {
   const navigate = useNavigate();
+  const { eventId } = useParams();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submittedReview, setSubmittedReview] = useState(null);
   const [existingReview, setExistingReview] = useState(null);
   const [form, setForm] = useState({ rating: 0, title: "", body: "" });
+  const eventReviewId =
+    typeof eventId === "string" && /^[a-f0-9]{24}$/i.test(eventId)
+      ? eventId
+      : undefined;
 
   useEffect(() => {
     let active = true;
@@ -147,6 +157,7 @@ const WriteReviewPage = () => {
 
     try {
       const createdReview = await reviewsService.create({
+        event: eventReviewId,
         rating: form.rating,
         title: form.title.trim(),
         body: form.body.trim(),
@@ -226,7 +237,11 @@ const WriteReviewPage = () => {
         </Button>
         <PageHeader
           title="Write a Review"
-          subtitle="Share your experience using Ticket Bro"
+          subtitle={
+            eventId
+              ? "Share your experience after attending this event"
+              : "Share your experience using Ticket Bro"
+          }
           className="mb-0"
         />
       </div>

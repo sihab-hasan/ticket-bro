@@ -270,12 +270,15 @@ const HeroSection = () => {
         href: buildSubCategoryUrl(categorySlug, subcategory.slug),
         key: subcategory.slug,
       }));
-    return (config.subcategories || []).map((item) => ({
+    if (level === "subCategory")
+      return (config.eventTypes || []).map((item) => ({
+        label: item.name || item.label,
+        href: buildEventTypeUrl(categorySlug, subCategorySlug, item.slug),
+        key: item.slug || item.name,
+      }));
+    return (config.eventTypes || []).map((item) => ({
       label: item.name || item.label,
-      href:
-        level === "subCategory"
-          ? buildEventTypeUrl(categorySlug, subCategorySlug, item.slug)
-          : null,
+      href: buildEventTypeUrl(categorySlug, subCategorySlug, item.slug),
       key: item.slug || item.name,
     }));
   })();

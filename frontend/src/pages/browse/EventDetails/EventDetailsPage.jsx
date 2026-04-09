@@ -15,6 +15,7 @@ import Breadcrumb from "@/components/shared/common/Breadcrumb";
 import eventsService from "@/api/events.api";
 import {
   normalizeEvent,
+  normalizeBrowseReview,
   normalizeTicketType,
 } from "@/utils/browse.utils";
 import { ROUTES } from "@/app/AppRoutes";
@@ -26,6 +27,7 @@ import {
   EventLineupSection,
   EventOrganizerSection,
   EventRelatedSection,
+  EventReviewsSection,
   EventSponsorsSection,
   EventStickyBar,
   EventTicketsSection,
@@ -198,15 +200,18 @@ const getPreviewBanner = (event, user) => {
   const canManage = isOwner || isStaff;
 
   const sharedCta = canManage
-    ? {
-        label: isStaff
-          ? "Open admin manager"
-          : "Continue editing",
-        href:
-          isStaff && event.id
-            ? ROUTES.ADMIN.EVENT(event.id)
-            : ROUTES.ORGANIZER.EDIT_EVENT(event.slug || event.id),
-      }
+    ? user?.role === "moderator"
+      ? {
+          label: "Open moderation queue",
+          href: ROUTES.MODERATOR.EVENTS,
+        }
+      : {
+          label: isStaff ? "Open admin manager" : "Continue editing",
+          href:
+            isStaff && event.id
+              ? ROUTES.ADMIN.EVENT(event.id)
+              : ROUTES.ORGANIZER.EDIT_EVENT(event.slug || event.id),
+        }
     : null;
 
   switch (event.status) {
@@ -283,6 +288,7 @@ const EventDetailsPage = () => {
   const [state, setState] = useState({
     event: null,
     relatedEvents: [],
+    reviews: [],
     isLoading: true,
     notFound: false,
     loadError: false,
@@ -301,6 +307,7 @@ const EventDetailsPage = () => {
       setState({
         event: null,
         relatedEvents: [],
+        reviews: [],
         isLoading: true,
         notFound: false,
         loadError: false,
@@ -322,6 +329,7 @@ const EventDetailsPage = () => {
           setState({
             event: null,
             relatedEvents: [],
+            reviews: [],
             isLoading: false,
             notFound: status === 404,
             loadError: status !== 404,
@@ -336,9 +344,14 @@ const EventDetailsPage = () => {
 
       const event = normalizeEvent(rawEvent);
 
-      const [ticketsResult, relatedResult] = await Promise.allSettled([
+      const [ticketsResult, relatedResult, reviewsResult] = await Promise.allSettled([
         eventsService.getTicketTypes(eventSlug),
         eventsService.getRelatedEvents(eventSlug),
+        eventsService.getEventReviews(eventSlug, {
+          page: 1,
+          limit: 12,
+          sort: "-createdAt",
+        }),
       ]);
 
       if (cancelled) {
@@ -361,10 +374,17 @@ const EventDetailsPage = () => {
         relatedResult.status === "fulfilled"
           ? (relatedResult.value || []).map(normalizeEvent)
           : [];
+      const reviews =
+        reviewsResult.status === "fulfilled"
+          ? (reviewsResult.value?.items || []).map((review) =>
+              normalizeBrowseReview(review, hydratedEvent),
+            )
+          : [];
 
       setState({
         event: hydratedEvent,
         relatedEvents,
+        reviews,
         isLoading: false,
         notFound: false,
         loadError: false,
@@ -385,7 +405,7 @@ const EventDetailsPage = () => {
     };
   }, [eventSlug, reloadToken]);
 
-  const { event, relatedEvents, isLoading, notFound, loadError } = state;
+  const { event, relatedEvents, reviews, isLoading, notFound, loadError } = state;
 
   const previewBanner = useMemo(
     () => getPreviewBanner(event, user),
@@ -539,6 +559,9 @@ const EventDetailsPage = () => {
               </>
             )}
 
+            <EventReviewsSection event={event} reviews={reviews} />
+            <Divider />
+
             <div
               className="rounded-2xl border border-border p-6"
               style={{ background: "var(--card)" }}
@@ -556,27 +579,27 @@ const EventDetailsPage = () => {
                       className="text-lg font-bold text-foreground"
                       style={{ fontFamily: "var(--font-heading)" }}
                     >
-                      Ticket Bro feedback is now app-wide
+                      Attended this event?
                     </p>
                     <p
                       className="mt-2 text-sm leading-relaxed text-muted-foreground"
                       style={{ fontFamily: "var(--font-sans)" }}
                     >
-                      Read community reviews about the Ticket Bro experience, or
-                      leave one review of your own after using the platform.
+                      Read attendee feedback, or leave your own review to help
+                      future buyers understand what this event is like.
                     </p>
                   </div>
                 </div>
-                <div className="flex flex-col gap-2 sm:min-w-[200px]">
+                <div className="flex flex-col gap-2 sm:min-w-[220px]">
                   <Link
-                    to={ROUTES.REVIEWS.ROOT}
+                    to={event.slug ? ROUTES.REVIEWS.EVENT(event.slug) : ROUTES.REVIEWS.ROOT}
                     className="inline-flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-3 text-sm font-semibold text-foreground hover:bg-background"
                     style={{ fontFamily: "var(--font-sans)" }}
                   >
-                    <MessageSquare size={14} /> View Reviews
+                    <MessageSquare size={14} /> View All Event Reviews
                   </Link>
                   <Link
-                    to={ROUTES.REVIEWS.WRITE}
+                    to={ROUTES.REVIEWS.WRITE(event.id || event.slug)}
                     className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold"
                     style={{
                       background: "var(--foreground)",
