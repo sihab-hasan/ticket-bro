@@ -6,7 +6,7 @@ import BrowseEventCard from "@/components/shared/cards/EventCard";
 import SectionShell from "./SectionShell";
 
 const EditorsPicksSection = () => {
-  const { getEditorsPicks, locationLabel } = useBrowse();
+  const { getEditorsPicks, locationLabel, resultsHref } = useBrowse();
   const [savedIds, setSavedIds] = useState(new Set());
   const events = getEditorsPicks();
   if (!events.length) return null;
@@ -22,7 +22,8 @@ const EditorsPicksSection = () => {
       title={title}
       subtitle={`Handpicked by our team in ${locationLabel}`}
       icon={Award}
-      viewAllHref="/browse"
+      viewAllHref={resultsHref}
+      viewAllLabel="View all results"
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {events.slice(0, 6).map((e) => (

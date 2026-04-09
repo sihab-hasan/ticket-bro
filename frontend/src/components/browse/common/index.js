@@ -6,6 +6,7 @@ export { default as EditorsPicksSection }   from "./EditorsPicksSection";
 export { default as EventGridSection }      from "./EventGridSection";
 export { default as FeaturedSection }       from "./FeaturedSection";
 export { default as FiltersSection }        from "./FiltersSection";
+export { default as BrowsePageLayout }      from "./BrowsePageLayout";
 export { default as HeroSection }           from "./HeroSection";
 export { default as MapSection }            from "./MapSection";
 export { default as NearbySection }         from "./NearbySection";

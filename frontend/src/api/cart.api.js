@@ -17,6 +17,7 @@ const normalizeCartItem = (item = {}) => ({
         Number(item?.quantity ?? 0),
   ),
   quantity: Number(item?.quantity ?? 0),
+  currency: item?.currency || item?.event?.currency || "USD",
 });
 
 const normalizeCart = (payload) => {
@@ -32,6 +33,7 @@ const normalizeCart = (payload) => {
   return {
     ...raw,
     items,
+    currency: raw?.currency || items[0]?.currency || items[0]?.event?.currency || "USD",
     subtotal,
     discount,
     discountAmount: discount,

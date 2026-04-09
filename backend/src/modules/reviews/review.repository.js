@@ -46,6 +46,41 @@ class ReviewRepository {
     };
   }
 
+  async findByEventId({ eventId, page = 1, limit = 20, sort = '-createdAt', search } = {}) {
+    const filter = {
+      event: eventId,
+      isPublished: true,
+      deletedAt: null,
+    };
+
+    if (search) {
+      const re = new RegExp(search, 'i');
+      filter.$or = [{ title: re }, { body: re }];
+    }
+
+    const skip = (Number(page) - 1) * Number(limit);
+    const [reviews, total] = await Promise.all([
+      Review.find(filter)
+        .populate('user', 'firstName lastName avatar')
+        .populate('event', 'title slug')
+        .sort(sort)
+        .skip(skip)
+        .limit(Number(limit))
+        .lean(),
+      Review.countDocuments(filter),
+    ]);
+
+    return {
+      reviews,
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / Number(limit)),
+      },
+    };
+  }
+
   async findActiveByUserId(userId) {
     return Review.findOne({ user: userId, deletedAt: null })
       .populate('user', 'firstName lastName avatar email')

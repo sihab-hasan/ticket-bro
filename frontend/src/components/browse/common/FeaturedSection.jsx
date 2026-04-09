@@ -6,7 +6,7 @@ import BrowseEventCard from "@/components/shared/cards/EventCard";
 import SectionShell from "./SectionShell";
 
 const FeaturedSection = () => {
-  const { getFeatured, config, locationLabel, level } = useBrowse();
+  const { getFeatured, config, locationLabel, level, resultsHref } = useBrowse();
   const [savedIds, setSavedIds] = useState(new Set());
   const events = getFeatured();
   if (!events.length) return null;
@@ -23,8 +23,8 @@ const FeaturedSection = () => {
       title={title}
       subtitle={`${events.length} featured events in ${locationLabel}`}
       icon={Star}
-      viewAllHref="/browse"
-      viewAllLabel="View All"
+      viewAllHref={resultsHref}
+      viewAllLabel="View all results"
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {events.map((e) => (

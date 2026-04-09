@@ -57,6 +57,8 @@ const fetchAllPublishedEvents = async () => {
       page,
       limit: EVENTS_PER_PAGE,
       sort: "startDate",
+      status: "published",
+      visibility: "public",
     });
 
     events.push(...(result?.events || []));

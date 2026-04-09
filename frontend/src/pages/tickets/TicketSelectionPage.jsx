@@ -1,7 +1,7 @@
 // pages/tickets/TicketSelectionPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Ticket, Plus, Minus, ShoppingCart, Info } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, ShoppingCart } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +13,28 @@ import { ROUTES } from '@/app/AppRoutes';
 import { cartService, eventsService } from '@/api';
 import { getApiErrorMessage } from '@/api/client';
 import Container from '@/components/layout/Container';
+
+const getTicketSaleState = (ticket) => {
+  const now = Date.now();
+  const salesStart = ticket?.salesStart ? new Date(ticket.salesStart).getTime() : null;
+  const salesEnd = ticket?.salesEnd ? new Date(ticket.salesEnd).getTime() : null;
+
+  if (salesStart && now < salesStart) {
+    return {
+      canBuy: false,
+      label: `Sales open ${formatDate(ticket.salesStart, { dateStyle: 'medium', timeStyle: 'short' })}`,
+    };
+  }
+
+  if (salesEnd && now > salesEnd) {
+    return {
+      canBuy: false,
+      label: 'Sales ended',
+    };
+  }
+
+  return { canBuy: true, label: null };
+};
 
 const TicketSelectionPage = () => {
   const { eventId } = useParams();
@@ -32,8 +54,8 @@ const TicketSelectionPage = () => {
         ]);
         if (eventRes.status === 'fulfilled') setEvent(eventRes.value);
         if (ticketsRes.status === 'fulfilled') {
-          setTicketTypes(ticketsRes.value);
-          setQuantities(Object.fromEntries(ticketsRes.value.map((t) => [t._id, 0])));
+          setTicketTypes(ticketsRes.value || []);
+          setQuantities(Object.fromEntries((ticketsRes.value || []).map((t) => [t._id, 0])));
         }
       } catch { toast.error('Failed to load event'); }
       finally { setLoading(false); }
@@ -42,9 +64,14 @@ const TicketSelectionPage = () => {
 
   const adjust = (id, delta) => {
     const tt = ticketTypes.find((t) => t._id === id);
+    const saleState = getTicketSaleState(tt);
+    if (!saleState.canBuy) {
+      return;
+    }
     // Determine available quantity from backend fields. Prefer `available` virtual if present.
     const availableRaw = typeof tt?.available === 'number' ? tt.available : ((tt?.quantity || 0) - (tt?.sold || 0) - (tt?.reserved || 0));
-    const max = Math.min(10, Math.max(0, availableRaw));
+    const maxPerOrder = Number(tt?.maxPerOrder || 10);
+    const max = Math.min(maxPerOrder, Math.max(0, availableRaw));
     setQuantities((q) => ({ ...q, [id]: Math.max(0, Math.min(max, (q[id] || 0) + delta)) }));
   };
 
@@ -54,15 +81,23 @@ const TicketSelectionPage = () => {
 
   const handleAddToCart = async () => {
     if (totalTickets === 0) return toast.error('Select at least one ticket');
+
+    const invalidMinOrder = selected.find(
+      (ticket) => quantities[ticket._id] < Number(ticket.minPerOrder || 1),
+    );
+
+    if (invalidMinOrder) {
+      toast.error(`You must select at least ${invalidMinOrder.minPerOrder || 1} ${invalidMinOrder.name} tickets`);
+      return;
+    }
+
     setAdding(true);
     try {
       for (const t of selected) {
         await cartService.addItem({
           eventId: event?._id || eventId,
           ticketTypeId: t._id,
-          ticketTypeName: t.name,
           quantity: quantities[t._id],
-          unitPrice: t.price,
         });
       }
       toast.success('Added to cart!');
@@ -103,7 +138,9 @@ const TicketSelectionPage = () => {
           <div>
             <p className="text-sm font-bold">{event?.title}</p>
             <p className="text-xs text-muted-foreground mt-0.5">{formatDate(event?.startDate, { dateStyle: 'medium', timeStyle: 'short' })}</p>
-            <p className="text-xs text-muted-foreground">{event?.venue?.name || event?.venue?.city}</p>
+            <p className="text-xs text-muted-foreground">
+              {event?.location?.name || event?.location?.city || (event?.location?.type === 'online' ? 'Online event' : '')}
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -116,9 +153,13 @@ const TicketSelectionPage = () => {
           // Prefer backend-computed available property, fallback to manual calculation
           const available = typeof tt.available === 'number' ? tt.available : ((tt.quantity || 0) - (tt.sold || 0) - (tt.reserved || 0));
           const qty = quantities[tt._id] || 0;
+          const saleState = getTicketSaleState(tt);
           const isSoldOut = available <= 0;
+          const canBuy = !isSoldOut && saleState.canBuy && tt.isActive !== false;
+          const minPerOrder = Number(tt.minPerOrder || 1);
+          const maxPerOrder = Number(tt.maxPerOrder || 10);
           return (
-            <Card key={tt._id} className={isSoldOut ? 'opacity-60' : ''}>
+            <Card key={tt._id} className={!canBuy ? 'opacity-60' : ''}>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
@@ -126,19 +167,23 @@ const TicketSelectionPage = () => {
                       <p className="text-sm font-bold">{tt.name}</p>
                       <Badge variant="secondary" className="text-[10px] capitalize">{tt.type}</Badge>
                       {isSoldOut && <Badge variant="destructive" className="text-[10px]">Sold Out</Badge>}
+                      {!isSoldOut && !saleState.canBuy && <Badge variant="outline" className="text-[10px]">{saleState.label}</Badge>}
                     </div>
                     <p className="text-lg font-extrabold font-heading text-primary mt-1">
-                      {tt.price === 0 ? 'FREE' : formatPrice(tt.price)}
+                      {tt.price === 0 ? 'FREE' : formatPrice(tt.price, event?.currency || 'USD')}
                     </p>
                     {tt.description && <p className="text-xs text-muted-foreground mt-1">{tt.description}</p>}
                     <p className="text-[11px] text-muted-foreground mt-1">{available} remaining</p>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Order limit: {minPerOrder} - {maxPerOrder}
+                    </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => adjust(tt._id, -1)} disabled={qty === 0 || isSoldOut}>
+                    <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => adjust(tt._id, -1)} disabled={qty === 0 || !canBuy}>
                       <Minus className="h-3.5 w-3.5" />
                     </Button>
                     <span className="text-sm font-bold w-6 text-center">{qty}</span>
-                    <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => adjust(tt._id, 1)} disabled={isSoldOut || qty >= Math.min(10, available)}>
+                    <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => adjust(tt._id, 1)} disabled={!canBuy || qty >= Math.min(maxPerOrder, available)}>
                       <Plus className="h-3.5 w-3.5" />
                     </Button>
                   </div>
@@ -154,15 +199,15 @@ const TicketSelectionPage = () => {
         <Card className="border-primary/30 bg-primary/5">
           <CardContent className="p-4 space-y-2">
             {selected.map((t) => (
-              <div key={t._id} className="flex justify-between text-sm">
+                <div key={t._id} className="flex justify-between text-sm">
                 <span>{t.name} × {quantities[t._id]}</span>
-                <span className="font-semibold">{formatPrice(t.price * quantities[t._id])}</span>
+                <span className="font-semibold">{formatPrice(t.price * quantities[t._id], event?.currency || 'USD')}</span>
               </div>
             ))}
             <Separator />
             <div className="flex justify-between text-sm font-bold">
               <span>Total ({totalTickets} ticket{totalTickets > 1 ? 's' : ''})</span>
-              <span className="text-primary">{formatPrice(total)}</span>
+              <span className="text-primary">{formatPrice(total, event?.currency || 'USD')}</span>
             </div>
           </CardContent>
         </Card>

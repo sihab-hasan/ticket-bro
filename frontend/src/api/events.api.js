@@ -33,6 +33,18 @@ export const getTrendingEvents = (limit = 8) =>
     select: pickList("events"),
   });
 
+export const getOfferEvents = (params) =>
+  get(ENDPOINTS.EVENTS.OFFERS, {
+    params,
+    select: (payload) => {
+      const result = pickEvents(payload);
+      return {
+        ...result,
+        summary: payload?.summary || {},
+      };
+    },
+  });
+
 export const getUpcomingEvents = (limit = 8) =>
   get(ENDPOINTS.EVENTS.UPCOMING, {
     params: { limit },
@@ -50,6 +62,12 @@ export const getEventBySlug = (slug) =>
 export const getEventDetails = (slug) =>
   get(ENDPOINTS.EVENTS.DETAILS(slug), {
     select: pickEntity("event", "details"),
+  });
+
+export const getEventReviews = (slug, params) =>
+  get(ENDPOINTS.EVENTS.REVIEWS(slug), {
+    params,
+    select: pickPaginated("reviews"),
   });
 
 export const getEventTickets = (slug) =>
@@ -271,11 +289,13 @@ export default {
   getAllEvents,
   getFeaturedEvents,
   getTrendingEvents,
+  getOfferEvents,
   getUpcomingEvents,
   getAdminEvents,
   getEventBySlug,
   getEventById,
   getEventDetails,
+  getEventReviews,
   getEventTickets,
   getRelatedEvents,
   getTicketTypes,

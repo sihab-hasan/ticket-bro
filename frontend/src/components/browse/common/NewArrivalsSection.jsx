@@ -6,7 +6,7 @@ import BrowseEventCard from "@/components/shared/cards/EventCard";
 import SectionShell from "./SectionShell";
 
 const NewArrivalsSection = () => {
-  const { getNewArrivals, config, locationLabel, level } = useBrowse();
+  const { getNewArrivals, config, locationLabel, level, resultsHref } = useBrowse();
   const [savedIds, setSavedIds] = useState(new Set());
   const events = getNewArrivals();
   if (!events.length) return null;
@@ -23,7 +23,8 @@ const NewArrivalsSection = () => {
       title={title}
       subtitle={`Just added in ${locationLabel}`}
       icon={Sparkles}
-      viewAllHref="/browse"
+      viewAllHref={resultsHref}
+      viewAllLabel="View all results"
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {events.slice(0, 8).map((e) => (

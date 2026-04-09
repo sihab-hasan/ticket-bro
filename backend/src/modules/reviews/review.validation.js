@@ -2,6 +2,7 @@
 
 const {
   Joi,
+  objectId,
   optionalString,
   paginationFields,
   trimmedString,
@@ -22,6 +23,7 @@ const reviewListQuerySchema = Joi.object({
 });
 
 const createReviewSchema = Joi.object({
+  event: objectId.optional(),
   rating: Joi.number().integer().min(1).max(5).required(),
   title: optionalString(200),
   body: trimmedString(1, 2000).required(),

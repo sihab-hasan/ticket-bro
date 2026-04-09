@@ -17,6 +17,10 @@ class EventController {
     sendSuccess(res, 'Trending events fetched.', await eventService.getTrendingEvents(req.query));
   });
 
+  getOfferEvents = asyncHandler(async (req, res) => {
+    sendSuccess(res, 'Offer events fetched.', await eventService.getOfferEvents(req.query));
+  });
+
   getUpcomingEvents = asyncHandler(async (req, res) => {
     sendSuccess(res, 'Upcoming events fetched.', await eventService.getUpcomingEvents(req.query));
   });

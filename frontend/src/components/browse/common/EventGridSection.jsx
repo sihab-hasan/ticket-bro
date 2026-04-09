@@ -1,6 +1,6 @@
 // frontend/src/components/browse/sections/EventGridSection.jsx
 import React, { useState, useMemo, useEffect } from "react";
-import { LayoutGrid, List, Inbox } from "lucide-react";
+import { LayoutGrid, List, Inbox, RotateCcw } from "lucide-react";
 import { useBrowse, unslugify } from "@/hooks";
 import BrowseEventCard from "@/components/shared/cards/EventCard";
 import Container from "@/components/layout/Container";
@@ -87,9 +87,13 @@ const EventGridSection = () => {
     categorySlug,
     subCategorySlug,
     eventTypeSlug,
+    filters,
+    scopedEvents,
+    config,
     locationLabel,
     isLoading,
     error,
+    refreshBrowseData,
   } = useBrowse();
   const [savedIds, setSavedIds] = useState(new Set());
   const [viewMode, setViewMode] = useState("grid");
@@ -110,6 +114,20 @@ const EventGridSection = () => {
       setPage(1);
     }
   }, [totalPages, page]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [
+    categorySlug,
+    subCategorySlug,
+    eventTypeSlug,
+    locationLabel,
+    filters.date,
+    filters.price,
+    filters.format,
+    filters.time,
+    filters.sort,
+  ]);
 
   const toggle = (id) =>
     setSavedIds((prev) => {
@@ -142,8 +160,27 @@ const EventGridSection = () => {
           ? unslugify(subCategorySlug)
           : unslugify(eventTypeSlug);
 
+  const activeFilters = [
+    filters.date && { key: "date", label: `Date: ${filters.date.replace(/-/g, " ")}` },
+    filters.price && { key: "price", label: `Price: ${filters.price.replace(/-/g, " ")}` },
+    filters.format && { key: "format", label: `Format: ${filters.format.replace(/-/g, " ")}` },
+    filters.time && { key: "time", label: `Time: ${filters.time.replace(/-/g, " ")}` },
+  ].filter(Boolean);
+
+  const scopeDescriptor =
+    level === "root" ? "events" : `${config.label.toLowerCase()} events`;
+
+  const resultsSummary =
+    activeFilters.length > 0 && scopedEvents.length !== totalCount
+      ? `Showing ${totalCount.toLocaleString()} filtered results from ${scopedEvents.length.toLocaleString()} ${scopeDescriptor} in ${locationLabel}`
+      : `${totalCount.toLocaleString()} events in ${locationLabel}`;
+
   return (
-    <section className="w-full bg-background" aria-label="All events grid">
+    <section
+      id="browse-results"
+      className="w-full scroll-mt-28 bg-background"
+      aria-label="All events grid"
+    >
       <Container>
         <div className="py-8">
           <div className="flex items-center justify-between mb-5 gap-4 flex-wrap">
@@ -158,11 +195,21 @@ const EventGridSection = () => {
                 className="text-sm text-muted-foreground mt-0.5"
                 style={{ fontFamily: "var(--font-sans)" }}
               >
-                <span className="font-semibold text-foreground">
-                  {isLoading ? "…" : totalCount}
-                </span>{" "}
-                events in {locationLabel}
+                {isLoading ? "Loading results..." : resultsSummary}
               </p>
+              {!isLoading && activeFilters.length > 0 && (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  {activeFilters.map((filter) => (
+                    <span
+                      key={filter.key}
+                      className="rounded-full border border-border bg-secondary px-2.5 py-1 text-[11px] font-medium text-foreground"
+                      style={{ fontFamily: "var(--font-sans)" }}
+                    >
+                      {filter.label}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="flex items-center rounded-md border border-border overflow-hidden shrink-0">
               {[
@@ -207,6 +254,15 @@ const EventGridSection = () => {
               <p className="text-xs text-muted-foreground" style={{ fontFamily: "var(--font-sans)" }}>
                 {error?.message || "Please try again later."}
               </p>
+              <button
+                type="button"
+                onClick={refreshBrowseData}
+                className="mt-4 inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-xs font-semibold text-foreground hover:bg-accent"
+                style={{ fontFamily: "var(--font-sans)" }}
+              >
+                <RotateCcw size={12} />
+                Retry
+              </button>
             </div>
           ) : pageEvents.length === 0 ? (
             <EmptyState locationLabel={locationLabel} title={levelLabel} />

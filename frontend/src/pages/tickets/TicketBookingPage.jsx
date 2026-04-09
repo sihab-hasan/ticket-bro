@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthContext';
-import { formatDate, formatPrice } from '@/utils/formatters';
+import { formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
 import { cartService, bookingService } from '@/api';
@@ -104,7 +104,8 @@ const TicketBookingPage = () => {
   if (loading) return <Container><div className="py-4 space-y-4 max-w-lg mx-auto">{[1,2,3].map((i) => <Skeleton key={i} className="h-32 rounded-2xl" />)}</div></Container>;
 
   const items = cart?.items || [];
-  const total = items.reduce((s, item) => s + item.totalPrice, 0);
+  const currency = cart?.currency || items[0]?.currency || items[0]?.event?.currency || 'USD';
+  const total = items.reduce((s, item) => s + Number(item.totalPrice || 0), 0);
 
   return (
     <Container aria-label="Ticket booking"><div className="py-5 max-w-lg mx-auto space-y-5 font-sans">
@@ -123,12 +124,12 @@ const TicketBookingPage = () => {
           {items.map((item, i) => (
             <div key={i} className="flex justify-between text-sm">
               <span className="text-muted-foreground">{item.ticketType?.name || 'Ticket'} × {item.quantity}</span>
-              <span className="font-semibold">{formatPrice(item.totalPrice)}</span>
+              <span className="font-semibold">{formatPrice(item.totalPrice, item.currency || currency)}</span>
             </div>
           ))}
           <Separator />
           <div className="flex justify-between text-sm font-bold">
-            <span>Total</span><span className="text-primary">{formatPrice(total)}</span>
+            <span>Total</span><span className="text-primary">{formatPrice(total, currency)}</span>
           </div>
         </CardContent>
       </Card>

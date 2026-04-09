@@ -12,6 +12,7 @@ const {
   updateEventSchema,
   eventListQuerySchema,
   relatedEventsQuerySchema,
+  eventReviewQuerySchema,
   eventSlugParamsSchema,
   eventSlugAndIdParamsSchema,
   createTicketTypeSchema,
@@ -31,6 +32,7 @@ const ctrl = () => { if (!_ctrl) _ctrl = require('./event.controller'); return _
 router.get('/',          validateRequest(eventListQuerySchema, 'query'), optionalAuth, cache('2m'),  (req, res, next) => ctrl().getEvents(req, res, next));
 router.get('/featured',  validateRequest(eventListQuerySchema, 'query'), cache('5m'),  (req, res, next) => ctrl().getFeaturedEvents(req, res, next));
 router.get('/trending',  validateRequest(eventListQuerySchema, 'query'), cache('5m'),  (req, res, next) => ctrl().getTrendingEvents(req, res, next));
+router.get('/offers',    validateRequest(eventListQuerySchema, 'query'), cache('5m'),  (req, res, next) => ctrl().getOfferEvents(req, res, next));
 router.get('/upcoming',  validateRequest(eventListQuerySchema, 'query'), cache('5m'),  (req, res, next) => ctrl().getUpcomingEvents(req, res, next));
 
 // Admin-scoped read — must be before :slug to avoid route collision
@@ -43,6 +45,7 @@ router.get('/admin/all',
 router.get('/:slug',            validateRequest(eventSlugParamsSchema, 'params'), optionalAuth, cache('2m'),  (req, res, next) => ctrl().getEventBySlug(req, res, next));
 router.get('/:slug/details',    validateRequest(eventSlugParamsSchema, 'params'), optionalAuth, cache('1m'),  (req, res, next) => ctrl().getEventDetails(req, res, next));
 router.get('/:slug/tickets',    validateRequest(eventSlugParamsSchema, 'params'), optionalAuth, cache('1m'),  (req, res, next) => ctrl().getEventTickets(req, res, next));
+router.get('/:slug/reviews',    validateRequest(eventSlugParamsSchema, 'params'), optionalAuth, validateRequest(eventReviewQuerySchema, 'query'), cache('1m'),  (req, res, next) => ctrl().getEventReviews(req, res, next));
 router.get('/:slug/related',    validateRequest(eventSlugParamsSchema, 'params'), optionalAuth, validateRequest(relatedEventsQuerySchema, 'query'), cache('5m'),  (req, res, next) => ctrl().getRelatedEvents(req, res, next));
 router.get('/:slug/ticket-types', validateRequest(eventSlugParamsSchema, 'params'), optionalAuth, (req, res, next) => ctrl().getTicketTypes(req, res, next));
 router.get('/:slug/seat-sections', validateRequest(eventSlugParamsSchema, 'params'), optionalAuth, (req, res, next) => ctrl().getSeatSections(req, res, next));
