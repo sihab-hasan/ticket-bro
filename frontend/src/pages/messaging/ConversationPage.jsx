@@ -23,7 +23,9 @@ import {
   removeMessage,
   setMessagesLoading,
   removeConversation,
+  updateConversationLastMessage,
   selectConversations,
+  selectMessagesLoading,
 } from '@/store/slices/messagingSlice';
 
 let _tempId = 0;
@@ -47,29 +49,38 @@ const ConversationPage = () => {
   const currentUserId      = user?._id || user?.id;
 
   const {
-    messages, messagesLoading, isTyping,
+    messages, isTyping,
     loadMessages, markAsRead,
     joinConversation, leaveConversation, sendTyping, sendMessage,
   } = useMessaging(conversationId);
 
-  // Try to get conversation header from Redux cache (set by InboxPage loadConversations)
+  const messagesLoading = useSelector(selectMessagesLoading);
   const conversations = useSelector(selectConversations);
-  const cached        = conversations.find((c) => (c._id || c.id) === conversationId);
+  const cached = conversations.find((c) => (c._id || c.id) === conversationId);
 
-  const [convData,      setConvData]      = useState(cached || null);
+  const [convData, setConvData] = useState(cached || null);
   const [headerLoading, setHeaderLoading] = useState(!cached);
-  const [draft,         setDraft]         = useState('');
-  const [sending,       setSending]       = useState(false);
+  const [draft, setDraft] = useState('');
+  const [sending, setSending] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
   const recipientRef = useRef(null);
+  const initializedRef = useRef(false);
+  const cachedRef = useRef(cached);
 
-  // Sync convData from Redux cache when it becomes available
   useEffect(() => {
-    if (cached && !convData) setConvData(cached);
-  }, [cached]);  // eslint-disable-line
+    cachedRef.current = cached;
+    if (cached) {
+      setConvData((current) => (current ? { ...current, ...cached } : cached));
+    }
+  }, [cached]);
 
-  // Main init — runs once per conversationId
   useEffect(() => {
-    if (!conversationId) return;
+    if (!conversationId || initializedRef.current) return;
+    initializedRef.current = true;
+    setConvData(cachedRef.current || null);
+    setHeaderLoading(!cachedRef.current);
 
     joinConversation(conversationId);
 
@@ -77,17 +88,21 @@ const ConversationPage = () => {
 
     const init = async () => {
       try {
-        // Fetch header if not cached
-        if (!cached) {
+        if (!cachedRef.current) {
           const conv = await messagingService.getConversation(conversationId);
           if (!cancelled) setConvData(conv);
         }
         if (!cancelled) setHeaderLoading(false);
 
-        // Load messages
         dispatch(setMessagesLoading(true));
-        await loadMessages(conversationId, { page: 1, limit: 60 });
-        // Mark read after messages arrive
+        const firstPage = await loadMessages(conversationId, { page: 1, limit: 60 });
+        if (!cancelled) {
+          const page = Number(firstPage?.pagination?.page || 1);
+          const totalPages = Number(firstPage?.pagination?.totalPages || 1);
+          setCurrentPage(page);
+          setHasMoreMessages(page < totalPages);
+        }
+        
         await markAsRead(conversationId);
       } catch {
         if (!cancelled) {
@@ -107,17 +122,43 @@ const ConversationPage = () => {
     return () => {
       cancelled = true;
       leaveConversation(conversationId);
+      initializedRef.current = false;
     };
-  }, [conversationId]); // eslint-disable-line
+  }, [
+    conversationId,
+    dispatch,
+    joinConversation,
+    leaveConversation,
+    loadMessages,
+    markAsRead,
+    navigate,
+  ]);
 
-  // Keep recipient ref fresh for typing events
+  const handleLoadMore = useCallback(async () => {
+    if (loadingMore || !hasMoreMessages || !conversationId) return;
+    
+    setLoadingMore(true);
+    try {
+      const nextPage = currentPage + 1;
+      const result = await loadMessages(conversationId, { page: nextPage, limit: 60 });
+      const page = Number(result?.pagination?.page || nextPage);
+      const totalPages = Number(result?.pagination?.totalPages || page);
+
+      setCurrentPage(page);
+      setHasMoreMessages(page < totalPages);
+    } catch {
+      toast.error('Failed to load more messages');
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMoreMessages, conversationId, currentPage, loadMessages]);
+
   useEffect(() => {
     const other = convData?.otherParticipant;
     recipientRef.current = other?._id || other?.id || null;
   }, [convData]);
 
-  // Derived display values
-  const other     = convData?.otherParticipant;
+  const other = convData?.otherParticipant;
   const otherName = other
     ? (other.name || [other.firstName, other.lastName].filter(Boolean).join(' ') || 'Unknown')
     : '';
@@ -127,23 +168,25 @@ const ConversationPage = () => {
     const body = draft.trim();
     if (!body || sending) return;
 
-    const tempId     = nextTempId();
+    const tempId = nextTempId();
     const optimistic = {
       _id: tempId, id: tempId, conversationId,
       senderId: currentUserId,
       sender: { _id: currentUserId, id: currentUserId },
       body, content: body,
-      isRead: false, pending: true,
+      isRead: false, pending: true, status: 'pending',
       createdAt: new Date().toISOString(),
     };
 
     setDraft('');
     setSending(true);
     dispatch(appendMessage({ conversationId, message: optimistic }));
+    dispatch(updateConversationLastMessage({ conversationId, message: optimistic }));
 
     try {
       const sent = await sendMessage(conversationId, { body });
-      dispatch(replaceOptimisticMessage({ conversationId, tempId, message: sent }));
+      dispatch(replaceOptimisticMessage({ conversationId, tempId, message: { ...sent, status: 'sent' } }));
+      dispatch(updateConversationLastMessage({ conversationId, message: sent }));
     } catch {
       toast.error('Failed to send');
       dispatch(removeMessage({ conversationId, messageId: tempId }));
@@ -171,9 +214,7 @@ const ConversationPage = () => {
   return (
     <div className="flex flex-col h-full bg-background overflow-hidden">
 
-      {/* ── Header ───────────────────────────────────────────────── */}
       <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border shrink-0 min-h-[56px]">
-        {/* Back — mobile only */}
         <Button variant="ghost" size="icon"
           className="md:hidden h-8 w-8 shrink-0 -ml-1"
           onClick={() => navigate(ROUTES.MESSAGES.ROOT)}>
@@ -193,7 +234,11 @@ const ConversationPage = () => {
                 style={{ fontFamily: 'var(--font-heading)' }}>
                 {otherName || <span className="text-muted-foreground">Unknown</span>}
               </p>
-              {convData?.event?.title && (
+              {isTyping ? (
+                <p className="text-[11px] text-primary/70 font-medium leading-tight mt-0.5 animate-pulse">
+                  typing...
+                </p>
+              ) : convData?.event?.title && (
                 <p className="text-[11px] text-primary/70 truncate font-medium leading-tight mt-0.5">
                   re: {convData.event.title}
                 </p>
@@ -202,7 +247,6 @@ const ConversationPage = () => {
           </div>
         )}
 
-        {/* More actions */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon"
@@ -221,16 +265,19 @@ const ConversationPage = () => {
         </DropdownMenu>
       </div>
 
-      {/* ── Message thread ───────────────────────────────────────── */}
       <ChatWindow
         messages={messages}
         currentUserId={currentUserId}
         loading={messagesLoading && messages.length === 0}
         isTyping={isTyping}
+        hasMore={hasMoreMessages}
+        loadingMore={loadingMore}
+        onLoadMore={handleLoadMore}
+        participantAvatar={other?.avatar}
+        participantName={otherName}
         className="flex-1 min-h-0"
       />
 
-      {/* ── Input ────────────────────────────────────────────────── */}
       <ChatInput
         value={draft}
         onChange={setDraft}

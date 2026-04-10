@@ -17,7 +17,6 @@ const STATUS_STYLES = {
   draft:       'bg-gray-500/10 text-gray-500 border-gray-500/20',
   // Pending review or approval (events awaiting moderation)
   pending_review: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
-  pending:     'bg-orange-500/10 text-orange-500 border-orange-500/20',
   postponed:   'bg-purple-500/10 text-purple-600 border-purple-500/20',
   rejected:    'bg-red-500/10 text-red-500 border-red-500/20',
   // User

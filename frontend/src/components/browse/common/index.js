@@ -14,6 +14,7 @@ export { default as NewArrivalsSection }    from "./NewArrivalsSection";
 export { default as NewsletterSection }     from "./NewsletterSection";
 export { default as RecommendedSection }    from "./RecommendedSection";
 export { default as ReviewsSection }        from "./ReviewsSection";
+export { default as SearchBar }             from "./SearchBar";
 export { default as StatsSection }          from "./StatsSection";
 export { default as TopRatedSection }       from "./TopRatedSection";
 export { default as TrendingSection }       from "./TrendingSection";

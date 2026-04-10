@@ -81,6 +81,7 @@ const LiveNearYou = () => {
               <p className="text-[11px] text-muted-foreground mb-3 flex items-center gap-1 truncate"
                 style={{ fontFamily: "var(--font-sans)" }}>
                 <MapPin size={10} /> {ev.location?.name || ev.location?.city || locationLabel}
+                {ev.distance && <span className="ml-1 font-medium text-primary">· {ev.distance.toFixed(1)} km</span>}
               </p>
 
               <div className="pt-3 border-t border-border/50">

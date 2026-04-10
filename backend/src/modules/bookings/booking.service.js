@@ -10,6 +10,7 @@ const {
   buildFrontendUrl,
   getUserFirstName,
 } = require('../../infrastructure/mail/templateData');
+const { socketEvents } = require('../../infrastructure/websocket/socketEvents');
 
 // Additional dependencies for inventory and event lookups
 const Event = require('../events/event.model');
@@ -293,6 +294,26 @@ class BookingService {
       checkedInBy: getId(staffUser),
     });
     logger.info(`Check-in: ${bookingRef} by ${getId(staffUser)}`);
+
+    // Emit real-time check-in event
+    try {
+      const userId = getId(booking.user);
+      const organizerId = getId(booking.organizer);
+      
+      // Notify user their ticket was used
+      socketEvents.emitUserTicketValidated(userId, { bookingRef, ticketCode: bookingRef });
+      
+      // Notify organizer of check-in
+      if (organizerId) {
+        socketEvents.emitOrganizerCheckin(organizerId, { 
+          bookingRef, 
+          checkedInAt: new Date() 
+        });
+      }
+    } catch (err) {
+      logger.warn('Failed to emit check-in socket events', { err: err.message });
+    }
+
     return updated;
   }
 
@@ -339,11 +360,33 @@ class BookingService {
       }
     }
 
-    try {
+try {
       await this._syncEventInventorySummary(booking.event?._id || booking.event);
     } catch (err) {
       logger.error(`Error updating event inventory summary for booking ${bookingRef}: ${err.message}`);
     }
+
+    // Emit real-time events for booking confirmation
+    try {
+      const userId = getId(booking.user);
+      const organizerId = getId(booking.organizer);
+      const confirmedBooking = updated || booking;
+      
+      // Notify user
+      socketEvents.emitUserBookingConfirmed(userId, confirmedBooking);
+      
+      // Notify organizer
+      if (organizerId) {
+        socketEvents.emitOrganizerBookingNew(organizerId, confirmedBooking);
+        socketEvents.emitOrganizerRevenueUpdate(organizerId, { 
+          bookingRef, 
+          totalAmount: confirmedBooking.totalAmount 
+        });
+      }
+    } catch (err) {
+      logger.warn('Failed to emit booking socket events', { err: err.message });
+    }
+
     await this._sendBookingConfirmationEmail(booking || updated);
     return updated;
   }

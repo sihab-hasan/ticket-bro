@@ -3,3 +3,5 @@ export { default as useEvents } from "./useEvents";
 export { default as useEventDetails } from "./useEventDetails";
 export { default as useApiQuery } from "./useApiQuery";
 export { default as useApiMutation } from "./useApiMutation";
+export { default as useSocket, usePanelSocket } from "./useWebSocket";
+export { default as useSearch, useAutocomplete, useTrendingSearches } from "./useSearch";

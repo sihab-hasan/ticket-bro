@@ -19,41 +19,87 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 
 const EventDetailsSection = ({ event }) => {
-  // Mock event data
-  const mockEvent = {
-    title: 'Taylor Swift: The Eras Tour',
-    description: 'Taylor Swift brings her record-breaking Eras Tour to stadiums across the country. Experience hits from all her musical eras in one spectacular show.',
-    longDescription: 'The Eras Tour is the ongoing sixth concert tour by American singer-songwriter Taylor Swift. It is her second all-stadium tour after the Reputation Stadium Tour (2018). The tour celebrates Swift\'s entire discography, with the set list divided into acts representing each of her ten studio albums. The show features elaborate production, multiple costume changes, and special effects.',
-    date: '2024-06-15T19:30:00',
-    endDate: '2024-06-15T23:00:00',
-    doorsOpen: '18:30',
-    venue: 'MetLife Stadium',
-    address: '1 MetLife Stadium Dr',
-    city: 'East Rutherford',
-    state: 'NJ',
-    zipCode: '07073',
-    country: 'USA',
-    capacity: 82500,
-    expectedAttendance: 72000,
-    ageRestriction: 'All ages',
-    parking: 'Available on-site ($40)',
-    accessibility: 'Wheelchair accessible venues available',
-    refundPolicy: 'Tickets are non-refundable except for cancelled events',
-    organizer: 'Live Nation',
-    organizerContact: {
-      email: 'support@livenation.com',
-      phone: '+1 (800) 123-4567',
-      website: 'https://www.livenation.com'
-    },
-    tags: ['pop', 'concert', 'stadium', 'family-friendly'],
-    categories: ['Music', 'Concert'],
-    performers: [
-      { name: 'Taylor Swift', role: 'Main Performer' },
-      { name: 'Paramore', role: 'Opening Act' }
-    ]
+  if (!event) {
+    return (
+      <section className="py-16 bg-background">
+        <div className="container mx-auto px-4">
+          <p className="text-muted-foreground">Event not found</p>
+        </div>
+      </section>
+    );
+  }
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return 'TBA';
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
   };
 
-  const data = event || mockEvent;
+  const formatTime = (dateStr) => {
+    if (!dateStr) return '';
+    return new Date(dateStr).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getLocationString = (loc) => {
+    if (!loc) return 'TBA';
+    if (loc.type === 'online') return 'Online Event';
+    if (loc.type === 'hybrid') return `${loc.name || 'Venue'} + Online`;
+    return loc.name || loc.city || 'TBA';
+  };
+
+  const getFullAddress = (loc) => {
+    if (!loc || loc.type === 'online') return null;
+    const parts = [loc.address, loc.city, loc.state, loc.country].filter(Boolean);
+    return parts.join(', ');
+  };
+
+  const ageLabels = {
+    all: 'All Ages',
+    teen: '13+',
+    adult: '18+'
+  };
+
+  const data = {
+    title: event.title || 'Untitled Event',
+    description: event.description || event.shortDescription || '',
+    longDescription: event.description || '',
+    date: event.startDate,
+    endDate: event.endDate,
+    doorsOpen: event.doorsOpen,
+    venue: event.location?.name || '',
+    address: event.location?.address || '',
+    city: event.location?.city || '',
+    state: event.location?.state || '',
+    zipCode: event.location?.zip || '',
+    country: event.location?.country || '',
+    capacity: event.totalCapacity || 0,
+    expectedAttendance: event.totalSold || 0,
+    ageRestriction: ageLabels[event.ageRestriction] || 'All Ages',
+    parking: null,
+    accessibility: event.accessibilityInfo || null,
+    refundPolicy: event.refundPolicy?.allowRefunds 
+      ? `Refunds available up to ${event.refundPolicy.cutoffHours} hours before event`
+      : 'Tickets are non-refundable',
+    organizer: event.organizer?.displayName || event.organizer?.name || 'Unknown Organizer',
+    organizerContact: {
+      email: event.organizer?.email || '',
+      phone: event.organizer?.phone || '',
+      website: event.organizer?.website || ''
+    },
+    tags: event.tags?.map(t => typeof t === 'string' ? t : t.name) || [],
+    categories: [event.category?.name, event.subcategory?.name].filter(Boolean),
+    performers: event.agenda?.filter(a => a.isFeatured).map(a => ({
+      name: a.title,
+      role: a.sessionType || 'Performer'
+    })) || []
+  };
 
   return (
     <section className="py-16 bg-background">
@@ -64,28 +110,27 @@ const EventDetailsSection = ({ event }) => {
             {/* About */}
             <div>
               <h2 className="text-2xl font-bold mb-4">About This Event</h2>
-              <p className="text-muted-foreground leading-relaxed mb-4">
-                {data.description}
-              </p>
-              <p className="text-muted-foreground leading-relaxed">
-                {data.longDescription}
+              <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                {data.description || 'No description available'}
               </p>
             </div>
 
             {/* Tags */}
-            <div>
-              <h3 className="font-semibold mb-3">Tags</h3>
-              <div className="flex flex-wrap gap-2">
-                {data.tags?.map((tag, i) => (
-                  <Badge key={i} variant="secondary" className="px-3 py-1">
-                    {tag}
-                  </Badge>
-                ))}
+            {data.tags.length > 0 && (
+              <div>
+                <h3 className="font-semibold mb-3">Tags</h3>
+                <div className="flex flex-wrap gap-2">
+                  {data.tags.map((tag, i) => (
+                    <Badge key={i} variant="secondary" className="px-3 py-1">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Performers */}
-            {data.performers && (
+            {data.performers.length > 0 && (
               <div>
                 <h3 className="font-semibold mb-3">Performers</h3>
                 <div className="space-y-3">
@@ -108,29 +153,57 @@ const EventDetailsSection = ({ event }) => {
                 <h4 className="font-medium mb-2">Age Restriction</h4>
                 <p className="text-sm text-muted-foreground">{data.ageRestriction}</p>
               </div>
-              <div className="p-4 bg-muted/30 rounded-lg">
-                <h4 className="font-medium mb-2">Parking</h4>
-                <p className="text-sm text-muted-foreground">{data.parking}</p>
-              </div>
+              {data.capacity > 0 && (
+                <div className="p-4 bg-muted/30 rounded-lg">
+                  <h4 className="font-medium mb-2">Capacity</h4>
+                  <p className="text-sm text-muted-foreground">{data.capacity.toLocaleString()} attendees</p>
+                </div>
+              )}
             </div>
 
             {/* Accessibility */}
-            <div className="p-4 bg-primary/5 rounded-lg">
-              <h4 className="font-medium mb-2 flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-primary" />
-                Accessibility
-              </h4>
-              <p className="text-sm text-muted-foreground">{data.accessibility}</p>
-            </div>
+            {data.accessibility && (
+              <div className="p-4 bg-primary/5 rounded-lg">
+                <h4 className="font-medium mb-2 flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-primary" />
+                  Accessibility
+                </h4>
+                <p className="text-sm text-muted-foreground">{data.accessibility}</p>
+              </div>
+            )}
 
             {/* Refund Policy */}
-            <div className="p-4 bg-muted/30 rounded-lg">
-              <h4 className="font-medium mb-2 flex items-center gap-2">
-                <Info className="h-5 w-5 text-muted-foreground" />
-                Refund Policy
-              </h4>
-              <p className="text-sm text-muted-foreground">{data.refundPolicy}</p>
-            </div>
+            {event.refundPolicy && (
+              <div className="p-4 bg-muted/30 rounded-lg">
+                <h4 className="font-medium mb-2 flex items-center gap-2">
+                  <Info className="h-5 w-5 text-muted-foreground" />
+                  Refund Policy
+                </h4>
+                <p className="text-sm text-muted-foreground">{data.refundPolicy}</p>
+                {event.refundPolicy.notes && (
+                  <p className="text-sm text-muted-foreground mt-2">{event.refundPolicy.notes}</p>
+                )}
+              </div>
+            )}
+
+            {/* Terms and Conditions */}
+            {event.termsAndConditions && (
+              <div className="p-4 bg-muted/30 rounded-lg">
+                <h4 className="font-medium mb-2 flex items-center gap-2">
+                  <Info className="h-5 w-5 text-muted-foreground" />
+                  Terms & Conditions
+                </h4>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{event.termsAndConditions}</p>
+              </div>
+            )}
+
+            {/* Dress Code */}
+            {event.dressCode && (
+              <div className="p-4 bg-muted/30 rounded-lg">
+                <h4 className="font-medium mb-2">Dress Code</h4>
+                <p className="text-sm text-muted-foreground">{event.dressCode}</p>
+              </div>
+            )}
           </div>
 
           {/* Sidebar */}
@@ -146,93 +219,97 @@ const EventDetailsSection = ({ event }) => {
                     <div>
                       <p className="font-medium">Date</p>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(data.date).toLocaleDateString('en-US', {
-                          weekday: 'long',
-                          month: 'long',
-                          day: 'numeric',
-                          year: 'numeric'
-                        })}
+                        {formatDate(data.date)}
                       </p>
                     </div>
                   </div>
-
+                  
                   <div className="flex items-start gap-3">
                     <Clock className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                     <div>
                       <p className="font-medium">Time</p>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(data.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} 
-                        {data.endDate && ` - ${new Date(data.endDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Doors open: {data.doorsOpen}
+                        {formatTime(data.date)} {data.endDate && ` - ${formatTime(data.endDate)}`}
                       </p>
                     </div>
                   </div>
-
+                  
+                  {data.doorsOpen && (
+                    <div className="flex items-start gap-3">
+                      <Users className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium">Doors Open</p>
+                        <p className="text-sm text-muted-foreground">
+                          {formatTime(data.doorsOpen)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="flex items-start gap-3">
                     <MapPin className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-medium">Venue</p>
-                      <p className="text-sm font-medium">{data.venue}</p>
+                      <p className="font-medium">Location</p>
                       <p className="text-sm text-muted-foreground">
-                        {data.address}<br />
-                        {data.city}, {data.state} {data.zipCode}<br />
-                        {data.country}
+                        {getLocationString(event.location)}
                       </p>
+                      {getFullAddress(event.location) && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {getFullAddress(event.location)}
+                        </p>
+                      )}
                     </div>
                   </div>
-
-                  <div className="flex items-start gap-3">
-                    <Users className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-medium">Capacity</p>
-                      <p className="text-sm text-muted-foreground">
-                        {data.capacity.toLocaleString()} · {data.expectedAttendance.toLocaleString()} expected
-                      </p>
+                  
+                  {event.isFree !== undefined && (
+                    <div className="flex items-start gap-3">
+                      <DollarSign className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium">Price</p>
+                        <p className="text-sm text-muted-foreground">
+                          {event.isFree ? 'Free' : `${event.currency || 'BDT'} ${event.minPrice || 0} - ${event.maxPrice || 0}`}
+                        </p>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
 
-              {/* Organizer Info */}
-              <div className="bg-muted/30 rounded-xl p-6">
-                <h3 className="font-semibold mb-4">Organized by</h3>
-                <p className="font-medium mb-2">{data.organizer}</p>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Globe className="h-4 w-4 text-muted-foreground" />
-                    <a href={data.organizerContact.website} className="text-primary hover:underline">
-                      Visit Website
-                    </a>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <a href={`mailto:${data.organizerContact.email}`} className="text-primary hover:underline">
-                      {data.organizerContact.email}
-                    </a>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    <a href={`tel:${data.organizerContact.phone}`} className="text-primary hover:underline">
-                      {data.organizerContact.phone}
-                    </a>
+              {/* Organizer Contact */}
+              {(data.organizerContact.email || data.organizerContact.phone || data.organizerContact.website) && (
+                <div className="bg-muted/30 rounded-xl p-6 space-y-4">
+                  <h3 className="font-semibold text-lg">Organizer Contact</h3>
+                  
+                  <div className="space-y-3">
+                    {data.organizerContact.email && (
+                      <div className="flex items-center gap-3">
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        <a href={`mailto:${data.organizerContact.email}`} className="text-sm text-primary hover:underline">
+                          {data.organizerContact.email}
+                        </a>
+                      </div>
+                    )}
+                    
+                    {data.organizerContact.phone && (
+                      <div className="flex items-center gap-3">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        <a href={`tel:${data.organizerContact.phone}`} className="text-sm text-primary hover:underline">
+                          {data.organizerContact.phone}
+                        </a>
+                      </div>
+                    )}
+                    
+                    {data.organizerContact.website && (
+                      <div className="flex items-center gap-3">
+                        <Globe className="h-4 w-4 text-muted-foreground" />
+                        <a href={data.organizerContact.website} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">
+                          {data.organizerContact.website.replace(/^https?:\/\//, '')}
+                        </a>
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
-
-              {/* Share Event */}
-              <div className="bg-muted/30 rounded-xl p-6">
-                <h3 className="font-semibold mb-3">Share This Event</h3>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1">
-                    Copy Link
-                  </Button>
-                  <Button variant="outline" size="sm" className="flex-1">
-                    Share
-                  </Button>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

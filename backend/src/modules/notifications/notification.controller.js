@@ -2,6 +2,7 @@
 const asyncHandler          = require('../../common/utils/asyncHandler');
 const { sendSuccess }       = require('../../common/utils/apiResponse');
 const notificationService   = require('./notification.service');
+const notificationsConfig   = require('../../config/notifications.config');
 const getId = (u) => u?._id || u?.id || u?.userId;
 
 class NotificationController {
@@ -15,6 +16,7 @@ class NotificationController {
   deleteNotification= asyncHandler(async (req, res) => { sendSuccess(res, 'Deleted.', await notificationService.deleteNotification(req.params.id, getId(req.user))); });
   clearAll         = asyncHandler(async (req, res) => { sendSuccess(res, 'Cleared.', await notificationService.clearAll(getId(req.user))); });
   subscribePush    = asyncHandler(async (req, res) => { sendSuccess(res, 'Subscribed.', await notificationService.subscribePush(getId(req.user), req.body)); });
-  unsubscribePush  = asyncHandler(async (req, res) => { sendSuccess(res, 'Unsubscribed.', await notificationService.unsubscribePush(getId(req.user))); });
+  unsubscribePush  = asyncHandler(async (req, res) => { sendSuccess(res, 'Unsubscribed.', await notificationService.unsubscribePush(getId(req.user), req.query.endpoint)); });
+  getVapidKey      = asyncHandler(async (req, res) => { sendSuccess(res, 'VAPID key.', { publicKey: notificationsConfig.VAPID_PUBLIC_KEY }); });
 }
 module.exports = new NotificationController();

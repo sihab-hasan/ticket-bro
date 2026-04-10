@@ -12,6 +12,7 @@ const conversationSchema = new mongoose.Schema({
   deletedBy:    [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 }, { timestamps: true });
 
+conversationSchema.index({ participants: 1, event: 1 }, { unique: true, partialFilterExpression: { event: { $exists: true } } });
 conversationSchema.index({ participants: 1, updatedAt: -1 });
 
 const Conversation = mongoose.model('Conversation', conversationSchema);

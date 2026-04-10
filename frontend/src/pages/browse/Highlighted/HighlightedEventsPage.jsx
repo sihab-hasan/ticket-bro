@@ -59,7 +59,6 @@ const HighlightedEventsPage = ({
   const leadEvent = spotlight[0];
   const supportEvents = spotlight.slice(1);
   const remainingEvents = events.slice(3);
-  const gridEvents = remainingEvents;
 
   const categoryLabels = useMemo(() => {
     const labels = [];
@@ -320,30 +319,28 @@ const HighlightedEventsPage = ({
             </SectionShell>
           )}
 
-          {gridEvents.length > 0 && (
-            <SectionShell
-              title={gridSectionTitle}
-              subtitle={gridSectionSubtitle}
-              icon={Icon}
-              divider={false}
-            >
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {gridEvents.map((event) => {
-                  const key = event.id || event._id || event.slug;
-                  return (
-                    <BrowseEventCard
-                      key={key}
-                      event={event}
-                      variant="grid"
-                      saved={savedIds.has(key)}
-                      onSave={toggleSaved}
-                      showBadge={showTrendingBadge}
-                    />
-                  );
-                })}
-              </div>
-            </SectionShell>
-          )}
+          <SectionShell
+            title={gridSectionTitle}
+            subtitle={gridSectionSubtitle}
+            icon={Icon}
+            divider={false}
+          >
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {remainingEvents.map((event) => {
+                const key = event.id || event._id || event.slug;
+                return (
+                  <BrowseEventCard
+                    key={key}
+                    event={event}
+                    variant="grid"
+                    saved={savedIds.has(key)}
+                    onSave={toggleSaved}
+                    showBadge={showTrendingBadge}
+                  />
+                );
+              })}
+            </div>
+          </SectionShell>
         </>
       )}
     </div>

@@ -213,7 +213,7 @@ const HeroSection = () => {
       ...(subCategorySlug && { sub: subCategorySlug }),
       ...(eventTypeSlug && { type: eventTypeSlug }),
     });
-    navigate(`/search/results?${p.toString()}`);
+    navigate(`/search?${p.toString()}`);
   };
 
   const titleNode = (() => {

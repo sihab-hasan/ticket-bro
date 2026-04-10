@@ -106,9 +106,7 @@ function buildCrumbs(pathname, params) {
 
   // ── /search ────────────────────────────────
   if (pathname.startsWith("/search")) {
-    const isResults = pathname === "/search/results";
-    crumbs.push({ label: "Search", to: isResults ? "/search" : null });
-    if (isResults) crumbs.push({ label: "Results", to: null });
+    crumbs.push({ label: "Search", to: null });
     return crumbs;
   }
 

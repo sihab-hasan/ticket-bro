@@ -1,87 +1,185 @@
 // frontend/src/components/browse/sections/MapSection.jsx
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { MapPin, Navigation } from "lucide-react";
-import Container from "@/components/layout/Container";
+import { MapPin, Navigation, Layers } from "lucide-react";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import L from "leaflet";
 import { useBrowse } from "@/hooks";
+import SectionShell from "./SectionShell";
 
-// Map placeholder — in production replace with react-leaflet or Google Maps
-const MapPlaceholder = ({ locationLabel, eventCount }) => (
-  <div className="relative w-full rounded-lg border border-border overflow-hidden bg-secondary/10" style={{ height: "320px" }}>
-    {/* Decorative grid lines */}
-    <svg className="absolute inset-0 w-full h-full opacity-10" xmlns="http://www.w3.org/2000/svg">
-      <defs><pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse"><path d="M 30 0 L 0 0 0 30" fill="none" stroke="currentColor" strokeWidth="0.5" /></pattern></defs>
-      <rect width="100%" height="100%" fill="url(#grid)" />
-    </svg>
-    {/* Center pin */}
-    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-      <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/20 border-2 border-primary animate-pulse">
-        <MapPin size={22} className="text-primary" />
+// Fix default marker icon issue with webpack
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
+
+const createCustomIcon = (isActive = false) => {
+  return L.divIcon({
+    className: 'custom-marker',
+    html: `
+      <div style="
+        width: 32px;
+        height: 32px;
+        background: ${isActive ? '#ef4444' : '#6366f1'};
+        border: 3px solid white;
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg);
+        box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      ">
+        <svg style="transform: rotate(45deg); width: 14px; height: 14px; color: white;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+          <circle cx="12" cy="9" r="2.5"/>
+        </svg>
       </div>
-      <div className="text-center">
-        <p className="text-sm font-bold text-foreground" style={{ fontFamily: "var(--font-heading)" }}>{locationLabel}</p>
-        <p className="text-xs text-muted-foreground" style={{ fontFamily: "var(--font-sans)" }}>{eventCount} events near you</p>
-      </div>
-      <p className="text-[10px] text-muted-foreground border border-border rounded px-2 py-1 bg-background/70" style={{ fontFamily: "var(--font-sans)" }}>
-        Interactive map coming soon · Install react-leaflet to enable
-      </p>
-    </div>
-    {/* Fake scatter dots */}
-    {[{x:20,y:30},{x:65,y:20},{x:40,y:55},{x:80,y:65},{x:15,y:70},{x:55,y:75}].map((p, i) => (
-      <div key={i} className="absolute w-3 h-3 rounded-full bg-primary/60 border border-primary animate-pulse"
-        style={{ left: `${p.x}%`, top: `${p.y}%`, animationDelay: `${i*0.2}s` }} />
-    ))}
-  </div>
-);
+    `,
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -32]
+  });
+};
+
+const MapController = ({ center }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (center) {
+      map.setView(center, map.getZoom());
+    }
+  }, [center, map]);
+  return null;
+};
 
 const MapSection = () => {
   const { getNearby, locationLabel, locationFlag, config, level, buildEventUrl } = useBrowse();
   const events = getNearby();
+  const [activeEvent, setActiveEvent] = useState(null);
   const title = level === "root" ? `Events Map — ${locationLabel}` : `${config.label} Map`;
+
+  // Default center (Dhaka, Bangladesh)
+  const defaultCenter = [23.8103, 90.4125];
+  const center = defaultCenter;
 
   if (!events.length) {
     return null;
   }
 
+  const eventMarkers = events.slice(0, 10).map((e) => ({
+    id: e.id,
+    title: e.title,
+    priceLabel: e.priceLabel,
+    location: e.location?.name || e.location?.city || "Venue TBA",
+    lat: e.location?.coordinates?.lat || defaultCenter[0] + (Math.random() - 0.5) * 0.1,
+    lng: e.location?.coordinates?.lng || defaultCenter[1] + (Math.random() - 0.5) * 0.1,
+    url: buildEventUrl(e),
+    image: e.coverImage
+  }));
+
   return (
-    <section className="w-full bg-background" aria-label="Events map">
-      <Container>
-        <div className="py-8">
-          <div className="flex items-center gap-2.5 mb-5">
-            <span className="flex items-center justify-center w-7 h-7 rounded shrink-0 bg-primary/10 text-primary border border-primary/20">
-              <Navigation size={13} strokeWidth={2} />
-            </span>
-            <div>
-              <h2 className="text-xl font-bold text-foreground" style={{ fontFamily: "var(--font-heading)" }}>{title}</h2>
-              <p className="text-sm text-muted-foreground mt-0.5" style={{ fontFamily: "var(--font-sans)" }}>{locationFlag} {events.length} events near you in {locationLabel}</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5">
-            <MapPlaceholder locationLabel={locationLabel} eventCount={events.length} />
-            <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
-              {events.slice(0, 6).map((e) => (
-                <Link key={e.id} to={buildEventUrl(e)}
-                  className="group flex items-center gap-2.5 p-2.5 rounded-md border border-border bg-card hover:border-foreground/20 hover:bg-accent/20 transition-all">
-                  <div className="w-10 h-10 rounded shrink-0 overflow-hidden bg-muted">
-                    <img src={e.coverImage} alt={e.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onError={(x) => x.target.style.display="none"} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-xs font-bold text-foreground line-clamp-1 group-hover:underline" style={{ fontFamily: "var(--font-heading)" }}>
-                      {e.title}
-                    </h4>
-                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-0.5" style={{ fontFamily: "var(--font-sans)" }}>
-                      <MapPin size={8} /><span className="truncate">{e.location?.name || e.location?.city || "Venue TBA"}</span>
+    <SectionShell
+      title={title}
+      subtitle={`${locationFlag} ${events.length} events near you in ${locationLabel}`}
+      icon={Navigation}
+      divider={false}
+    >
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-5">
+        {/* Map Container */}
+        <div className="relative rounded-lg overflow-hidden border border-border" style={{ height: "400px" }}>
+          <MapContainer 
+            center={center} 
+            zoom={12} 
+            style={{ height: "100%", width: "100%" }}
+            scrollWheelZoom={true}
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            <MapController center={center} />
+            {eventMarkers.map((event) => (
+              <Marker 
+                key={event.id}
+                position={[event.lat, event.lng]}
+                icon={createCustomIcon(activeEvent === event.id)}
+                eventHandlers={{
+                  click: () => setActiveEvent(event.id),
+                }}
+              >
+                <Popup>
+                  <div className="w-48">
+                    <img 
+                      src={event.image} 
+                      alt={event.title}
+                      className="w-full h-24 object-cover rounded-t"
+                      onError={(e) => e.target.style.display = 'none'}
+                    />
+                    <div className="p-2">
+                      <h4 className="font-bold text-sm line-clamp-1">{event.title}</h4>
+                      <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                        <MapPin size={10} /> {event.location}
+                      </p>
+                      <p className="text-sm font-bold text-primary mt-1">{event.priceLabel}</p>
                     </div>
                   </div>
-                  <span className="text-xs font-bold text-foreground shrink-0" style={{ fontFamily: "var(--font-heading)" }}>{e.priceLabel}</span>
-                </Link>
-              ))}
+                </Popup>
+              </Marker>
+            ))}
+          </MapContainer>
+          
+          {/* Map Controls Overlay */}
+          <div className="absolute top-3 right-3 z-[1000] flex flex-col gap-2">
+            <div className="bg-white rounded-lg shadow-md p-1">
+              <button className="p-2 hover:bg-gray-100 rounded">
+                <Layers size={18} />
+              </button>
             </div>
           </div>
         </div>
-        <div className="w-full h-px bg-border" />
-      </Container>
-    </section>
+
+        {/* Event List Sidebar */}
+        <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-semibold text-foreground">{events.length} events</span>
+            <button className="text-xs text-primary hover:underline">View all on map</button>
+          </div>
+          {events.slice(0, 8).map((e) => (
+            <Link 
+              key={e.id} 
+              to={buildEventUrl(e)}
+              onMouseEnter={() => setActiveEvent(e.id)}
+              onMouseLeave={() => setActiveEvent(null)}
+              className={`group flex items-center gap-3 p-2.5 rounded-lg border transition-all ${
+                activeEvent === e.id 
+                  ? 'border-primary bg-primary/5' 
+                  : 'border-border bg-card hover:border-foreground/20 hover:bg-accent/20'
+              }`}
+            >
+              <div className="w-14 h-14 rounded-lg shrink-0 overflow-hidden bg-muted">
+                <img 
+                  src={e.coverImage} 
+                  alt={e.title} 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  onError={(x) => x.target.style.display="none"} 
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-sm font-bold text-foreground line-clamp-1 group-hover:underline" style={{ fontFamily: "var(--font-heading)" }}>
+                  {e.title}
+                </h4>
+                <div className="flex items-center gap-1 text-[11px] text-muted-foreground mt-1" style={{ fontFamily: "var(--font-sans)" }}>
+                  <MapPin size={10} />
+                  <span className="truncate">{e.location?.name || e.location?.city || "Venue TBA"}</span>
+                </div>
+                <p className="text-xs font-bold text-primary mt-1" style={{ fontFamily: "var(--font-heading)" }}>{e.priceLabel}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </SectionShell>
   );
 };
 

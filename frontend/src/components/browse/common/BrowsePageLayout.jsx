@@ -1,8 +1,6 @@
 import React from "react";
 import { useBrowse } from "@/hooks";
 import HeroSection from "./HeroSection";
-import CategoryNavSection from "./CategoryNavSection";
-import CategoryGridSection from "./CategoryGridSection";
 import FiltersSection from "./FiltersSection";
 import EventGridSection from "./EventGridSection";
 import FeaturedSection from "./FeaturedSection";
@@ -17,17 +15,17 @@ import ReviewsSection from "./ReviewsSection";
 import StatsSection from "./StatsSection";
 import NewsletterSection from "./NewsletterSection";
 import AppDownloadSection from "./AppDownloadSection";
+import MapSection from "./MapSection";
 
 const ROOT_SECTIONS = [
   HeroSection,
-  CategoryNavSection,
-  CategoryGridSection,
   FiltersSection,
   EventGridSection,
   FeaturedSection,
   TrendingSection,
   UpcomingSection,
   TopRatedSection,
+  MapSection,
   EditorsPicksSection,
   NearbySection,
   RecommendedSection,
@@ -39,13 +37,12 @@ const ROOT_SECTIONS = [
 
 const CATEGORY_SECTIONS = [
   HeroSection,
-  CategoryNavSection,
-  CategoryGridSection,
   FiltersSection,
   EventGridSection,
   FeaturedSection,
   TrendingSection,
   UpcomingSection,
+  MapSection,
   RecommendedSection,
   NearbySection,
   ReviewsSection,
@@ -55,13 +52,12 @@ const CATEGORY_SECTIONS = [
 
 const SUBCATEGORY_SECTIONS = [
   HeroSection,
-  CategoryNavSection,
-  CategoryGridSection,
   FiltersSection,
   EventGridSection,
   UpcomingSection,
   TopRatedSection,
   NewArrivalsSection,
+  MapSection,
   RecommendedSection,
   NearbySection,
   ReviewsSection,
@@ -70,12 +66,11 @@ const SUBCATEGORY_SECTIONS = [
 
 const EVENT_TYPE_SECTIONS = [
   HeroSection,
-  CategoryNavSection,
-  CategoryGridSection,
   FiltersSection,
   EventGridSection,
   TopRatedSection,
   NewArrivalsSection,
+  MapSection,
   RecommendedSection,
   NearbySection,
   ReviewsSection,

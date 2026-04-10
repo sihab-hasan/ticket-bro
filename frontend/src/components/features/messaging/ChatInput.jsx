@@ -1,6 +1,6 @@
 // components/features/messaging/ChatInput.jsx
 import React, { useRef, useEffect, useCallback } from 'react';
-import { Send, Paperclip } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -24,9 +24,15 @@ const ChatInput = ({
     el.style.height = `${Math.min(el.scrollHeight, 140)}px`;
   }, [value]);
 
+  // Cleanup typing timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (typingTimeout.current) clearTimeout(typingTimeout.current);
+    };
+  }, []);
+
   const handleChange = useCallback((e) => {
     onChange(e.target.value);
-    // Emit typing start
     if (onTyping) {
       onTyping(true);
       clearTimeout(typingTimeout.current);
