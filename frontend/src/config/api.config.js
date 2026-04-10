@@ -138,6 +138,7 @@ export const ENDPOINTS = {
     PREFERENCES: "/notifications/preferences",
     PUSH_SUBSCRIBE: "/notifications/push/subscribe",
     PUSH_UNSUBSCRIBE: "/notifications/push/unsubscribe",
+    VAPID_KEY: "/notifications/vapid-key",
   },
 
   MESSAGING: {

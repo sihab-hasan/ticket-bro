@@ -8,11 +8,13 @@ import React, {
   createContext, useContext, useState,
   useEffect, useCallback, useRef,
 } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { connectSocket, disconnectSocket, getSocket } from '@/lib/socket';
 import { messagingService } from '@/api';
 import useAuth from '@/context/AuthContext';
+import messageSoundFile from '@/assets/audio/message.mp3';
 import {
+  selectConversations,
   setConversations,
   upsertConversation,
   setMessages,
@@ -20,49 +22,115 @@ import {
   updateConversationLastMessage,
   setUnreadCount,
   incrementUnread,
-  decrementUnread,
+  incrementConversationUnread,
+  markConversationRead,
+  markMessageDelivered,
+  markAllSentMessagesRead,
 } from '@/store/slices/messagingSlice';
 
 const MessagingContext = createContext(null);
+const getId = (item) => item?._id || item?.id;
+
+// Play message sound
+const playMessageSound = () => {
+  try {
+    const audio = new Audio(messageSoundFile);
+    audio.volume = 0.4;
+    audio.play().catch(() => {});
+  } catch {
+    // Silent fail
+  }
+};
 
 export const MessagingProvider = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
   const dispatch = useDispatch();
+  const conversations = useSelector(selectConversations);
   const [typingMap, setTypingMap]           = useState({});
   const [activeConversationId, setActive]   = useState(null);
   const typingTimeouts                       = useRef({});
+  const conversationsRef                     = useRef(conversations);
+  const activeConversationIdRef              = useRef(activeConversationId);
+
+  useEffect(() => {
+    conversationsRef.current = conversations;
+  }, [conversations]);
+
+  useEffect(() => {
+    activeConversationIdRef.current = activeConversationId;
+  }, [activeConversationId]);
+
+  const ensureConversationLoaded = useCallback(async (conversationId) => {
+    if (!conversationId) return null;
+
+    const existingConversation = conversationsRef.current.find(
+      (conversation) => getId(conversation) === conversationId,
+    );
+
+    if (existingConversation) {
+      return existingConversation;
+    }
+
+    try {
+      const conversation = await messagingService.getConversation(conversationId);
+      dispatch(upsertConversation(conversation));
+      return conversation;
+    } catch {
+      return null;
+    }
+  }, [dispatch]);
 
   // ── Socket lifecycle ────────────────────────────────────────
   useEffect(() => {
     if (!isAuthenticated || !user) return;
 
     const socket = connectSocket();
-
-    // New message from another user
-    socket.on('message:new', ({ conversationId, message }) => {
+    const handleMessageNew = ({ conversationId, message }) => {
       dispatch(appendMessage({ conversationId, message }));
       dispatch(updateConversationLastMessage({ conversationId, message }));
-      // Only bump unread when not actively viewing that conversation
-      if (conversationId !== activeConversationId) {
-        dispatch(incrementUnread());
-      }
-    });
 
-    // Conversation metadata updated (re-sort the list)
-    socket.on('conversation:updated', ({ conversationId, lastMessage, lastMessageAt, senderId }) => {
+      if (!conversationsRef.current.some((conversation) => getId(conversation) === conversationId)) {
+        ensureConversationLoaded(conversationId);
+      }
+
+      if (conversationId === activeConversationIdRef.current) {
+        messagingService
+          .markAsRead(conversationId)
+          .then(() => dispatch(markConversationRead({ conversationId })))
+          .catch(() => {});
+      } else {
+        dispatch(incrementUnread());
+        dispatch(incrementConversationUnread({ conversationId }));
+        playMessageSound();
+      }
+
+      socket.emit('message:delivered', {
+        conversationId,
+        messageId: message?._id || message?.id,
+        senderId: message?.senderId || message?.sender?._id || message?.sender?.id,
+      });
+    };
+
+    const handleConversationUpdated = ({ conversationId, lastMessage, lastMessageAt, senderId }) => {
       dispatch(updateConversationLastMessage({
         conversationId,
         message: { body: lastMessage, content: lastMessage, createdAt: lastMessageAt, senderId },
       }));
-    });
 
-    // Read receipt — another participant read messages in a conversation
-    socket.on('message:read', ({ conversationId, readBy }) => {
-      // Could update isRead on messages — skipping for now (sender sees ticks via optimistic)
-    });
+      if (!conversationsRef.current.some((conversation) => getId(conversation) === conversationId)) {
+        ensureConversationLoaded(conversationId);
+      }
+    };
 
-    // Typing indicators
-    socket.on('user:typing', ({ conversationId, isTyping }) => {
+    const handleMessageRead = ({ conversationId, readBy }) => {
+      dispatch(markAllSentMessagesRead({ conversationId, excludeUserId: readBy }));
+    };
+
+    const handleMessageDelivered = ({ conversationId, messageId }) => {
+      dispatch(markMessageDelivered({ conversationId, messageId }));
+    };
+
+    const handleUserTyping = ({ conversationId, isTyping }) => {
       setTypingMap((prev) => ({ ...prev, [conversationId]: isTyping }));
       if (isTyping) {
         clearTimeout(typingTimeouts.current[conversationId]);
@@ -70,16 +138,34 @@ export const MessagingProvider = ({ children }) => {
           setTypingMap((prev) => ({ ...prev, [conversationId]: false }));
         }, 3500);
       }
-    });
+    };
+
+    // New message from another user
+    socket.on('message:new', handleMessageNew);
+
+    // Conversation metadata updated (re-sort the list)
+    socket.on('conversation:updated', handleConversationUpdated);
+
+    // Read receipt — another participant read messages in a conversation
+    socket.on('message:read', handleMessageRead);
+
+    // Message delivered — recipient received the message
+    socket.on('message:delivered', handleMessageDelivered);
+
+    // Typing indicators
+    socket.on('user:typing', handleUserTyping);
 
     return () => {
-      socket.off('message:new');
-      socket.off('conversation:updated');
-      socket.off('message:read');
-      socket.off('user:typing');
+      Object.values(typingTimeouts.current).forEach(clearTimeout);
+      typingTimeouts.current = {};
+      socket.off('message:new', handleMessageNew);
+      socket.off('conversation:updated', handleConversationUpdated);
+      socket.off('message:read', handleMessageRead);
+      socket.off('message:delivered', handleMessageDelivered);
+      socket.off('user:typing', handleUserTyping);
       disconnectSocket();
     };
-  }, [isAuthenticated, user, activeConversationId, dispatch]);
+  }, [dispatch, ensureConversationLoaded, isAuthenticated, user]);
 
   // ── Load unread count on auth ────────────────────────────────
   useEffect(() => {
@@ -101,7 +187,11 @@ export const MessagingProvider = ({ children }) => {
 
   const loadMessages = useCallback(async (conversationId, params) => {
     const res = await messagingService.getMessages(conversationId, params);
-    dispatch(setMessages({ conversationId, messages: res.messages || [] }));
+    dispatch(setMessages({
+      conversationId,
+      messages: res.messages || [],
+      mode: Number(params?.page || 1) > 1 ? 'prepend' : 'replace',
+    }));
     return res;
   }, [dispatch]);
 
@@ -112,7 +202,7 @@ export const MessagingProvider = ({ children }) => {
   const markAsRead = useCallback(async (conversationId) => {
     try {
       await messagingService.markAsRead(conversationId);
-      dispatch(decrementUnread());
+      dispatch(markConversationRead({ conversationId }));
     } catch {
       // non-critical — silently fail
     }

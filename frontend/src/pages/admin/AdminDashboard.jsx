@@ -19,6 +19,7 @@ import { StatusBadge, RoleBadge } from '@/components/shared/StatusBadge';
 import { formatDate, formatPrice } from '@/utils/formatters';
 import { ROUTES } from '@/app/AppRoutes';
 import { adminService } from '@/api';
+import { useSocket } from '@/hooks';
 
 // ── Revenue Mini Chart Bar ────────────────────────────────────────────────────
 const MiniBar = ({ value, max, color = 'bg-primary' }) => (
@@ -131,6 +132,37 @@ const AdminDashboard = () => {
   }, []);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  // Real-time socket events
+  const handleSocketEvent = useCallback((event, data) => {
+    if (event === 'admin:dashboard.update' || event === 'admin:metrics.update') {
+      if (data?.stats) {
+        setStats(prev => ({ ...prev, ...data.stats }));
+      }
+    } else if (event === 'admin:report.new' || event === 'admin:report.resolved') {
+      fetchAll();
+    } else if (event === 'admin:user.banned' || event === 'admin:user.unbanned') {
+      fetchAll();
+    } else if (event === 'admin:event.approved' || event === 'admin:event.rejected') {
+      fetchAll();
+    } else if (event === 'admin:system.alert') {
+      // Could show a notification toast here
+      console.log('System alert:', data);
+    }
+    setLastRefresh(new Date());
+  }, [fetchAll]);
+
+  useSocket([
+    'admin:dashboard.update',
+    'admin:metrics.update',
+    'admin:report.new',
+    'admin:report.resolved',
+    'admin:user.banned',
+    'admin:user.unbanned',
+    'admin:event.approved',
+    'admin:event.rejected',
+    'admin:system.alert',
+  ], { onEvent: handleSocketEvent });
 
   const handleRefresh = () => { setRefreshing(true); fetchAll(); };
 

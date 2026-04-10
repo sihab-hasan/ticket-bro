@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import {
   Activity,
@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/shared/common";
+import { useSocket } from "@/hooks";
 
 const SuperAdminDashboard = () => {
   const [dashboard, setDashboard] = useState(null);
@@ -35,6 +36,29 @@ const SuperAdminDashboard = () => {
   useEffect(() => {
     fetchDashboard();
   }, []);
+
+  const handleSocketEvent = useCallback((event, data) => {
+    if (event === 'superadmin:dashboard.update') {
+      if (data?.dashboard) {
+        setDashboard(prev => ({ ...prev, ...data.dashboard }));
+      }
+    } else if (event === 'superadmin:role.changed' || event === 'superadmin:user.created' || event === 'superadmin:user.deleted') {
+      fetchDashboard();
+    } else if (event === 'superadmin:audit.new') {
+      fetchDashboard();
+    } else if (event === 'superadmin:security.alert') {
+      console.log('Security alert:', data);
+    }
+  }, []);
+
+  useSocket([
+    'superadmin:dashboard.update',
+    'superadmin:role.changed',
+    'superadmin:user.created',
+    'superadmin:user.deleted',
+    'superadmin:audit.new',
+    'superadmin:security.alert',
+  ], { onEvent: handleSocketEvent });
 
   const cards = [
     {

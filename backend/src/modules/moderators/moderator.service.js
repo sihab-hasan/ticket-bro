@@ -12,6 +12,7 @@ const {
   ForbiddenError,
   NotFoundError,
 } = require('../../common/errors/AppError');
+const { socketEvents } = require('../../infrastructure/websocket/socketEvents');
 
 const getId = (user) => user?.id || user?._id?.toString() || user?.userId?.toString();
 
@@ -184,6 +185,17 @@ class ModeratorService {
       throw new NotFoundError('Report not found.');
     }
 
+    // Emit real-time report resolved event to moderators
+    try {
+      const moderators = await User.find({ role: 'moderator', deletedAt: null })
+        .select('_id')
+        .lean();
+      const moderatorIds = moderators.map(m => getId(m));
+      socketEvents.emitModeratorReportResolved(moderatorIds, reportId, resolution);
+    } catch (err) {
+      console.warn('Failed to emit report socket events', { err: err.message });
+    }
+
     return report;
   }
 
@@ -241,6 +253,16 @@ class ModeratorService {
         data: { eventId: event._id?.toString(), slug: event.slug },
         link: `/events/${event.slug}`,
       });
+      
+      // Emit real-time event to organizer
+      const organizerId = event.organizer?._id || event.organizer;
+      if (organizerId) {
+        socketEvents.emitOrganizerDashboardUpdate(organizerId, {
+          eventApproved: true,
+          eventId: event._id,
+          slug: event.slug,
+        });
+      }
     } catch (err) {
       // Swallow notification errors to not block moderation flow
     }
@@ -281,6 +303,17 @@ class ModeratorService {
         data: { eventId: event._id?.toString(), slug: event.slug, reason },
         link: `/events/${event.slug}`,
       });
+      
+      // Emit real-time event to organizer
+      const organizerId = event.organizer?._id || event.organizer;
+      if (organizerId) {
+        socketEvents.emitOrganizerDashboardUpdate(organizerId, {
+          eventRejected: true,
+          eventId: event._id,
+          slug: event.slug,
+          reason,
+        });
+      }
     } catch (err) {
       // Do not block rejection flow on notification errors
     }

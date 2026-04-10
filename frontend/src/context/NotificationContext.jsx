@@ -9,6 +9,8 @@ import React, {
 } from "react";
 import notificationsService from "@/api/notifications.api";
 import useAuth from "./AuthContext";
+import { getSocket } from "@/lib/socket";
+import notificationSoundFile from "@/assets/audio/notification.mp3";
 
 const NotificationContext = createContext(null);
 
@@ -43,163 +45,8 @@ export const NotificationChannel = {
   WHATSAPP: "whatsapp",
 };
 
-// Mock notifications data
-const MOCK_NOTIFICATIONS = [
-  {
-    id: "notif_1",
-    userId: "3",
-    type: NotificationType.BOOKING,
-    title: "Booking Confirmed!",
-    message:
-      "Your tickets for Taylor Swift: The Eras Tour have been confirmed.",
-    data: { bookingId: "booking_1", eventId: "event_1" },
-    priority: NotificationPriority.HIGH,
-    channels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
-    isRead: false,
-    isArchived: false,
-    createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 minutes ago
-    expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(), // 30 days
-    actions: [
-      { label: "View Booking", url: "/bookings/booking_1", primary: true },
-      { label: "Download Tickets", action: "download_tickets" },
-    ],
-  },
-  {
-    id: "notif_2",
-    userId: "3",
-    type: NotificationType.PAYMENT,
-    title: "Payment Successful",
-    message: "Your payment of $399.98 has been processed successfully.",
-    data: { paymentId: "pay_123456", amount: 399.98 },
-    priority: NotificationPriority.MEDIUM,
-    channels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
-    isRead: false,
-    isArchived: false,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
-    expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(),
-    actions: [{ label: "View Receipt", url: "/payments/details/pay_123456" }],
-  },
-  {
-    id: "notif_3",
-    userId: "3",
-    type: NotificationType.REMINDER,
-    title: "Event Tomorrow: NBA Finals",
-    message: "Don't forget! NBA Finals Game 7 is tomorrow at 8:00 PM.",
-    data: { eventId: "event_2", venue: "Madison Square Garden" },
-    priority: NotificationPriority.HIGH,
-    channels: [
-      NotificationChannel.IN_APP,
-      NotificationChannel.PUSH,
-      NotificationChannel.SMS,
-    ],
-    isRead: true,
-    isArchived: false,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
-    expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(), // 1 day
-    actions: [
-      { label: "View Event", url: "/events/event_2" },
-      { label: "Get Directions", action: "get_directions" },
-    ],
-  },
-  {
-    id: "notif_4",
-    userId: "3",
-    type: NotificationType.PROMO,
-    title: "Early Bird Special!",
-    message: "Get 20% off on all summer concerts. Use code: SUMMER20",
-    data: { promoCode: "SUMMER20", discount: 20 },
-    priority: NotificationPriority.LOW,
-    channels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
-    isRead: false,
-    isArchived: false,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(), // 2 days ago
-    expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString(), // 7 days
-    actions: [
-      { label: "Browse Events", url: "/search?promo=SUMMER20", primary: true },
-    ],
-  },
-  {
-    id: "notif_5",
-    userId: "3",
-    type: NotificationType.EVENT,
-    title: "New Event in Your Area",
-    message: "Drake is coming to your city! Tickets on sale Friday.",
-    data: { artistId: "artist_2", city: "New York" },
-    priority: NotificationPriority.MEDIUM,
-    channels: [NotificationChannel.IN_APP, NotificationChannel.PUSH],
-    isRead: false,
-    isArchived: false,
-    createdAt: new Date().toISOString(),
-    expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3).toISOString(), // 3 days
-    actions: [
-      { label: "Set Reminder", action: "set_reminder" },
-      { label: "View Artist", url: "/artists/artist_2" },
-    ],
-  },
-  {
-    id: "notif_6",
-    userId: "3",
-    type: NotificationType.SYSTEM,
-    title: "App Update Available",
-    message: "Version 2.5.0 is now available with new features.",
-    data: { version: "2.5.0", releaseNotes: "/release-notes" },
-    priority: NotificationPriority.LOW,
-    channels: [NotificationChannel.IN_APP],
-    isRead: false,
-    isArchived: false,
-    createdAt: new Date().toISOString(),
-    expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14).toISOString(), // 14 days
-    actions: [
-      { label: "Update Now", action: "update_app", primary: true },
-      { label: "Release Notes", url: "/release-notes" },
-    ],
-  },
-];
-
-// Notification preferences
+// Default preferences
 const DEFAULT_PREFERENCES = {
-  [NotificationType.BOOKING]: {
-    inApp: true,
-    email: true,
-    push: true,
-    sms: false,
-    whatsapp: false,
-  },
-  [NotificationType.PAYMENT]: {
-    inApp: true,
-    email: true,
-    push: true,
-    sms: true,
-    whatsapp: false,
-  },
-  [NotificationType.EVENT]: {
-    inApp: true,
-    email: true,
-    push: true,
-    sms: false,
-    whatsapp: false,
-  },
-  [NotificationType.PROMO]: {
-    inApp: true,
-    email: true,
-    push: false,
-    sms: false,
-    whatsapp: false,
-  },
-  [NotificationType.REMINDER]: {
-    inApp: true,
-    email: true,
-    push: true,
-    sms: true,
-    whatsapp: false,
-  },
-  [NotificationType.SYSTEM]: {
-    inApp: true,
-    email: true,
-    push: true,
-    sms: false,
-    whatsapp: false,
-  },
   soundEnabled: true,
   doNotDisturb: {
     enabled: false,
@@ -218,6 +65,37 @@ const mergePreferences = (incoming = {}) => ({
   },
 });
 
+// Play notification sound
+const playSound = (soundEnabled, doNotDisturb) => {
+  if (!soundEnabled || typeof window === "undefined") {
+    return;
+  }
+
+  // Check do not disturb
+  if (doNotDisturb?.enabled) {
+    const now = new Date();
+    const currentTime = now.getHours() * 60 + now.getMinutes();
+    const [startH, startM] = doNotDisturb.startTime.split(':').map(Number);
+    const [endH, endM] = doNotDisturb.endTime.split(':').map(Number);
+    const startTime = startH * 60 + startM;
+    const endTime = endH * 60 + endM;
+    
+    if (startTime <= endTime) {
+      if (currentTime >= startTime && currentTime <= endTime) return;
+    } else {
+      if (currentTime >= startTime || currentTime <= endTime) return;
+    }
+  }
+
+  try {
+    const audio = new Audio(notificationSoundFile);
+    audio.volume = 0.5;
+    audio.play().catch(() => {});
+  } catch {
+    // Silent fail
+  }
+};
+
 export const NotificationProvider = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
   const [notifications, setNotifications] = useState([]);
@@ -226,7 +104,6 @@ export const NotificationProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const [preferences, setPreferences] = useState(DEFAULT_PREFERENCES);
   const [isPushEnabled, setIsPushEnabled] = useState(false);
-  const [pushSubscription, setPushSubscription] = useState(null);
   const [filters, setFilters] = useState({
     type: null,
     priority: null,
@@ -235,150 +112,13 @@ export const NotificationProvider = ({ children }) => {
     dateTo: null,
   });
 
-  const wsRef = useRef(null);
-  const notificationSound = useRef(null);
   const pollingInterval = useRef(null);
+  const isInitialized = useRef(false);
 
-  // Load notifications for authenticated user
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      loadNotifications();
-      loadPreferences();
-      initializeWebSocket();
-      initializePushNotifications();
-
-      // Start polling for real-time updates
-      startPolling();
-    } else {
-      // Clear notifications when logged out
-      setNotifications([]);
-      setUnreadCount(0);
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-      if (pollingInterval.current) {
-        clearInterval(pollingInterval.current);
-      }
-    }
-
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-      if (pollingInterval.current) {
-        clearInterval(pollingInterval.current);
-      }
-    };
-  }, [isAuthenticated, user]);
-
-  // Update unread count
-  useEffect(() => {
-    setUnreadCount(notifications.filter((n) => !n.isRead).length);
-  }, [notifications]);
-
-  // Load notifications
-  const loadNotifications = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const result = await notificationsService.getAll({ limit: 20 });
-      setNotifications(result?.notifications || []);
-    } catch (err) {
-      const fallbackNotifications = MOCK_NOTIFICATIONS.filter(
-        (n) => n.userId === user?.id,
-      );
-      setNotifications(fallbackNotifications);
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Load preferences
-  const loadPreferences = async () => {
-    try {
-      const [serverPrefs, savedPrefs] = await Promise.all([
-        notificationsService.getPreferences().catch(() => null),
-        Promise.resolve(localStorage.getItem(`notification_prefs_${user?.id}`)),
-      ]);
-
-      const localPrefs = savedPrefs ? JSON.parse(savedPrefs) : null;
-      setPreferences(mergePreferences(serverPrefs || localPrefs || {}));
-    } catch (err) {
-      console.error("Failed to load preferences:", err);
-      setPreferences(mergePreferences());
-    }
-  };
-
-  // Initialize WebSocket connection
-  const initializeWebSocket = () => {
-    // In production, connect to your WebSocket server
-    // wsRef.current = new WebSocket(`wss://api.Ticket Bro.com/ws/notifications?userId=${user?.id}`);
-
-    // Mock WebSocket for development
-    wsRef.current = {
-      send: (data) => console.log("WebSocket send:", data),
-      close: () => console.log("WebSocket closed"),
-    };
-  };
-
-  // Initialize push notifications
-  const initializePushNotifications = async () => {
-    if ("Notification" in window && "serviceWorker" in navigator) {
-      const permission = await Notification.requestPermission();
-      setIsPushEnabled(permission === "granted");
-    }
-  };
-
-  // Start polling for real-time updates
-  const startPolling = () => {
-    pollingInterval.current = setInterval(() => {
-      checkForNewNotifications();
-    }, 30000); // Poll every 30 seconds
-  };
-
-  // Check for new notifications
-  const checkForNewNotifications = async () => {
-    try {
-      // API call to check for new notifications
-      // This would return only notifications newer than the latest in state
-    } catch (err) {
-      console.error("Failed to check for new notifications:", err);
-    }
-  };
-
-  // Play notification sound
+  // Play notification sound function
   const playNotificationSound = useCallback(() => {
-    if (!preferences.soundEnabled || typeof window === "undefined") {
-      return;
-    }
-
-    const audioElement = notificationSound.current;
-    if (audioElement?.src) {
-      audioElement.currentTime = 0;
-      audioElement.play().catch(() => {});
-      return;
-    }
-
-    const AudioContextRef = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextRef) {
-      return;
-    }
-
-    try {
-      const context = new AudioContextRef();
-      const oscillator = context.createOscillator();
-      const gainNode = context.createGain();
-      oscillator.type = "sine";
-      oscillator.frequency.value = 880;
-      gainNode.gain.value = 0.02;
-      oscillator.connect(gainNode);
-      gainNode.connect(context.destination);
-      oscillator.start();
-      oscillator.stop(context.currentTime + 0.12);
-      oscillator.onended = () => context.close().catch(() => {});
-    } catch {}
-  }, [preferences.soundEnabled]);
+    playSound(preferences.soundEnabled, preferences.doNotDisturb);
+  }, [preferences.soundEnabled, preferences.doNotDisturb]);
 
   // Show browser notification
   const showBrowserNotification = useCallback(
@@ -398,20 +138,13 @@ export const NotificationProvider = ({ children }) => {
   const addNotification = useCallback(
     (notification) => {
       setNotifications((prev) => [notification, ...prev]);
-
-      // Play sound and show browser notification for high priority
-      if (
-        notification.priority === NotificationPriority.HIGH ||
-        notification.priority === NotificationPriority.URGENT
-      ) {
-        playNotificationSound();
-        showBrowserNotification(notification.title, {
-          body: notification.message,
-          data: notification.data,
-          tag: notification.id,
-          renotify: true,
-        });
-      }
+      playNotificationSound();
+      showBrowserNotification(notification.title, {
+        body: notification.message,
+        data: notification.data,
+        tag: notification.id,
+        renotify: true,
+      });
     },
     [playNotificationSound, showBrowserNotification],
   );
@@ -420,17 +153,16 @@ export const NotificationProvider = ({ children }) => {
   const markAsRead = useCallback(async (notificationId) => {
     setNotifications((prev) =>
       prev.map((notif) =>
-        notif.id === notificationId
+        notif.id === notificationId || notif._id === notificationId
           ? { ...notif, isRead: true, readAt: new Date().toISOString() }
           : notif,
       ),
     );
 
     try {
-      // API call to mark as read
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    } catch (err) {
-      console.error("Failed to mark as read:", err);
+      await notificationsService.markRead(notificationId).catch(() => {});
+    } catch {
+      // Silent fail
     }
   }, []);
 
@@ -445,42 +177,22 @@ export const NotificationProvider = ({ children }) => {
     );
 
     try {
-      // API call to mark all as read
-      await new Promise((resolve) => setTimeout(resolve, 200));
-    } catch (err) {
-      console.error("Failed to mark all as read:", err);
-    }
-  }, []);
-
-  // Archive notification
-  const archiveNotification = useCallback(async (notificationId) => {
-    setNotifications((prev) =>
-      prev.map((notif) =>
-        notif.id === notificationId
-          ? { ...notif, isArchived: true, archivedAt: new Date().toISOString() }
-          : notif,
-      ),
-    );
-
-    try {
-      // API call to archive
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    } catch (err) {
-      console.error("Failed to archive:", err);
+      await notificationsService.markAllRead().catch(() => {});
+    } catch {
+      // Silent fail
     }
   }, []);
 
   // Delete notification
   const deleteNotification = useCallback(async (notificationId) => {
     setNotifications((prev) =>
-      prev.filter((notif) => notif.id !== notificationId),
+      prev.filter((notif) => notif.id !== notificationId && notif._id !== notificationId),
     );
 
     try {
-      // API call to delete
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    } catch (err) {
-      console.error("Failed to delete:", err);
+      await notificationsService.deleteOne(notificationId).catch(() => {});
+    } catch {
+      // Silent fail
     }
   }, []);
 
@@ -489,48 +201,35 @@ export const NotificationProvider = ({ children }) => {
     setNotifications([]);
 
     try {
-      // API call to clear all
-      await new Promise((resolve) => setTimeout(resolve, 200));
-    } catch (err) {
-      console.error("Failed to clear all:", err);
+      await notificationsService.clearAll().catch(() => {});
+    } catch {
+      // Silent fail
     }
   }, []);
 
   // Update preferences
   const updatePreferences = useCallback(
-    async (type, channel, enabled) => {
-      const nextPreferences = mergePreferences({
-        ...preferences,
-        [type]: {
-          ...preferences[type],
-          [channel]: enabled,
-        },
-      });
-
+    async (newPrefs) => {
+      const nextPreferences = mergePreferences(newPrefs);
       setPreferences(nextPreferences);
 
       try {
-        localStorage.setItem(
-          `notification_prefs_${user?.id}`,
-          JSON.stringify(nextPreferences),
-        );
         await notificationsService.updatePreferences(nextPreferences).catch(() => null);
-      } catch (err) {
-        console.error("Failed to update preferences:", err);
+      } catch {
+        // Silent fail
       }
     },
-    [preferences, user],
+    [],
   );
 
   // Toggle sound
   const toggleSound = useCallback((enabled) => {
     setPreferences((prev) => {
       const nextPreferences = mergePreferences({ ...prev, soundEnabled: enabled });
-      localStorage.setItem(`notification_prefs_${user?.id}`, JSON.stringify(nextPreferences));
       notificationsService.updatePreferences(nextPreferences).catch(() => null);
       return nextPreferences;
     });
-  }, [user]);
+  }, []);
 
   // Toggle do not disturb
   const toggleDoNotDisturb = useCallback((enabled, startTime, endTime) => {
@@ -539,11 +238,10 @@ export const NotificationProvider = ({ children }) => {
         ...prev,
         doNotDisturb: { enabled, startTime, endTime },
       });
-      localStorage.setItem(`notification_prefs_${user?.id}`, JSON.stringify(nextPreferences));
       notificationsService.updatePreferences(nextPreferences).catch(() => null);
       return nextPreferences;
     });
-  }, [user]);
+  }, []);
 
   // Get filtered notifications
   const filteredNotifications = useCallback(() => {
@@ -552,119 +250,119 @@ export const NotificationProvider = ({ children }) => {
       if (filters.priority && notif.priority !== filters.priority) return false;
       if (filters.isRead !== null && notif.isRead !== filters.isRead)
         return false;
-      if (
-        filters.dateFrom &&
-        new Date(notif.createdAt) < new Date(filters.dateFrom)
-      )
-        return false;
-      if (
-        filters.dateTo &&
-        new Date(notif.createdAt) > new Date(filters.dateTo)
-      )
-        return false;
       return !notif.isArchived;
     });
   }, [notifications, filters]);
 
-  // Get notifications by type
-  const getByType = useCallback(
-    (type) => {
-      return notifications.filter((n) => n.type === type && !n.isArchived);
-    },
-    [notifications],
-  );
+  // Load notifications
+  const loadNotifications = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const result = await notificationsService.getAll({ limit: 20 });
+      setNotifications(result?.notifications || []);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  // Get unread notifications by type
-  const getUnreadByType = useCallback(
-    (type) => {
-      return notifications.filter(
-        (n) => n.type === type && !n.isRead && !n.isArchived,
-      );
-    },
-    [notifications],
-  );
+  // Load preferences
+  const loadPreferences = async () => {
+    try {
+      const serverPrefs = await notificationsService.getPreferences().catch(() => null);
+      setPreferences(mergePreferences(serverPrefs || {}));
+    } catch {
+      setPreferences(mergePreferences());
+    }
+  };
 
-  // Get notifications by priority
-  const getByPriority = useCallback(
-    (priority) => {
-      return notifications.filter(
-        (n) => n.priority === priority && !n.isArchived,
-      );
-    },
-    [notifications],
-  );
+  // Initialize push notifications
+  const initializePushNotifications = async () => {
+    if ("Notification" in window && "serviceWorker" in navigator) {
+      const permission = await Notification.requestPermission();
+      setIsPushEnabled(permission === "granted");
+    }
+  };
 
-  // Get expired notifications
-  const getExpired = useCallback(() => {
-    const now = new Date();
-    return notifications.filter((n) => new Date(n.expiresAt) < now);
+  // Check for new notifications
+  const checkForNewNotifications = async () => {
+    try {
+      const result = await notificationsService.getAll({ limit: 1 });
+      const latestNotif = result?.notifications?.[0];
+      if (latestNotif && notifications.length > 0) {
+        const newest = notifications[0];
+        if (latestNotif._id !== newest._id && latestNotif._id !== newest.id) {
+          setNotifications((prev) => [latestNotif, ...prev.filter(n => n._id !== latestNotif._id && n.id !== latestNotif.id)]);
+          playNotificationSound();
+        }
+      }
+    } catch {
+      // Silent fail
+    }
+  };
+
+  // Start polling for real-time updates
+  const startPolling = () => {
+    pollingInterval.current = setInterval(() => {
+      checkForNewNotifications();
+    }, 30000);
+  };
+
+  // Load notifications for authenticated user
+  useEffect(() => {
+    if (isAuthenticated && user && !isInitialized.current) {
+      isInitialized.current = true;
+      loadNotifications();
+      loadPreferences();
+      initializePushNotifications();
+      startPolling();
+    } else if (!isAuthenticated) {
+      setNotifications([]);
+      setUnreadCount(0);
+      if (pollingInterval.current) {
+        clearInterval(pollingInterval.current);
+      }
+    }
+
+    return () => {
+      isInitialized.current = false;
+      if (pollingInterval.current) {
+        clearInterval(pollingInterval.current);
+      }
+    };
+  }, [isAuthenticated, user]);
+
+  // WebSocket connection for real-time notifications
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleNotificationCreated = (data) => {
+      const { notification } = data;
+      if (notification && (notification.user === user._id || notification.user === user.id)) {
+        setNotifications((prev) => [notification, ...prev]);
+        setUnreadCount((prev) => prev + 1);
+        playNotificationSound();
+      }
+    };
+
+    socket.on("notification.created", handleNotificationCreated);
+
+    return () => {
+      socket.off("notification.created", handleNotificationCreated);
+    };
+  }, [isAuthenticated, user, playNotificationSound]);
+
+  // Update unread count
+  useEffect(() => {
+    setUnreadCount(notifications.filter((n) => !n.isRead).length);
   }, [notifications]);
 
-  // Clean up expired notifications
-  const cleanupExpired = useCallback(() => {
-    const now = new Date();
-    setNotifications((prev) => prev.filter((n) => new Date(n.expiresAt) > now));
-  }, []);
-
-  // Schedule notification
-  const scheduleNotification = useCallback(
-    async (notification, scheduleTime) => {
-      try {
-        // API call to schedule notification
-        await new Promise((resolve) => setTimeout(resolve, 200));
-
-        // In production, this would be handled by a background job
-        const timeUntilSchedule = new Date(scheduleTime) - new Date();
-        if (timeUntilSchedule > 0) {
-          setTimeout(() => {
-            addNotification({
-              ...notification,
-              id: `scheduled_${Date.now()}`,
-              scheduled: true,
-            });
-          }, timeUntilSchedule);
-        }
-
-        return { success: true };
-      } catch (err) {
-        setError(err.message);
-        return { success: false, error: err.message };
-      }
-    },
-    [addNotification],
-  );
-
-  // Send test notification
-  const sendTestNotification = useCallback(
-    async (channel = NotificationChannel.IN_APP) => {
-      const testNotification = {
-        id: `test_${Date.now()}`,
-        userId: user?.id,
-        type: NotificationType.SYSTEM,
-        title: "Test Notification",
-        message: "This is a test notification to verify your settings.",
-        priority: NotificationPriority.LOW,
-        channels: [channel],
-        isRead: false,
-        isArchived: false,
-        createdAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
-      };
-
-      addNotification(testNotification);
-
-      if (channel === NotificationChannel.PUSH) {
-        showBrowserNotification(testNotification.title, {
-          body: testNotification.message,
-          tag: testNotification.id,
-        });
-      }
-    },
-    [user, addNotification, showBrowserNotification],
-  );
-
   const value = {
-    // State
     notifications,
     unreadCount,
     isLoading,
@@ -672,59 +370,30 @@ export const NotificationProvider = ({ children }) => {
     preferences,
     isPushEnabled,
     filters,
-
-    // Filtered views
     filteredNotifications: filteredNotifications(),
-    unreadNotifications: notifications.filter(
-      (n) => !n.isRead && !n.isArchived,
-    ),
-    archivedNotifications: notifications.filter((n) => n.isArchived),
-
-    // Core methods
+    unreadNotifications: notifications.filter((n) => !n.isRead && !n.isArchived),
     addNotification,
     markAsRead,
     markAllAsRead,
-    archiveNotification,
     deleteNotification,
     clearAll,
-
-    // Filtering
     setFilters,
-    getByType,
-    getUnreadByType,
-    getByPriority,
-
-    // Preferences
     updatePreferences,
     toggleSound,
     toggleDoNotDisturb,
-
-    // Push notifications
     initializePushNotifications,
-
-    // Scheduling
-    scheduleNotification,
-    sendTestNotification,
-
-    // Maintenance
-    cleanupExpired,
-    getExpired,
-
-    // Constants
+    cleanupExpired: () => {},
     NotificationType,
     NotificationPriority,
     NotificationChannel,
-
-    // Utilities
     hasUnread: unreadCount > 0,
     totalCount: notifications.length,
+    playNotificationSound,
   };
 
   return (
     <NotificationContext.Provider value={value}>
       {children}
-
-      <audio ref={notificationSound} preload="none" className="hidden" />
     </NotificationContext.Provider>
   );
 };

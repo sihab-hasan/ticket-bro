@@ -1,6 +1,6 @@
 // frontend/src/pages/profile/ProfilePage.jsx
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -35,6 +35,7 @@ import AvatarUpload from "@/components/roles/user/AvatarUpload";
 import { ROUTES } from "@/app/AppRoutes";
 import authService from "@/api/auth.api";
 import Container from '@/components/layout/Container';
+import { useSocket } from "@/hooks";
 
 // ── Role badge ────────────────────────────────────────────────────────────────
 const RoleBadge = ({ role }) => {
@@ -173,9 +174,39 @@ const ProfilePage = () => {
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [revokingId, setRevokingId] = useState(null);
 
-  useEffect(() => {
+useEffect(() => {
     dispatch(fetchProfile());
+  }, []);
+
+  // Real-time updates for user panel
+  const handleSocketEvent = useCallback((event, data) => {
+    if (event === 'user:booking.confirmed' || event === 'user:booking.cancelled') {
+      dispatch(fetchProfile());
+    } else if (event === 'user:ticket.validated') {
+      dispatch(fetchProfile());
+    } else if (event === 'user:ticket.transferred') {
+      dispatch(fetchProfile());
+    } else if (event === 'user:payment.success' || event === 'user:payment.failed') {
+      dispatch(fetchProfile());
+    } else if (event === 'user:refund.processed') {
+      dispatch(fetchProfile());
+    } else if (event === 'user:event.updated' || event === 'user:event.cancelled') {
+      // Could show notification toast
+      console.log('Event update:', data);
+    }
   }, [dispatch]);
+
+  useSocket([
+    'user:booking.confirmed',
+    'user:booking.cancelled',
+    'user:ticket.validated',
+    'user:ticket.transferred',
+    'user:payment.success',
+    'user:payment.failed',
+    'user:refund.processed',
+    'user:event.updated',
+    'user:event.cancelled',
+  ], { onEvent: handleSocketEvent });
 
   // Fetch active sessions on mount
   useEffect(() => {

@@ -6,6 +6,7 @@ let _c; const c = () => { if (!_c) _c = require('./notification.controller'); re
 router.get('/',                       (req,res,next) => c().getNotifications(req,res,next));
 router.get('/unread-count',           (req,res,next) => c().getUnreadCount(req,res,next));
 router.get('/preferences',            (req,res,next) => c().getPreferences(req,res,next));
+router.get('/vapid-key',              (req,res,next) => c().getVapidKey(req,res,next));
 router.get('/:id',                    (req,res,next) => c().getNotificationById(req,res,next));
 router.put('/preferences',            (req,res,next) => c().updatePreferences(req,res,next));
 router.put('/read-all',               (req,res,next) => c().markAllRead(req,res,next));

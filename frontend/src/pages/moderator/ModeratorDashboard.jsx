@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import {
   Calendar,
@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/shared/common";
+import { useSocket } from "@/hooks";
 
 const ModeratorDashboard = () => {
   const [dashboard, setDashboard] = useState(null);
@@ -34,6 +35,32 @@ const ModeratorDashboard = () => {
   useEffect(() => {
     fetchDashboard();
   }, []);
+
+  const handleSocketEvent = useCallback((event, data) => {
+    if (event === 'moderator:dashboard.update') {
+      if (data?.dashboard) {
+        setDashboard(prev => ({ ...prev, ...data.dashboard }));
+      }
+    } else if (event === 'moderator:report.new' || event === 'moderator:report.resolved') {
+      fetchDashboard();
+    } else if (event === 'moderator:event.pending' || event === 'moderator:event.approved' || event === 'moderator:event.rejected') {
+      fetchDashboard();
+    } else if (event === 'moderator:user.suspended' || event === 'moderator:user.restored' || event === 'moderator:user.warning') {
+      fetchDashboard();
+    }
+  }, []);
+
+  useSocket([
+    'moderator:dashboard.update',
+    'moderator:report.new',
+    'moderator:report.resolved',
+    'moderator:event.pending',
+    'moderator:event.approved',
+    'moderator:event.rejected',
+    'moderator:user.suspended',
+    'moderator:user.restored',
+    'moderator:user.warning',
+  ], { onEvent: handleSocketEvent });
 
   const cards = [
     {

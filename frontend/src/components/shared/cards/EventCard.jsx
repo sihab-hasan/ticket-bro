@@ -18,6 +18,7 @@ import {
   Video,
 } from "lucide-react";
 import { spotsPercent, formatAttendees } from "@/hooks";
+import { StatusBadge } from "@/components/shared/StatusBadge";
 import {
   getEventIdentity,
   getEventImage,
@@ -116,23 +117,23 @@ const OfferCallout = ({ event, inverse = false }) => {
 
   return (
     <div
-      className={`rounded-2xl border px-3 py-2 ${
+      className={`rounded-lg border px-2 py-1 ${
         inverse
-          ? "border-white/10 bg-white/10 text-white"
-          : "border-emerald-500/20 bg-emerald-500/10 text-emerald-700"
+          ? "border-white/20 bg-white/10 text-white"
+          : "border-emerald-500/30 bg-emerald-500/10 text-emerald-700"
       }`}
     >
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-1.5">
         <span
-          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-            inverse ? "bg-white/15 text-white" : "bg-emerald-600 text-white"
+          className={`rounded-sm px-1 py-0.5 text-[9px] font-bold ${
+            inverse ? "bg-white/20 text-white" : "bg-emerald-600 text-white"
           }`}
           style={{ fontFamily: "var(--font-sans)" }}
         >
           {event.offer.badge}
         </span>
         <span
-          className={`text-[11px] font-medium ${inverse ? "text-white/80" : "text-emerald-800"}`}
+          className={`text-[10px] font-medium ${inverse ? "text-white/90" : "text-emerald-700"}`}
           style={{ fontFamily: "var(--font-sans)" }}
         >
           {event.offer.label}
@@ -148,15 +149,32 @@ const CapacityBar = ({ event }) => {
   return (
     <div className="h-1 rounded-full bg-secondary overflow-hidden">
       <div
-        className="h-full rounded-full transition-all"
+        className="h-full rounded-full transition-all duration-300"
         style={{
           width: `${pct}%`,
-          background: pct > 85 ? "var(--destructive)" : "var(--foreground)",
+          background: pct > 85 ? "linear-gradient(90deg, #ef4444, #f97316)" : "var(--primary)",
         }}
       />
     </div>
   );
 };
+
+const AvailabilityRow = ({ event, inverse = false }) => (
+  <div className="space-y-1">
+    <CapacityBar event={event} />
+    <div
+      className={`flex items-center justify-between gap-2 text-[10px] ${
+        inverse ? "text-white/75" : "text-muted-foreground"
+      }`}
+      style={{ fontFamily: "var(--font-sans)" }}
+    >
+      <span>{getDemandCopy(event)}</span>
+      <span className={inverse ? "text-white/85" : "text-foreground/70"}>
+        {formatAttendees(Number(event?.totalSold || event?.attendees || 0))} sold
+      </span>
+    </div>
+  </div>
+);
 
 const RatingRow = ({ event, className = "" }) => {
   const rating = Number(event?.averageRating || event?.avgRating || event?.rating || 0);
@@ -164,16 +182,16 @@ const RatingRow = ({ event, className = "" }) => {
 
   return (
     <div className={`flex items-center gap-1 ${className}`}>
-      <Star size={11} className="text-foreground fill-foreground" />
+      <Star size={10} className="text-yellow-500 fill-yellow-500" />
       <span
-        className="text-[11px] font-semibold text-foreground"
+        className="text-[10px] font-semibold text-foreground"
         style={{ fontFamily: "var(--font-sans)" }}
       >
         {rating > 0 ? rating.toFixed(1) : "New"}
       </span>
       {reviewCount > 0 && (
         <span
-          className="text-[11px] text-muted-foreground"
+          className="text-[10px] text-muted-foreground"
           style={{ fontFamily: "var(--font-sans)" }}
         >
           ({reviewCount})
@@ -188,10 +206,10 @@ const TagPills = ({ tags = [], max = 2, tone = "default" }) => (
     {tags.slice(0, max).map((tag) => (
       <span
         key={tag._id ?? tag.name}
-        className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${
+        className={`rounded-md border px-1.5 py-0.5 text-[9px] font-medium ${
           tone === "inverse"
-            ? "border-white/15 bg-white/10 text-white/80"
-            : "border-border bg-secondary text-muted-foreground"
+            ? "border-white/20 bg-white/10 text-white/90"
+            : "border-border bg-secondary/50 text-muted-foreground"
         }`}
         style={{ fontFamily: "var(--font-sans)" }}
       >
@@ -210,13 +228,13 @@ const SaveBtn = ({ saved, onSave, eventId, dark = false }) => (
       if (eventId) onSave(eventId);
     }}
     aria-label={saved ? "Unsave" : "Save"}
-    className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all ${
+    className={`flex items-center justify-center w-7 h-7 rounded-md border transition-all shadow-sm ${
       dark
-        ? "border-white/15 bg-black/40 text-white backdrop-blur-sm hover:bg-black/60"
-        : "border-border bg-background/80 text-muted-foreground hover:text-foreground"
+        ? "border-white/20 bg-black/40 text-white/90 backdrop-blur-sm hover:bg-black/70 hover:text-white"
+        : "border-border bg-background/90 text-muted-foreground hover:text-foreground hover:border-primary/30"
     }`}
   >
-    {saved ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
+    {saved ? <BookmarkCheck size={12} className="text-primary" /> : <Bookmark size={12} />}
   </button>
 );
 
@@ -249,50 +267,52 @@ const OverlayChips = ({ event, showBadge }) => {
 
   return (
     <>
-      <div className="absolute left-3 top-3 flex flex-wrap items-center gap-2">
-        {event?.offer?.kind === "promotion" && (
+      <div className="absolute left-2 top-2 right-14 flex flex-wrap items-center justify-between gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {event?.offer?.kind === "promotion" && (
+            <span
+              className="rounded-md bg-emerald-500 px-2 py-0.5 text-[9px] font-bold text-white shadow-sm"
+              style={{ fontFamily: "var(--font-sans)" }}
+            >
+              {event.offer.badge}
+            </span>
+          )}
+          {event?.isFree && (
+            <span
+              className="rounded-md bg-white/95 px-2 py-0.5 text-[9px] font-bold text-black shadow-sm backdrop-blur-sm"
+              style={{ fontFamily: "var(--font-sans)" }}
+            >
+              Free
+            </span>
+          )}
+          {(event?.location?.type === "online" || event?.location?.type === "hybrid") && (
+            <span
+              className="inline-flex items-center gap-1 rounded-md border border-white/20 bg-black/50 backdrop-blur-sm px-2 py-0.5 text-[9px] font-medium text-white/90"
+              style={{ fontFamily: "var(--font-sans)" }}
+            >
+              <FormatIcon size={8} />
+              {format.label}
+            </span>
+          )}
+        </div>
+        {showBadge && event?.isTrending && !soldOut && (
           <span
-            className="rounded-full bg-emerald-500 px-2.5 py-1 text-[10px] font-semibold text-white"
+            className="inline-flex items-center gap-1 rounded-md bg-gradient-to-r from-orange-500 to-red-500 px-2 py-0.5 text-[9px] font-bold text-white shadow-sm"
             style={{ fontFamily: "var(--font-sans)" }}
           >
-            {event.offer.badge}
-          </span>
-        )}
-        {event?.isFree && (
-          <span
-            className="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold text-black"
-            style={{ fontFamily: "var(--font-sans)" }}
-          >
-            Free
-          </span>
-        )}
-        {(event?.location?.type === "online" || event?.location?.type === "hybrid") && (
-          <span
-            className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-black/35 px-2.5 py-1 text-[10px] font-medium text-white/85 backdrop-blur-sm"
-            style={{ fontFamily: "var(--font-sans)" }}
-          >
-            <FormatIcon size={10} />
-            {format.label}
+            <Flame size={8} />
+            Trending
           </span>
         )}
       </div>
 
-      <div className="absolute bottom-3 left-3 flex flex-wrap items-center gap-2">
+      <div className="absolute bottom-2 left-2 right-2 flex flex-wrap items-center gap-1.5">
         {soldOut && (
           <span
-            className="rounded-full bg-black/75 px-2.5 py-1 text-[10px] font-semibold text-white"
+            className="rounded-md bg-red-500/90 backdrop-blur-sm px-2 py-0.5 text-[9px] font-bold text-white shadow-sm"
             style={{ fontFamily: "var(--font-sans)" }}
           >
             Sold Out
-          </span>
-        )}
-        {!soldOut && showBadge && event?.isTrending && (
-          <span
-            className="inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-semibold text-black"
-            style={{ fontFamily: "var(--font-sans)" }}
-          >
-            <Flame size={10} />
-            Trending
           </span>
         )}
       </div>
@@ -306,53 +326,36 @@ const EventMetaBlock = ({ event, muted = false }) => {
   const textTone = muted ? "text-white/80" : "text-muted-foreground";
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1">
       <div
-        className={`flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] ${textTone}`}
+        className={`flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] ${textTone}`}
         style={{ fontFamily: "var(--font-sans)" }}
       >
         <span className="flex items-center gap-1">
-          <Calendar size={10} className="shrink-0" />
+          <Calendar size={9} className="shrink-0" />
           {fmtDate(event?.startDate)}
         </span>
         <span className="flex items-center gap-1">
-          <Clock size={10} className="shrink-0" />
+          <Clock size={9} className="shrink-0" />
           {fmtTime(event?.startDate)}
         </span>
       </div>
       <div
-        className={`flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] ${textTone}`}
+        className={`flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] ${textTone}`}
         style={{ fontFamily: "var(--font-sans)" }}
       >
         <span className="flex min-w-0 items-center gap-1">
-          <MapPin size={10} className="shrink-0" />
+          <MapPin size={9} className="shrink-0" />
           <span className="truncate">{getEventLocationLabel(event)}</span>
         </span>
         <span className="flex items-center gap-1">
-          <FormatIcon size={10} className="shrink-0" />
+          <FormatIcon size={9} className="shrink-0" />
           {format.label}
         </span>
       </div>
     </div>
   );
 };
-
-const AvailabilityRow = ({ event, inverse = false }) => (
-  <div className="space-y-2">
-    <CapacityBar event={event} />
-    <div
-      className={`flex items-center justify-between gap-2 text-[11px] ${
-        inverse ? "text-white/75" : "text-muted-foreground"
-      }`}
-      style={{ fontFamily: "var(--font-sans)" }}
-    >
-      <span>{getDemandCopy(event)}</span>
-      <span className={inverse ? "text-white/85" : "text-foreground"}>
-        {formatAttendees(Number(event?.totalSold || event?.attendees || 0))} sold
-      </span>
-    </div>
-  </div>
-);
 
 const CardGrid = ({ event: e, saved, onSave, showBadge }) => {
   const eventId = getEventIdentity(e);
@@ -363,46 +366,46 @@ const CardGrid = ({ event: e, saved, onSave, showBadge }) => {
   return (
     <Link
       to={href}
-      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all hover:-translate-y-0.5 hover:border-foreground/20 hover:shadow-lg"
+      className="group flex h-full flex-col overflow-hidden rounded-md border border-border bg-card transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg"
     >
-      <div className="relative h-48 overflow-hidden bg-muted shrink-0">
+      <div className="relative h-36 overflow-hidden bg-muted shrink-0">
         <CoverImage
           event={e}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
         />
-        <div className="absolute right-3 top-3">
+        <div className="absolute right-2 top-2 z-10">
           <SaveBtn saved={saved} onSave={onSave} eventId={eventId} dark />
         </div>
         <OverlayChips event={e} showBadge={showBadge} />
       </div>
 
-      <div className="flex flex-1 flex-col gap-3 p-4">
+      <div className="flex flex-1 flex-col gap-1.5 p-3">
         <TagPills tags={getEventTags(e)} />
         <OfferCallout event={e} />
 
         <div>
           <p
-            className="mb-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground"
+            className="mb-0.5 text-[9px] font-medium uppercase tracking-[0.15em] text-muted-foreground"
             style={{ fontFamily: "var(--font-sans)" }}
           >
             {organizerName}
           </p>
           <h3
-            className="text-base font-bold leading-snug text-foreground line-clamp-2 group-hover:underline"
+            className="text-xs font-bold leading-snug text-foreground line-clamp-2 group-hover:text-primary transition-colors"
             style={{ fontFamily: "var(--font-heading)" }}
           >
             {e?.title || "Untitled event"}
-            {e?.organizer?.isVerified && <BadgeCheck size={12} className="inline ml-1 text-foreground" />}
+            {e?.organizer?.isVerified && <BadgeCheck size={10} className="inline ml-1 text-primary" />}
           </h3>
         </div>
 
         <EventMetaBlock event={e} />
         <AvailabilityRow event={e} />
 
-        <div className="mt-auto flex items-center justify-between gap-3 border-t border-border pt-3">
+        <div className="mt-auto flex items-center justify-between gap-2 border-t border-border/30 pt-2">
           <RatingRow event={e} />
           <span
-            className="text-sm font-bold text-foreground text-right"
+            className="text-xs font-bold text-primary"
             style={{ fontFamily: "var(--font-heading)" }}
           >
             {priceLabel}
@@ -420,9 +423,9 @@ const CardList = ({ event: e, saved, onSave }) => {
   return (
     <Link
       to={getEventUrl(e)}
-      className="group flex gap-4 rounded-2xl border border-border bg-card p-4 transition-all hover:border-foreground/20 hover:shadow-sm"
+      className="group flex gap-4 rounded-md border border-border bg-card p-4 transition-all hover:border-foreground/20 hover:shadow-sm"
     >
-      <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-2xl bg-muted">
+      <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-md bg-muted">
         <CoverImage
           event={e}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
@@ -464,11 +467,9 @@ const CardList = ({ event: e, saved, onSave }) => {
           <div className="mt-2">
             <TagPills tags={getEventTags(e)} max={3} />
           </div>
-          {e?.offer && (
-            <div className="mt-2">
-              <OfferCallout event={e} />
-            </div>
-          )}
+          <div className="mt-2">
+            <OfferCallout event={e} />
+          </div>
         </div>
 
         <div className="mt-3 flex items-end justify-between gap-3">
@@ -490,33 +491,84 @@ const CardList = ({ event: e, saved, onSave }) => {
   );
 };
 
-const CardFeatured = ({ event: e, saved, onSave }) => {
+const CardFeatured = ({ event: e, saved, onSave, showBadge = true }) => {
   const eventId = getEventIdentity(e);
+  const soldOut = isEventSoldOut(e);
+  const format = getFormatMeta(e);
+  const FormatIcon = format.icon;
 
   return (
     <Link
       to={getEventUrl(e)}
-      className="group relative aspect-[16/10] overflow-hidden rounded-3xl border border-border transition-all hover:-translate-y-0.5 hover:border-foreground/20 hover:shadow-xl"
+      className="group relative aspect-[16/10] overflow-hidden rounded-md border border-border bg-card transition-all hover:-translate-y-1 hover:border-primary/30 hover:shadow-2xl"
     >
       <CoverImage
         event={e}
         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-transparent" />
-      <div className="absolute right-4 top-4">
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+      
+      <div className="absolute left-4 top-4 right-4 flex items-start justify-between z-10">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {e?.offer?.kind === "promotion" && (
+            <span
+              className="rounded-md bg-emerald-500 px-2 py-0.5 text-[9px] font-bold text-white shadow-sm"
+              style={{ fontFamily: "var(--font-sans)" }}
+            >
+              {e.offer.badge}
+            </span>
+          )}
+          {e?.isFree && (
+            <span
+              className="rounded-md bg-white/95 px-2 py-0.5 text-[9px] font-bold text-black shadow-sm backdrop-blur-sm"
+              style={{ fontFamily: "var(--font-sans)" }}
+            >
+              Free
+            </span>
+          )}
+          {(e?.location?.type === "online" || e?.location?.type === "hybrid") && (
+            <span
+              className="inline-flex items-center gap-1 rounded-md border border-white/20 bg-black/50 backdrop-blur-sm px-2 py-0.5 text-[9px] font-medium text-white/90"
+              style={{ fontFamily: "var(--font-sans)" }}
+            >
+              <FormatIcon size={8} />
+              {format.label}
+            </span>
+          )}
+          {showBadge && e?.isTrending && !soldOut && (
+            <span
+              className="inline-flex items-center gap-1 rounded-md bg-gradient-to-r from-orange-500 to-red-500 px-2 py-0.5 text-[9px] font-bold text-white shadow-sm"
+              style={{ fontFamily: "var(--font-sans)" }}
+            >
+              <Flame size={8} />
+              Trending
+            </span>
+          )}
+          {e?.status && (
+            <StatusBadge status={e.status} className="border-white/30 bg-white/10 backdrop-blur-sm" />
+          )}
+        </div>
         <SaveBtn saved={saved} onSave={onSave} eventId={eventId} dark />
       </div>
-      <OverlayChips event={e} showBadge />
+
+      {soldOut && (
+        <div className="absolute bottom-6 left-4">
+          <span
+            className="rounded-md bg-red-500/90 backdrop-blur-sm px-2 py-0.5 text-[9px] font-bold text-white shadow-sm"
+            style={{ fontFamily: "var(--font-sans)" }}
+          >
+            Sold Out
+          </span>
+        </div>
+      )}
 
       <div className="absolute inset-x-0 bottom-0 p-5">
         <TagPills tags={getEventTags(e)} max={2} tone="inverse" />
-        {e?.offer && (
-          <div className="mt-3">
-            <OfferCallout event={e} inverse />
-          </div>
-        )}
+        <div className="mt-3">
+          <OfferCallout event={e} inverse />
+        </div>
         <p
-          className="mt-3 text-[11px] font-medium uppercase tracking-[0.18em] text-white/70"
+          className="mt-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/70"
           style={{ fontFamily: "var(--font-sans)" }}
         >
           {getOrganizerName(e)}
@@ -557,9 +609,9 @@ const CardFeatured = ({ event: e, saved, onSave }) => {
 const CardCompact = ({ event: e, showDistance }) => (
   <Link
     to={getEventUrl(e)}
-    className="group flex items-center gap-3 rounded-2xl border border-border bg-card p-3 transition-all hover:border-foreground/20 hover:bg-accent/30"
+    className="group flex items-center gap-3 rounded-md border border-border bg-card p-3 transition-all hover:border-foreground/20 hover:bg-accent/30"
   >
-    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-muted">
+    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md bg-muted">
       <CoverImage
         event={e}
         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
@@ -597,15 +649,16 @@ const CardCompact = ({ event: e, showDistance }) => (
   </Link>
 );
 
-const CardHorizontal = ({ event: e, saved, onSave, showBadge, showReason }) => {
+const CardHorizontal = ({ event: e, saved, onSave, showBadge, showReason, showDistance }) => {
   const eventId = getEventIdentity(e);
+  const distance = e?.distance ?? e?.dist;
 
   return (
     <Link
       to={getEventUrl(e)}
-      className="group flex gap-4 rounded-2xl border border-border bg-card p-4 transition-all hover:border-foreground/20 hover:shadow-sm"
+      className="group flex gap-4 rounded-md border border-border bg-card p-4 transition-all hover:border-foreground/20 hover:shadow-sm"
     >
-      <div className="relative h-32 w-32 shrink-0 overflow-hidden rounded-2xl bg-muted">
+      <div className="relative h-32 w-32 shrink-0 overflow-hidden rounded-md bg-muted">
         <CoverImage
           event={e}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
@@ -654,6 +707,13 @@ const CardHorizontal = ({ event: e, saved, onSave, showBadge, showReason }) => {
         <div className="mt-3">
           <EventMetaBlock event={e} />
         </div>
+
+        {showDistance && distance && (
+          <div className="mt-2 flex items-center gap-1 text-xs font-medium text-primary">
+            <MapPin size={10} />
+            <span>{distance.toFixed(1)} km away</span>
+          </div>
+        )}
 
         <div className="mt-3 flex items-end justify-between gap-3">
           <div className="min-w-0 flex-1">

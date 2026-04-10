@@ -25,15 +25,53 @@ const pickNotifications = (payload) => {
 };
 
 const normalizePreferences = (payload = {}) => {
-  const source = payload?.preferences || payload || {};
+  const source = payload || {};
+  const email = source.email || {};
+  const push = source.push || {};
+  const sms = source.sms || {};
+  const dnd = source.doNotDisturb || {};
+
   return {
-    ...source,
-    soundEnabled: source?.soundEnabled ?? true,
-    doNotDisturb: source?.doNotDisturb || {
-      enabled: false,
-      startTime: "22:00",
-      endTime: "08:00",
+    'email.bookingConfirmed': email.bookingConfirmed ?? true,
+    'email.bookingCancelled': email.bookingCancelled ?? true,
+    'email.paymentSuccess': email.paymentSuccess ?? true,
+    'email.refundProcessed': email.refundProcessed ?? true,
+    'email.eventUpdated': email.eventUpdated ?? true,
+    'email.promotions': email.promotions ?? false,
+    'email.newsletter': email.newsletter ?? false,
+    'push.bookingReminder': push.bookingReminder ?? true,
+    'push.newEvents': push.newEvents ?? false,
+    'smsNotify': sms.bookingConfirmed ?? false,
+    soundEnabled: source.soundEnabled ?? true,
+    doNotDisturb: {
+      enabled: dnd.enabled ?? false,
+      startTime: dnd.startTime || "22:00",
+      endTime: dnd.endTime || "08:00",
     },
+  };
+};
+
+const toBackendPreferences = (prefs) => {
+  return {
+    email: {
+      bookingConfirmed: prefs['email.bookingConfirmed'],
+      bookingCancelled: prefs['email.bookingCancelled'],
+      paymentSuccess: prefs['email.paymentSuccess'],
+      refundProcessed: prefs['email.refundProcessed'],
+      eventUpdated: prefs['email.eventUpdated'],
+      promotions: prefs['email.promotions'],
+      newsletter: prefs['email.newsletter'],
+    },
+    push: {
+      bookingReminder: prefs['push.bookingReminder'],
+      newEvents: prefs['push.newEvents'],
+    },
+    sms: {
+      bookingConfirmed: prefs['smsNotify'],
+      eventReminder: prefs['smsNotify'],
+    },
+    soundEnabled: prefs.soundEnabled,
+    doNotDisturb: prefs.doNotDisturb,
   };
 };
 
@@ -60,12 +98,17 @@ const notificationsService = {
       select: normalizePreferences,
     }),
   updatePreferences: (data) =>
-    put(ENDPOINTS.NOTIFICATIONS.PREFERENCES, data, {
+    put(ENDPOINTS.NOTIFICATIONS.PREFERENCES, toBackendPreferences(data), {
       select: normalizePreferences,
     }),
   subscribePush: (subscription) =>
     post(ENDPOINTS.NOTIFICATIONS.PUSH_SUBSCRIBE, subscription),
-  unsubscribePush: () => del(ENDPOINTS.NOTIFICATIONS.PUSH_UNSUBSCRIBE),
+  unsubscribePush: (endpoint) =>
+    del(ENDPOINTS.NOTIFICATIONS.PUSH_UNSUBSCRIBE, { params: endpoint ? { endpoint } : {} }),
+  getVapidKey: () =>
+    get(ENDPOINTS.NOTIFICATIONS.VAPID_KEY, {
+      select: (payload) => payload?.publicKey || '',
+    }),
 };
 
 export const pushNotificationService = {
@@ -84,10 +127,15 @@ export const pushNotificationService = {
     }
 
     try {
+      const vapidPublicKey = await notificationsService.getVapidKey();
+      if (vapidPublicKey) {
+        localStorage.setItem('vapidPublicKey', vapidPublicKey);
+      }
+
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: "",
+        applicationServerKey: vapidPublicKey ? urlBase64ToUint8Array(vapidPublicKey) : undefined,
       });
 
       await notificationsService.subscribePush(subscription.toJSON());
@@ -103,10 +151,23 @@ export const pushNotificationService = {
 
       if (subscription) {
         await subscription.unsubscribe();
-        await notificationsService.unsubscribePush();
+        await notificationsService.unsubscribePush(subscription.endpoint);
       }
-    } catch {}
+    } catch (err) {
+      // Silent fail
+    }
   },
 };
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
 
 export default notificationsService;

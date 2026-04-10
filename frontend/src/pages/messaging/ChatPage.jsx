@@ -1,14 +1,14 @@
 // pages/messaging/ChatPage.jsx
 // Bootstrap page — finds or creates a conversation with a user,
 // then immediately redirects to the ConversationPage.
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { AlertCircle, ArrowLeft } from 'lucide-react';
 import { messagingService } from '@/api';
 import { useDispatch } from 'react-redux';
 import { upsertConversation } from '@/store/slices/messagingSlice';
 import { ROUTES } from '@/app/AppRoutes';
-import { PageLoader } from '@/components/shared/Loader';
-import { toast } from '@/components/shared/common';
+import { Button } from '@/components/ui/button';
 
 const ChatPage = () => {
   const navigate         = useNavigate();
@@ -16,15 +16,16 @@ const ChatPage = () => {
   const { userId }       = useParams();
   const [searchParams]   = useSearchParams();
   const didRun           = useRef(false);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Strict-mode guard — only run once
     if (didRun.current) return;
     didRun.current = true;
 
     if (!userId) {
-      toast.error('Recipient not found');
-      navigate(ROUTES.MESSAGES.ROOT, { replace: true });
+      setError('Recipient not found');
+      setLoading(false);
       return;
     }
 
@@ -33,7 +34,6 @@ const ChatPage = () => {
         const conversation = await messagingService.startConversation({
           participantId: userId,
           eventId: searchParams.get('eventId') || undefined,
-          // Don't send an empty message — only send if provided in URL
           ...(searchParams.get('message')
             ? { body: searchParams.get('message') }
             : {}),
@@ -43,7 +43,6 @@ const ChatPage = () => {
           throw new Error('No conversation returned');
         }
 
-        // Cache conversation in Redux so ConversationPage header loads instantly
         dispatch(upsertConversation(conversation));
 
         navigate(
@@ -51,17 +50,56 @@ const ChatPage = () => {
           { replace: true }
         );
       } catch (err) {
-        toast.error(err?.message === 'You cannot start a conversation with yourself.'
-          ? "You can't message yourself"
-          : 'Failed to open chat');
-        navigate(ROUTES.MESSAGES.ROOT, { replace: true });
+        const errorMessage = err?.response?.data?.message || err?.message || '';
+        
+        if (errorMessage.includes('cannot start a conversation with yourself')) {
+          setError("You can't message yourself");
+        } else if (errorMessage.includes('Participant not found')) {
+          setError('User not found. They may have deactivated their account.');
+        } else if (errorMessage.includes('not found')) {
+          setError('Conversation not found');
+        } else {
+          setError('Failed to open chat. Please try again.');
+        }
+        setLoading(false);
       }
     };
 
     run();
-  }, []); // eslint-disable-line
+  }, [dispatch, navigate, searchParams, userId]);
 
-  return <PageLoader text="Opening chat…" subtitle="Setting up your conversation" />;
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+        <div className="h-14 w-14 rounded-2xl bg-destructive/10 flex items-center justify-center mb-4">
+          <AlertCircle className="h-6 w-6 text-destructive" />
+        </div>
+        <h2 className="text-base font-semibold mb-2">Unable to open chat</h2>
+        <p className="text-sm text-muted-foreground mb-4 max-w-[250px]">{error}</p>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-4 w-4 mr-1.5" />
+            Go back
+          </Button>
+          <Button size="sm" onClick={() => navigate(ROUTES.MESSAGES.ROOT)}>
+            Go to inbox
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-center px-6">
+        <div className="h-10 w-10 rounded-full border-2 border-primary/30 border-t-primary animate-spin mb-4" />
+        <h2 className="text-base font-semibold">Opening chat…</h2>
+        <p className="text-sm text-muted-foreground mt-1">Setting up your conversation</p>
+      </div>
+    );
+  }
+
+  return null;
 };
 
 export default ChatPage;

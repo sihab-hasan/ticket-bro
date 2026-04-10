@@ -36,7 +36,6 @@ import OffersPage from "@/pages/browse/Highlighted/OffersPage";
 // ── Lazy loaded ───────────────────────────────────────────────────────────────
 const HomePage = lazy(() => import("@/pages/home/HomePage"));
 const SearchPage = lazy(() => import("@/pages/search/SearchPage"));
-const SearchResultsPage = lazy(() => import("@/pages/search/SearchResultsPage"));
 const CartPage = lazy(() => import("@/pages/cart/CartPage"));
 const CheckoutPage = lazy(() => import("@/pages/cart/CheckoutPage"));
 const PaymentPage = lazy(() => import("@/pages/payments/PaymentPage"));
@@ -115,7 +114,7 @@ export const ROUTES = {
   },
 
   EVENT: (slug) => `/events/${slug}`,
-  SEARCH: { ROOT: "/search", RESULTS: "/search/results" },
+  SEARCH: { ROOT: "/search" },
   CART: { ROOT: "/cart", CHECKOUT: "/cart/checkout" },
 
   // Auth — modal system (query-param)
@@ -265,10 +264,7 @@ const AppRoutes = () => (
         {/* Legacy /events/:slug */}
         <Route path="/events/:eventSlug" element={<EventDetailsPage />} />
 
-        <Route path="/search">
-          <Route index element={<SearchPage />} />
-          <Route path="results" element={<SearchResultsPage />} />
-        </Route>
+        <Route path="/search" element={<SearchPage />} />
 
         <Route path="/cart">
           <Route index element={<CartPage />} />

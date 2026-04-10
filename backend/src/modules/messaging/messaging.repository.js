@@ -18,11 +18,19 @@ class MessagingRepository {
     let conversation = await Conversation.findOne(filter).exec();
 
     if (!conversation) {
-      conversation = await new Conversation({
-        participants: uniqueParticipants,
-        event: eventId || null,
-        unreadCount: Object.fromEntries(uniqueParticipants.map((participantId) => [participantId, 0])),
-      }).save();
+      try {
+        conversation = await new Conversation({
+          participants: uniqueParticipants,
+          event: eventId || null,
+          unreadCount: Object.fromEntries(uniqueParticipants.map((participantId) => [participantId, 0])),
+        }).save();
+      } catch (err) {
+        if (err.code === 11000) {
+          conversation = await Conversation.findOne(filter).exec();
+        } else {
+          throw err;
+        }
+      }
     }
 
     return conversation;
@@ -33,6 +41,13 @@ class MessagingRepository {
       .populate("participants", "firstName lastName avatar")
       .populate("event", "title slug coverImage")
       .exec();
+  }
+
+  async findConversationParticipantIds(id) {
+    const conversation = await Conversation.findById(id).select("participants").lean();
+    return Array.isArray(conversation?.participants)
+      ? conversation.participants.map((participantId) => participantId.toString())
+      : [];
   }
 
   async findConversationsByUser(userId, page = 1, limit = 20) {
@@ -167,6 +182,14 @@ class MessagingRepository {
     return conversations.reduce((sum, conversation) => {
       return sum + Number(conversation.unreadCount?.[userId.toString()] || 0);
     }, 0);
+  }
+
+  async restoreConversationForUser(id, userId) {
+    return Conversation.findOneAndUpdate(
+      { _id: id, participants: userId },
+      { $pull: { deletedBy: userId } },
+      { new: true },
+    ).exec();
   }
 
   async deleteConversation(id, userId) {

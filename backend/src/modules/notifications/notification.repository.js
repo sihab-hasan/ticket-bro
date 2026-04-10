@@ -1,5 +1,6 @@
 'use strict';
 const Notification = require('./notification.model');
+const NotificationPreferences = require('./notification-preferences.model');
 
 class NotificationRepository {
   async create(data) { return new Notification(data).save(); }
@@ -43,5 +44,42 @@ class NotificationRepository {
   async deleteAll(userId) {
     return Notification.updateMany({ user: userId }, { $set: { deletedAt: new Date() } });
   }
+
+  async getPreferences(userId) {
+    return NotificationPreferences.findOne({ user: userId }).lean();
+  }
+
+  async upsertPreferences(userId, prefs) {
+    return NotificationPreferences.findOneAndUpdate(
+      { user: userId },
+      { $set: prefs },
+      { upsert: true, new: true }
+    ).lean();
+  }
+
+  async savePushSubscription(userId, subscription) {
+    return NotificationPreferences.findOneAndUpdate(
+      { user: userId },
+      { $push: { pushSubscriptions: { ...subscription, createdAt: new Date() } } },
+      { upsert: true, new: true }
+    );
+  }
+
+  async getPushSubscriptions(userId) {
+    const prefs = await NotificationPreferences.findOne({ user: userId }).lean();
+    return prefs?.pushSubscriptions || [];
+  }
+
+  async removePushSubscription(userId, endpoint) {
+    return NotificationPreferences.findOneAndUpdate(
+      { user: userId },
+      { $pull: { pushSubscriptions: { endpoint } } }
+    );
+  }
+
+  static getUserPushSubscriptions = async (userId) => {
+    const prefs = await NotificationPreferences.findOne({ user: userId }).lean();
+    return prefs?.pushSubscriptions || [];
+  };
 }
 module.exports = new NotificationRepository();

@@ -1,8 +1,10 @@
 // components/features/messaging/ChatWindow.jsx
 import React, { useEffect, useRef, useCallback, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ChevronDown } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 import ChatMessage from './ChatMessage';
+import TypingIndicator from './TypingIndicator';
 import { cn } from '@/lib/utils';
 
 const getId = (u) => u?._id || u?.id;
@@ -51,21 +53,6 @@ const DateSeparator = ({ date }) => {
   );
 };
 
-const TypingIndicator = () => (
-  <div className="flex items-end gap-2 px-4 pb-2">
-    <div className="h-7 w-7 rounded-full bg-muted shrink-0" />
-    <div className="bg-muted rounded-2xl rounded-bl-sm px-3.5 py-2.5 flex items-center gap-1">
-      {[0, 1, 2].map((i) => (
-        <span
-          key={i}
-          className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60 animate-bounce"
-          style={{ animationDelay: `${i * 0.15}s`, animationDuration: '1s' }}
-        />
-      ))}
-    </div>
-  </div>
-);
-
 const LoadingSkeleton = () => (
   <div className="flex flex-col gap-3 p-4">
     {[...Array(5)].map((_, i) => (
@@ -92,33 +79,96 @@ const ChatWindow = ({
   currentUserId,
   loading = false,
   isTyping = false,
+  hasMore = false,
+  loadingMore = false,
+  onLoadMore,
+  participantAvatar = null,
+  participantName = '',
   className,
 }) => {
   const bottomRef = useRef(null);
   const containerRef = useRef(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const previousMessageCountRef = useRef(messages.length);
+  const prependAnchorRef = useRef(null);
+  const didInitializeRef = useRef(false);
 
-  // Auto-scroll on new messages if user is near bottom
+  const scrollToBottomPosition = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }, []);
+
+  const scrollToBottom = useCallback(() => {
+    scrollToBottomPosition();
+    setIsAtBottom(true);
+  }, [scrollToBottomPosition]);
+
   useEffect(() => {
-    if (isAtBottom) {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const el = containerRef.current;
+    if (!el) return;
+
+    const previousMessageCount = previousMessageCountRef.current;
+    const messageCountIncreased = messages.length > previousMessageCount;
+
+    if (prependAnchorRef.current && messageCountIncreased) {
+      const { scrollHeight, scrollTop } = prependAnchorRef.current;
+      el.scrollTop = el.scrollHeight - scrollHeight + scrollTop;
+      prependAnchorRef.current = null;
+    } else if (!didInitializeRef.current) {
+      scrollToBottomPosition();
+      didInitializeRef.current = true;
+    } else if (messageCountIncreased && isAtBottom) {
+      scrollToBottomPosition();
     }
-  }, [messages, isTyping, isAtBottom]);
+
+    previousMessageCountRef.current = messages.length;
+  }, [messages, isAtBottom, scrollToBottomPosition]);
+
+  useEffect(() => {
+    if (isTyping && isAtBottom) {
+      scrollToBottomPosition();
+    }
+  }, [isTyping, isAtBottom, scrollToBottomPosition]);
 
   const handleScroll = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
+
     const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    setIsAtBottom(distFromBottom < 80);
+    const newIsAtBottom = distFromBottom < 80;
+    setIsAtBottom(newIsAtBottom);
   }, []);
 
+  const handleLoadMoreClick = useCallback(() => {
+    if (!hasMore || loadingMore || !onLoadMore) return;
+
+    const el = containerRef.current;
+    if (el) {
+      prependAnchorRef.current = {
+        scrollHeight: el.scrollHeight,
+        scrollTop: el.scrollTop,
+      };
+    }
+
+    onLoadMore();
+  }, [hasMore, loadingMore, onLoadMore]);
+
   const items = buildGroups(messages);
+  const showScrollButton = !isAtBottom && messages.length > 0;
+  const lastOwnMessageId = [...messages]
+    .reverse()
+    .find((message) => (getId(message.sender) || message.senderId) === currentUserId)?._id
+    || [...messages]
+      .reverse()
+      .find((message) => (getId(message.sender) || message.senderId) === currentUserId)?.id
+    || null;
 
   return (
     <div
       ref={containerRef}
       onScroll={handleScroll}
-      className={cn('flex-1 overflow-y-auto scroll-smooth', className)}
+      className={cn('flex-1 overflow-y-auto overscroll-contain relative', className)}
     >
       {loading ? (
         <LoadingSkeleton />
@@ -126,6 +176,28 @@ const ChatWindow = ({
         <EmptyThread />
       ) : (
         <div className="flex flex-col gap-1 p-4 pb-2">
+          {/* Load more button */}
+          {hasMore && (
+            <div className="flex justify-center py-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLoadMoreClick}
+                disabled={loadingMore}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                {loadingMore ? (
+                  <>
+                    <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  'Load more messages'
+                )}
+              </Button>
+            </div>
+          )}
+          
           {items.map((item) => {
             if (item.type === 'separator') {
               return <DateSeparator key={item.key} date={item.date} />;
@@ -139,14 +211,32 @@ const ChatWindow = ({
                 message={msg}
                 isOwn={isOwn}
                 showAvatar={isFirst && !isOwn}
+                showStatus={isOwn && (getId(msg) === lastOwnMessageId)}
+                readReceiptAvatar={participantAvatar}
+                readReceiptName={participantName}
               />
             );
           })}
         </div>
       )}
 
-      {isTyping && <TypingIndicator />}
+      {isTyping && <TypingIndicator label={`${participantName || 'Someone'} is typing`} />}
       <div ref={bottomRef} className="h-1" />
+
+      {/* Scroll to bottom button */}
+      {showScrollButton && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
+          <Button
+            onClick={scrollToBottom}
+            size="sm"
+            variant="secondary"
+            className="h-8 px-3 rounded-full shadow-md gap-1.5 animate-in fade-in slide-in-from-bottom-2"
+          >
+            <ChevronDown className="h-3.5 w-3.5" />
+            <span className="text-xs">Jump to latest</span>
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

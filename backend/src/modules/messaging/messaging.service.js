@@ -2,7 +2,6 @@
 
 const messagingRepository = require('./messaging.repository');
 const messagingGateway = require('./messaging.gateway');
-const notificationService = require('../notifications/notification.service');
 const { toConversationDto } = require('./dtos/conversation.dto');
 const { toMessageDto, getId } = require('./dtos/message.dto');
 const {
@@ -10,6 +9,7 @@ const {
   ForbiddenError,
   BadRequestError,
 } = require('../../common/errors/AppError');
+const User = require('../users/user.model');
 
 class MessagingService {
   _normalizeMessageText(payload = {}) {
@@ -28,18 +28,31 @@ class MessagingService {
       throw new BadRequestError('You cannot start a conversation with yourself.');
     }
 
+    const participant = await User.findById(participantId).select('_id').lean();
+    if (!participant) {
+      throw new NotFoundError('Participant not found.');
+    }
+
     const conversation = await messagingRepository.findOrCreateConversation(
       [currentUserId, participantId],
       payload.eventId || null,
     );
+    await messagingRepository.restoreConversationForUser(conversation._id, currentUserId);
 
     const initialMessage = this._normalizeMessageText(payload);
     if (initialMessage) {
-      await messagingRepository.createMessage({
+      const message = await messagingRepository.createMessage({
         conversation: conversation._id,
         sender: currentUserId,
         body: initialMessage,
         attachments: [],
+      });
+
+      messagingGateway.emitMessageCreated({
+        conversationId: getId(conversation),
+        message: toMessageDto(message, currentUserId),
+        recipientIds: [participantId],
+        senderId: currentUserId,
       });
     }
 
@@ -125,34 +138,26 @@ class MessagingService {
       .map((participant) => getId(participant))
       .filter((participantId) => participantId && participantId !== getId(userId));
 
-    await Promise.all(
-      recipientIds.map((recipientId) =>
-        notificationService.notify(recipientId, {
-          type: 'new_message',
-          title: 'New message',
-          message: `${messageDto.sender?.name || 'Someone'} sent you a message.`,
-          data: { conversationId },
-          link: `/messages/conversation/${conversationId}`,
-        }),
-      ),
-    );
-
     messagingGateway.emitMessageCreated({
       conversationId,
       message: messageDto,
       recipientIds,
+      senderId: getId(userId),
     });
 
     return messageDto;
   }
 
   async markAsRead(conversationId, userId) {
-    await this.getConversation(conversationId, userId);
+    const conversation = await this.getConversation(conversationId, userId);
     await messagingRepository.markRead(conversationId, getId(userId));
 
     messagingGateway.emitConversationRead({
       conversationId,
       userId: getId(userId),
+      recipientIds: (conversation.participants || [])
+        .map((participant) => getId(participant))
+        .filter((participantId) => participantId && participantId !== getId(userId)),
     });
 
     return { message: 'Marked as read.' };

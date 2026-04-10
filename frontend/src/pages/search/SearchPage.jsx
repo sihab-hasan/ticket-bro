@@ -1,82 +1,610 @@
 // pages/search/SearchPage.jsx
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Search, TrendingUp, MapPin, Music, Briefcase, Gamepad2, Heart, Star } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { 
+  Search, SlidersHorizontal, Calendar, MapPin, X, 
+  ChevronLeft, ChevronRight, Loader2, Grid, List,
+  ChevronDown, ChevronUp, Check
+} from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { ROUTES } from '@/app/AppRoutes';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from '@/components/shared/common';
+import searchService from '@/api/search.api';
+import { normalizeEvent } from '@/utils/browse.utils';
+import BrowseEventCard from "@/components/shared/cards/EventCard";
 import Container from '@/components/layout/Container';
 
-const CATEGORIES = [
-  { label: 'Music', icon: Music, color: 'bg-purple-500/10 text-purple-500 border-purple-500/20' },
-  { label: 'Tech', icon: Briefcase, color: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
-  { label: 'Gaming', icon: Gamepad2, color: 'bg-green-500/10 text-green-500 border-green-500/20' },
-  { label: 'Health', icon: Heart, color: 'bg-red-500/10 text-red-500 border-red-500/20' },
-  { label: 'Sports', icon: Star, color: 'bg-orange-500/10 text-orange-500 border-orange-500/20' },
-  { label: 'Local', icon: MapPin, color: 'bg-primary/10 text-primary border-primary/20' },
-];
+const EventCardSkeleton = () => (
+  <div className="rounded-2xl border border-border bg-card overflow-hidden">
+    <Skeleton className="h-48 w-full" />
+    <div className="p-4 space-y-3">
+      <Skeleton className="h-4 w-3/4" />
+      <Skeleton className="h-3 w-1/2" />
+      <Skeleton className="h-3 w-1/3" />
+    </div>
+  </div>
+);
 
-const TRENDING = ['Dhaka Music Fest', 'React Bangladesh Meetup', 'Tech Summit 2026', 'Comedy Night Dhaka', 'Food Festival'];
+const FilterSection = ({ title, children, defaultOpen = true }) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  return (
+    <div className="border-b border-border pb-4">
+      <button 
+        onClick={() => setIsOpen(!isOpen)} 
+        className="flex items-center justify-between w-full py-2 text-sm font-semibold text-foreground"
+      >
+        <span>{title}</span>
+        {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+      </button>
+      {isOpen && <div className="mt-2">{children}</div>}
+    </div>
+  );
+};
 
-const SearchPage = () => {
-  const navigate = useNavigate();
-  const [query, setQuery] = useState('');
-
-  const go = (q) => {
-    if ((q || query).trim()) navigate(`${ROUTES.SEARCH.RESULTS}?q=${encodeURIComponent((q || query).trim())}`);
+const FilterPanel = ({ facets, tempFilters, setTempFilters, onApply, onClear }) => {
+  const updateTempFilter = (key, value) => {
+    setTempFilters(prev => ({ ...prev, [key]: value }));
   };
 
   return (
-    <Container aria-label="Search" className="py-6 space-y-8 font-sans">
-      {/* Hero search */}
-      <div className="pt-6 pb-2 text-center space-y-4">
-        <h1 className="text-2xl font-extrabold font-heading">Find Your Next Experience</h1>
-        <p className="text-sm text-muted-foreground">Concerts, meetups, workshops and more near you</p>
-        <div className="relative max-w-lg mx-auto">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && go()} placeholder="Search events, venues, organizers…" className="h-12 pl-11 pr-14 text-base rounded-2xl border-border" />
-          <Button onClick={() => go()} disabled={!query.trim()} className="absolute right-1.5 top-1/2 -translate-y-1/2 h-9 font-bold px-4">Search</Button>
+    <div className="space-y-1">
+      {facets?.categories?.length > 0 && (
+        <FilterSection title="Categories">
+          <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+            {facets.categories.slice(0, 10).map((cat) => (
+              <label 
+                key={cat._id || cat.slug} 
+                className={`flex items-center gap-3 cursor-pointer p-2 rounded-lg transition-all ${
+                  tempFilters.category === (cat.slug || cat._id) 
+                    ? 'bg-primary/10 text-primary' 
+                    : 'hover:bg-muted'
+                }`}
+              >
+                <div className={`w-4 h-4 rounded border flex items-center justify-center ${
+                  tempFilters.category === (cat.slug || cat._id) 
+                    ? 'bg-primary border-primary' 
+                    : 'border-border'
+                }`}>
+                  {tempFilters.category === (cat.slug || cat._id) && <Check className="h-3 w-3 text-primary-foreground" />}
+                </div>
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={tempFilters.category === (cat.slug || cat._id)}
+                  onChange={(e) => updateTempFilter('category', e.target.checked ? (cat.slug || cat._id) : '')}
+                />
+                <span className="text-sm flex-1">{cat.name}</span>
+                <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                  {cat.count}
+                </span>
+              </label>
+            ))}
+          </div>
+        </FilterSection>
+      )}
+
+      {facets?.cities?.length > 0 && (
+        <FilterSection title="Locations">
+          <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+            {facets.cities.slice(0, 8).map((city) => (
+              <label 
+                key={city.name} 
+                className={`flex items-center gap-3 cursor-pointer p-2 rounded-lg transition-all ${
+                  tempFilters.city === city.name 
+                    ? 'bg-primary/10 text-primary' 
+                    : 'hover:bg-muted'
+                }`}
+              >
+                <div className={`w-4 h-4 rounded border flex items-center justify-center ${
+                  tempFilters.city === city.name 
+                    ? 'bg-primary border-primary' 
+                    : 'border-border'
+                }`}>
+                  {tempFilters.city === city.name && <Check className="h-3 w-3 text-primary-foreground" />}
+                </div>
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={tempFilters.city === city.name}
+                  onChange={(e) => updateTempFilter('city', e.target.checked ? city.name : '')}
+                />
+                <span className="text-sm flex-1">{city.name}</span>
+                <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                  {city.count}
+                </span>
+              </label>
+            ))}
+          </div>
+        </FilterSection>
+      )}
+
+      <FilterSection title="Date Range">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label className="text-[10px] text-muted-foreground">From</Label>
+            <Input 
+              type="date" 
+              value={tempFilters.startDate} 
+              onChange={(e) => updateTempFilter('startDate', e.target.value)} 
+              className="h-9 text-sm"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-[10px] text-muted-foreground">To</Label>
+            <Input 
+              type="date" 
+              value={tempFilters.endDate} 
+              onChange={(e) => updateTempFilter('endDate', e.target.value)} 
+              className="h-9 text-sm"
+            />
+          </div>
         </div>
+      </FilterSection>
+
+      <FilterSection title="Price Range">
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-[10px] text-muted-foreground">Min (৳)</Label>
+              <Input 
+                type="number" 
+                placeholder="0" 
+                value={tempFilters.minPrice} 
+                onChange={(e) => updateTempFilter('minPrice', e.target.value)} 
+                className="h-9 text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[10px] text-muted-foreground">Max (৳)</Label>
+              <Input 
+                type="number" 
+                placeholder="Any" 
+                value={tempFilters.maxPrice} 
+                onChange={(e) => updateTempFilter('maxPrice', e.target.value)} 
+                className="h-9 text-sm"
+              />
+            </div>
+          </div>
+        </div>
+      </FilterSection>
+
+      <FilterSection title="Event Type">
+        <div className="flex items-center justify-between py-2 px-3 bg-muted/50 rounded-lg">
+          <div className="space-y-0.5">
+            <Label className="text-sm font-medium">Free Events Only</Label>
+            <p className="text-xs text-muted-foreground">Show only events with no admission fee</p>
+          </div>
+          <Switch 
+            checked={tempFilters.isFree} 
+            onCheckedChange={(v) => updateTempFilter('isFree', v)} 
+          />
+        </div>
+      </FilterSection>
+
+      <div className="flex gap-2 pt-4 border-t border-border">
+        <Button variant="outline" className="flex-1 h-10 font-medium" onClick={onClear}>
+          Clear All
+        </Button>
+        <Button className="flex-1 h-10 font-bold" onClick={onApply}>
+          Apply Filters
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+const SearchPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  const [results, setResults] = useState([]);
+  const [facets, setFacets] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [query, setQuery] = useState(searchParams.get('q') || '');
+  const [sort, setSort] = useState('-createdAt');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [viewMode, setViewMode] = useState('grid');
+  const [filters, setFilters] = useState({
+    category: '',
+    subcategory: '',
+    city: '',
+    location: '',
+    startDate: '',
+    endDate: '',
+    minPrice: '',
+    maxPrice: '',
+    isFree: false,
+    tags: []
+  });
+  
+  const [tempFilters, setTempFilters] = useState(filters);
+
+  const searchTimeoutRef = useRef(null);
+  const LIMIT = 12;
+
+  useEffect(() => {
+    const fetchFacets = async () => {
+      try {
+        const data = await searchService.getFacets();
+        setFacets(data);
+      } catch (e) {
+        console.error('Failed to load facets:', e);
+      }
+    };
+    fetchFacets();
+  }, []);
+
+  const debouncedSearch = useCallback((searchQuery, searchFilters, searchSort, searchPage, append = false) => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    searchTimeoutRef.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const params = {
+          page: searchPage,
+          limit: LIMIT,
+          sort: searchSort
+        };
+        
+        if (searchQuery && searchQuery.trim() && searchQuery.trim().length >= 2) {
+          params.q = searchQuery.trim();
+        }
+        
+        if (searchFilters.category) params.category = searchFilters.category;
+        if (searchFilters.subcategory) params.subcategory = searchFilters.subcategory;
+        if (searchFilters.city) params.city = searchFilters.city;
+        if (searchFilters.location) params.location = searchFilters.location;
+        if (searchFilters.startDate) params.startDate = searchFilters.startDate;
+        if (searchFilters.endDate) params.endDate = searchFilters.endDate;
+        
+        const minP = Number(searchFilters.minPrice);
+        const maxP = Number(searchFilters.maxPrice);
+        if (!isNaN(minP) && minP >= 0) params.minPrice = minP;
+        if (!isNaN(maxP) && maxP >= 0) params.maxPrice = maxP;
+        
+        if (searchFilters.isFree === true) params.isFree = true;
+        
+        if (searchFilters.tags && Array.isArray(searchFilters.tags) && searchFilters.tags.length > 0) {
+          params.tags = searchFilters.tags.join(',');
+        }
+        
+        const data = await searchService.search(params);
+        
+        if (append) {
+          setResults(prev => [...prev, ...(data.events || []).map(normalizeEvent)]);
+        } else {
+          setResults((data.events || []).map(normalizeEvent));
+        }
+        setTotal(data.total || 0);
+        setTotalPages(data.totalPages || 0);
+      } catch (e) {
+        toast.error('Search failed. Please try again.');
+        console.error('Search error:', e);
+      } finally {
+        setLoading(false);
+      }
+    }, 300);
+  }, []);
+
+  useEffect(() => {
+    debouncedSearch(query, filters, sort, 1);
+  }, []);
+
+  useEffect(() => {
+    setPage(1);
+    debouncedSearch(query, filters, sort, 1);
+  }, [query, filters, sort]);
+
+  const handleSearch = (searchQuery = query) => {
+    setQuery(searchQuery);
+    setSearchParams(searchQuery ? { q: searchQuery } : {});
+  };
+
+  const handleApplyFilters = () => {
+    setFilters(tempFilters);
+    setPage(1);
+    debouncedSearch(query, tempFilters, sort, 1);
+  };
+
+  const handleClearFilters = () => {
+    const emptyFilters = {
+      category: '',
+      subcategory: '',
+      city: '',
+      location: '',
+      startDate: '',
+      endDate: '',
+      minPrice: '',
+      maxPrice: '',
+      isFree: false,
+      tags: []
+    };
+    setFilters(emptyFilters);
+    setTempFilters(emptyFilters);
+    setPage(1);
+    debouncedSearch(query, emptyFilters, sort, 1);
+  };
+
+  const handleSortChange = (newSort) => {
+    setSort(newSort);
+  };
+
+  const handleLoadMore = () => {
+    if (loadingMore || page >= totalPages) return;
+    setLoadingMore(true);
+    const next = page + 1;
+    setPage(next);
+    debouncedSearch(query, filters, sort, next, true).finally(() => setLoadingMore(false));
+  };
+
+  const activeFiltersCount = useMemo(() => {
+    return Object.values(filters).filter(v => v && v !== false && (typeof v !== 'string' || v.length > 0)).length;
+  }, [filters]);
+
+  const sortOptions = [
+    { value: '-createdAt', label: 'Most Recent' },
+    { value: '-startDate', label: 'Date: Soonest' },
+    { value: 'startDate', label: 'Date: Latest' },
+    { value: '-totalSold', label: 'Most Popular' },
+    { value: '-averageRating', label: 'Top Rated' },
+    { value: '-minPrice', label: 'Price: High to Low' },
+    { value: 'minPrice', label: 'Price: Low to High' },
+  ];
+
+  const showInitialState = !query && !activeFiltersCount && results.length === 0 && !loading;
+
+  return (
+    <Container aria-label="Search events" className="py-4 space-y-5 font-sans">
+      {/* Hero Search Section */}
+      <div className="relative bg-gradient-to-br from-primary/5 via-primary/5 to-primary/10 rounded-3xl p-6 sm:p-8">
+        <div className="max-w-2xl mx-auto text-center space-y-4">
+          <h1 className="text-2xl sm:text-3xl font-bold font-heading">Find Your Next Experience</h1>
+          <p className="text-muted-foreground text-sm">Discover concerts, workshops, meetups and more</p>
+          
+          <div className="relative max-w-lg mx-auto mt-6">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Input 
+              value={query} 
+              onChange={(e) => handleSearch(e.target.value)} 
+              placeholder="Search events, venues, organizers..." 
+              className="h-14 pl-12 pr-24 text-base rounded-2xl border-2 border-border/50 bg-background/80 backdrop-blur shadow-lg"
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+              {loading && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
+              {query && !loading && (
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => handleSearch('')}>
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {showInitialState && total > 0 && (
+          <div className="flex items-center justify-center gap-6 mt-6 text-sm">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Calendar className="h-4 w-4" />
+              <span>{total.toLocaleString()} events</span>
+            </div>
+            {facets?.cities?.length > 0 && (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <MapPin className="h-4 w-4" />
+                <span>{facets.cities.length} cities</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Categories */}
-      <div>
-        <p className="text-sm font-bold mb-3">Browse Categories</p>
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-          {CATEGORIES.map((cat) => (
-            <button key={cat.label} onClick={() => go(cat.label)} className={`flex flex-col items-center gap-2 p-4 rounded-2xl border transition-all hover:scale-105 ${cat.color}`}>
-              <cat.icon className="h-5 w-5" />
-              <span className="text-xs font-bold">{cat.label}</span>
+      {/* Filters & Sort Bar */}
+      <div className="flex items-center justify-between gap-3 flex-wrap bg-muted/30 -mx-4 px-4 py-3 rounded-xl">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          {loading ? (
+            <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Searching...</span>
+          ) : total > 0 ? (
+            <span><span className="font-bold text-foreground">{total.toLocaleString()}</span> events found</span>
+          ) : (
+            <span>No events found</span>
+          )}
+        </div>
+        
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select value={sort} onValueChange={handleSortChange}>
+            <SelectTrigger className="h-9 w-40 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {sortOptions.map(opt => (
+                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <div className="flex border border-border rounded-lg overflow-hidden">
+            <button onClick={() => setViewMode('grid')} className={`p-2 ${viewMode === 'grid' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}>
+              <Grid className="h-4 w-4" />
             </button>
-          ))}
+            <button onClick={() => setViewMode('list')} className={`p-2 ${viewMode === 'list' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}>
+              <List className="h-4 w-4" />
+            </button>
+          </div>
+
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="sm" className="h-9 relative font-semibold">
+                <SlidersHorizontal className="h-3.5 w-3.5 mr-1.5" />
+                Filters
+                {activeFiltersCount > 0 && (
+                  <Badge className="absolute -top-1.5 -right-1.5 h-5 w-5 p-0 text-[10px] bg-primary text-black flex items-center justify-center">
+                    {activeFiltersCount}
+                  </Badge>
+                )}
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-80 overflow-y-auto p-0">
+              <div className="p-4 border-b border-border">
+                <h2 className="text-lg font-bold">Filter Events</h2>
+                <p className="text-sm text-muted-foreground">Refine your search results</p>
+              </div>
+              <div className="p-4">
+                <FilterPanel 
+                  facets={facets} 
+                  tempFilters={tempFilters}
+                  setTempFilters={setTempFilters}
+                  onApply={handleApplyFilters}
+                  onClear={handleClearFilters}
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
 
-      {/* Trending */}
-      <div>
-        <div className="flex items-center gap-2 mb-3">
-          <TrendingUp className="h-4 w-4 text-primary" />
-          <p className="text-sm font-bold">Trending Searches</p>
-        </div>
+      {/* Active Filters */}
+      {activeFiltersCount > 0 && (
         <div className="flex flex-wrap gap-2">
-          {TRENDING.map((t) => (
-            <Badge key={t} variant="secondary" className="cursor-pointer hover:bg-primary/10 transition-colors py-1.5 px-3 text-xs font-medium" onClick={() => go(t)}>{t}</Badge>
-          ))}
+          {filters.category && (
+            <Badge variant="secondary" className="gap-1.5 pl-2">
+              {facets?.categories?.find(c => c.slug === filters.category)?.name || filters.category}
+              <button onClick={() => { 
+                const updated = { ...filters, category: '' };
+                setFilters(updated);
+                setTempFilters(updated);
+                debouncedSearch(query, updated, sort, 1);
+              }} className="hover:text-destructive">
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+          {filters.city && (
+            <Badge variant="secondary" className="gap-1.5 pl-2">
+              {filters.city}
+              <button onClick={() => { 
+                const updated = { ...filters, city: '' };
+                setFilters(updated);
+                setTempFilters(updated);
+                debouncedSearch(query, updated, sort, 1);
+              }} className="hover:text-destructive">
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+          {filters.isFree && (
+            <Badge variant="secondary" className="gap-1.5 pl-2">
+              Free
+              <button onClick={() => { 
+                const updated = { ...filters, isFree: false };
+                setFilters(updated);
+                setTempFilters(updated);
+                debouncedSearch(query, updated, sort, 1);
+              }} className="hover:text-destructive">
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+          {filters.startDate && (
+            <Badge variant="secondary" className="gap-1.5 pl-2">
+              From: {filters.startDate}
+              <button onClick={() => { 
+                const updated = { ...filters, startDate: '' };
+                setFilters(updated);
+                setTempFilters(updated);
+                debouncedSearch(query, updated, sort, 1);
+              }} className="hover:text-destructive">
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+          {(filters.minPrice || filters.maxPrice) && (
+            <Badge variant="secondary" className="gap-1.5 pl-2">
+              ৳{filters.minPrice || '0'} - ৳{filters.maxPrice || 'Any'}
+              <button onClick={() => { 
+                const updated = { ...filters, minPrice: '', maxPrice: '' };
+                setFilters(updated);
+                setTempFilters(updated);
+                debouncedSearch(query, updated, sort, 1);
+              }} className="hover:text-destructive">
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+          <Button variant="link" size="sm" className="text-xs text-muted-foreground h-auto p-0" onClick={handleClearFilters}>
+            Clear all
+          </Button>
         </div>
-      </div>
+      )}
 
-      {/* Location shortcut */}
-      <div className="p-4 rounded-2xl bg-muted/50 border border-border flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-          <MapPin className="h-5 w-5 text-primary" />
+      {/* Results Grid */}
+      {loading && page === 1 ? (
+        <div className={`grid gap-4 ${viewMode === 'grid' ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4' : 'grid-cols-1'}`}>
+          {Array.from({ length: 6 }).map((_, i) => <EventCardSkeleton key={i} />)}
         </div>
-        <div className="flex-1">
-          <p className="text-sm font-bold">Events Near You</p>
-          <p className="text-xs text-muted-foreground">Dhaka, Bangladesh</p>
-        </div>
-        <Button variant="outline" size="sm" className="font-semibold" onClick={() => go('events in Dhaka')}>Explore</Button>
-      </div>
+      ) : results.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center py-16 text-muted-foreground">
+            <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+              <Search className="h-10 w-10 opacity-30" />
+            </div>
+            <p className="text-lg font-semibold">No events found</p>
+            <p className="text-sm mt-1 text-center max-w-md">
+              {query ? `No results for "${query}". Try different keywords or adjust filters.` : 'Try adjusting your filters or search terms'}
+            </p>
+            {activeFiltersCount > 0 && (
+              <Button variant="outline" className="mt-4" onClick={handleClearFilters}>Clear Filters</Button>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          <div className={`grid gap-4 ${viewMode === 'grid' ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4' : 'grid-cols-1'}`}>
+            {results.map((event) => (
+              <BrowseEventCard key={event._id || event.id} event={event} variant={viewMode === 'list' ? 'horizontal' : 'grid'} showBadge={true} />
+            ))}
+          </div>
+          
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => { const prev = page - 1; setPage(prev); debouncedSearch(query, filters, sort, prev); }}
+                disabled={page === 1 || loading}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm text-muted-foreground px-2">
+                {page} / {totalPages}
+              </span>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleLoadMore}
+                disabled={page >= totalPages || loading || loadingMore}
+              >
+                {loadingMore ? <Loader2 className="h-4 w-4 animate-spin" /> : <ChevronRight className="h-4 w-4" />}
+              </Button>
+            </div>
+          )}
+
+          {page < totalPages && (
+            <Button variant="outline" className="w-full font-semibold" onClick={handleLoadMore} disabled={loadingMore}>
+              {loadingMore ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Load More Events
+            </Button>
+          )}
+        </>
+      )}
     </Container>
   );
 };

@@ -1,17 +1,8 @@
 import { ENDPOINTS } from "@/config/api.config";
-import { get, pickList, pickPaginated } from "@/api/client";
-
-const pickResults = (payload) => {
-  const result = pickPaginated("results")(payload);
-  return {
-    results: result.items,
-    pagination: result.pagination,
-    total: result.total,
-  };
-};
+import { get, pickList } from "@/api/client";
 
 const searchService = {
-  search: (params) => get(ENDPOINTS.SEARCH.ROOT, { params, select: pickResults }),
+  search: (params) => get(ENDPOINTS.SEARCH.ROOT, { params }),
   autocomplete: (q) =>
     get(ENDPOINTS.SEARCH.AUTOCOMPLETE, {
       params: { q },

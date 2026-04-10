@@ -466,7 +466,7 @@ const Header = () => {
     setQuery(searchQuery);
     setMobileSearchOpen(false);
     navigate(
-      `/search/results?q=${encodeURIComponent(searchQuery)}&location=${encodeURIComponent(selectedLocation?.id || "")}`,
+      `/search?q=${encodeURIComponent(searchQuery)}&location=${encodeURIComponent(selectedLocation?.id || "")}`,
     );
   };
 

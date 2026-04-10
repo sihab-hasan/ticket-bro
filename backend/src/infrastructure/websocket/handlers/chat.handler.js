@@ -1,9 +1,10 @@
 'use strict';
 
 const messagingGateway = require('../../../modules/messaging/messaging.gateway');
+const messagingRepository = require('../../../modules/messaging/messaging.repository');
 const { emitToUser } = require('../socketServer');
 
-const registerChatHandler = (io) => {
+const registerChatHandler = () => {
   messagingGateway.subscribe(messagingGateway.EVENTS.MESSAGE_CREATED, ({ conversationId, message, recipientIds }) => {
     if (Array.isArray(recipientIds)) {
       recipientIds.forEach((userId) => {
@@ -23,9 +24,11 @@ const registerChatHandler = (io) => {
     });
   });
 
-  messagingGateway.subscribe(messagingGateway.EVENTS.CONVERSATION_READ, ({ conversationId, userId }) => {
-    if (io) {
-      io.to(`conversation:${conversationId}`).emit('message:read', { conversationId, readBy: userId });
+  messagingGateway.subscribe(messagingGateway.EVENTS.CONVERSATION_READ, ({ conversationId, userId, recipientIds }) => {
+    if (Array.isArray(recipientIds)) {
+      recipientIds.forEach((recipientId) => {
+        emitToUser(recipientId, 'message:read', { conversationId, readBy: userId });
+      });
     }
   });
 };
@@ -50,6 +53,32 @@ const registerSocketChatEvents = (socket) => {
   socket.on('typing:stop', ({ conversationId, recipientId }) => {
     if (conversationId && recipientId && userId) {
       emitToUser(recipientId, 'user:typing', { conversationId, userId, isTyping: false });
+    }
+  });
+
+  socket.on('message:delivered', async ({ conversationId, messageId, senderId }) => {
+    if (!conversationId || !messageId || !senderId || !userId) return;
+
+    try {
+      const participantIds = await messagingRepository.findConversationParticipantIds(conversationId);
+      const currentUserId = userId.toString();
+      const targetSenderId = senderId.toString();
+
+      if (
+        currentUserId === targetSenderId ||
+        !participantIds.includes(currentUserId) ||
+        !participantIds.includes(targetSenderId)
+      ) {
+        return;
+      }
+
+      emitToUser(targetSenderId, 'message:delivered', {
+        conversationId,
+        messageId,
+        deliveredTo: currentUserId,
+      });
+    } catch {
+      // Ignore delivery ack errors; messaging should continue working without them.
     }
   });
 };

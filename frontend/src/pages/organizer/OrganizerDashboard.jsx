@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,
@@ -22,6 +22,7 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { toast } from '@/components/shared/common';
 import { formatDate, formatPrice } from '@/utils/formatters';
 import { ROUTES } from '@/app/AppRoutes';
+import { useSocket } from '@/hooks';
 
 const getEventKey = (event) => event?.slug || event?._id;
 
@@ -61,6 +62,42 @@ const OrganizerDashboard = () => {
 
     fetchDashboard();
   }, []);
+
+  const handleSocketEvent = useCallback((event, data) => {
+    if (event === 'organizer:dashboard.update') {
+      if (data?.dashboard) {
+        setData(prev => ({ ...prev, ...data.dashboard }));
+      }
+      // Handle event approval/rejection
+      if (data?.eventApproved || data?.eventRejected) {
+        fetchDashboard();
+        if (data.eventApproved) {
+          toast.success('Your event has been approved and published!');
+        } else if (data.eventRejected) {
+          toast.warning(`Your event was rejected: ${data.reason || 'Please check your event for details'}`);
+        }
+      }
+    } else if (event === 'organizer:booking.new' || event === 'organizer:booking.cancelled') {
+      fetchDashboard();
+    } else if (event === 'organizer:checkin.new') {
+      fetchDashboard();
+    } else if (event === 'organizer:revenue.update' || event === 'organizer:ticket.sold' || event === 'organizer:ticket.refunded') {
+      fetchDashboard();
+    } else if (event === 'organizer:analytics.update') {
+      fetchDashboard();
+    }
+  }, []);
+
+  useSocket([
+    'organizer:dashboard.update',
+    'organizer:booking.new',
+    'organizer:booking.cancelled',
+    'organizer:checkin.new',
+    'organizer:revenue.update',
+    'organizer:ticket.sold',
+    'organizer:ticket.refunded',
+    'organizer:analytics.update',
+  ], { onEvent: handleSocketEvent });
 
   const overview = data?.overview || {};
   const stats = [
