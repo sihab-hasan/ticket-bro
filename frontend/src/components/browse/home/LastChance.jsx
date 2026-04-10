@@ -3,7 +3,7 @@ import React from "react";
 import { Timer, Zap, AlertTriangle, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Container from "@/components/layout/Container";
-import { useBrowse, spotsPercent } from "@/hooks";
+import useBrowse, { spotsPercent } from "@/hooks/useBrowse";
 
 const LastChance = () => {
   const navigate = useNavigate();

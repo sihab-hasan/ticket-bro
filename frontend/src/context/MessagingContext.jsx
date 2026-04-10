@@ -12,6 +12,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { connectSocket, disconnectSocket, getSocket } from '@/lib/socket';
 import { messagingService } from '@/api';
 import useAuth from '@/context/AuthContext';
+import { useNotification } from '@/context/NotificationContext';
+import { playAppSound } from '@/lib/appSound';
 import messageSoundFile from '@/assets/audio/message.mp3';
 import {
   selectConversations,
@@ -31,19 +33,9 @@ import {
 const MessagingContext = createContext(null);
 const getId = (item) => item?._id || item?.id;
 
-// Play message sound
-const playMessageSound = () => {
-  try {
-    const audio = new Audio(messageSoundFile);
-    audio.volume = 0.4;
-    audio.play().catch(() => {});
-  } catch {
-    // Silent fail
-  }
-};
-
 export const MessagingProvider = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
+  const { preferences } = useNotification();
   const dispatch = useDispatch();
   const conversations = useSelector(selectConversations);
   const [typingMap, setTypingMap]           = useState({});
@@ -59,6 +51,14 @@ export const MessagingProvider = ({ children }) => {
   useEffect(() => {
     activeConversationIdRef.current = activeConversationId;
   }, [activeConversationId]);
+
+  const playIncomingMessageSound = useCallback(() => {
+    playAppSound(messageSoundFile, {
+      volume: 0.4,
+      soundEnabled: preferences.soundEnabled,
+      doNotDisturb: preferences.doNotDisturb,
+    });
+  }, [preferences.doNotDisturb, preferences.soundEnabled]);
 
   const ensureConversationLoaded = useCallback(async (conversationId) => {
     if (!conversationId) return null;
@@ -101,7 +101,7 @@ export const MessagingProvider = ({ children }) => {
       } else {
         dispatch(incrementUnread());
         dispatch(incrementConversationUnread({ conversationId }));
-        playMessageSound();
+        playIncomingMessageSound();
       }
 
       socket.emit('message:delivered', {
@@ -165,7 +165,7 @@ export const MessagingProvider = ({ children }) => {
       socket.off('user:typing', handleUserTyping);
       disconnectSocket();
     };
-  }, [dispatch, ensureConversationLoaded, isAuthenticated, user]);
+  }, [dispatch, ensureConversationLoaded, isAuthenticated, playIncomingMessageSound, user]);
 
   // ── Load unread count on auth ────────────────────────────────
   useEffect(() => {

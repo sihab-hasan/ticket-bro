@@ -9,7 +9,8 @@ import React, {
 } from "react";
 import notificationsService from "@/api/notifications.api";
 import useAuth from "./AuthContext";
-import { getSocket } from "@/lib/socket";
+import { connectSocket } from "@/lib/socket";
+import { playAppSound } from "@/lib/appSound";
 import notificationSoundFile from "@/assets/audio/notification.mp3";
 
 const NotificationContext = createContext(null);
@@ -64,37 +65,7 @@ const mergePreferences = (incoming = {}) => ({
     ...(incoming?.doNotDisturb || {}),
   },
 });
-
-// Play notification sound
-const playSound = (soundEnabled, doNotDisturb) => {
-  if (!soundEnabled || typeof window === "undefined") {
-    return;
-  }
-
-  // Check do not disturb
-  if (doNotDisturb?.enabled) {
-    const now = new Date();
-    const currentTime = now.getHours() * 60 + now.getMinutes();
-    const [startH, startM] = doNotDisturb.startTime.split(':').map(Number);
-    const [endH, endM] = doNotDisturb.endTime.split(':').map(Number);
-    const startTime = startH * 60 + startM;
-    const endTime = endH * 60 + endM;
-    
-    if (startTime <= endTime) {
-      if (currentTime >= startTime && currentTime <= endTime) return;
-    } else {
-      if (currentTime >= startTime || currentTime <= endTime) return;
-    }
-  }
-
-  try {
-    const audio = new Audio(notificationSoundFile);
-    audio.volume = 0.5;
-    audio.play().catch(() => {});
-  } catch {
-    // Silent fail
-  }
-};
+const getNotificationId = (notification) => notification?.id || notification?._id;
 
 export const NotificationProvider = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
@@ -114,10 +85,19 @@ export const NotificationProvider = ({ children }) => {
 
   const pollingInterval = useRef(null);
   const isInitialized = useRef(false);
+  const notificationsRef = useRef([]);
+
+  useEffect(() => {
+    notificationsRef.current = notifications;
+  }, [notifications]);
 
   // Play notification sound function
   const playNotificationSound = useCallback(() => {
-    playSound(preferences.soundEnabled, preferences.doNotDisturb);
+    playAppSound(notificationSoundFile, {
+      volume: 0.5,
+      soundEnabled: preferences.soundEnabled,
+      doNotDisturb: preferences.doNotDisturb,
+    });
   }, [preferences.soundEnabled, preferences.doNotDisturb]);
 
   // Show browser notification
@@ -134,19 +114,60 @@ export const NotificationProvider = ({ children }) => {
     [isPushEnabled],
   );
 
+  const upsertNotification = useCallback(
+    (notification, { playAlert = false } = {}) => {
+      if (!notification) {
+        return false;
+      }
+
+      const notificationId = getNotificationId(notification);
+      const alreadyExists = notificationId
+        ? notificationsRef.current.some(
+            (currentNotification) => getNotificationId(currentNotification) === notificationId,
+          )
+        : false;
+
+      setNotifications((prev) => {
+        if (!notificationId) {
+          return [notification, ...prev];
+        }
+
+        const existingNotification = prev.find(
+          (currentNotification) => getNotificationId(currentNotification) === notificationId,
+        );
+        const remainingNotifications = prev.filter(
+          (currentNotification) => getNotificationId(currentNotification) !== notificationId,
+        );
+
+        return [
+          existingNotification
+            ? { ...existingNotification, ...notification }
+            : notification,
+          ...remainingNotifications,
+        ];
+      });
+
+      if (!alreadyExists && playAlert) {
+        playNotificationSound();
+        showBrowserNotification(notification.title, {
+          body: notification.message,
+          data: notification.data,
+          tag: notificationId,
+          renotify: true,
+        });
+      }
+
+      return !alreadyExists;
+    },
+    [playNotificationSound, showBrowserNotification],
+  );
+
   // Add new notification
   const addNotification = useCallback(
     (notification) => {
-      setNotifications((prev) => [notification, ...prev]);
-      playNotificationSound();
-      showBrowserNotification(notification.title, {
-        body: notification.message,
-        data: notification.data,
-        tag: notification.id,
-        renotify: true,
-      });
+      upsertNotification(notification, { playAlert: true });
     },
-    [playNotificationSound, showBrowserNotification],
+    [upsertNotification],
   );
 
   // Mark notification as read
@@ -214,10 +235,20 @@ export const NotificationProvider = ({ children }) => {
       setPreferences(nextPreferences);
 
       try {
-        await notificationsService.updatePreferences(nextPreferences).catch(() => null);
+        const savedPreferences = await notificationsService
+          .updatePreferences(nextPreferences)
+          .catch(() => null);
+
+        if (savedPreferences) {
+          const mergedPreferences = mergePreferences(savedPreferences);
+          setPreferences(mergedPreferences);
+          return mergedPreferences;
+        }
       } catch {
         // Silent fail
       }
+
+      return nextPreferences;
     },
     [],
   );
@@ -291,11 +322,10 @@ export const NotificationProvider = ({ children }) => {
     try {
       const result = await notificationsService.getAll({ limit: 1 });
       const latestNotif = result?.notifications?.[0];
-      if (latestNotif && notifications.length > 0) {
-        const newest = notifications[0];
-        if (latestNotif._id !== newest._id && latestNotif._id !== newest.id) {
-          setNotifications((prev) => [latestNotif, ...prev.filter(n => n._id !== latestNotif._id && n.id !== latestNotif.id)]);
-          playNotificationSound();
+      if (latestNotif && notificationsRef.current.length > 0) {
+        const newest = notificationsRef.current[0];
+        if (getNotificationId(latestNotif) !== getNotificationId(newest)) {
+          upsertNotification(latestNotif, { playAlert: true });
         }
       }
     } catch {
@@ -338,15 +368,12 @@ export const NotificationProvider = ({ children }) => {
   useEffect(() => {
     if (!isAuthenticated || !user) return;
 
-    const socket = getSocket();
-    if (!socket) return;
+    const socket = connectSocket();
 
     const handleNotificationCreated = (data) => {
       const { notification } = data;
       if (notification && (notification.user === user._id || notification.user === user.id)) {
-        setNotifications((prev) => [notification, ...prev]);
-        setUnreadCount((prev) => prev + 1);
-        playNotificationSound();
+        upsertNotification(notification, { playAlert: true });
       }
     };
 
@@ -355,7 +382,7 @@ export const NotificationProvider = ({ children }) => {
     return () => {
       socket.off("notification.created", handleNotificationCreated);
     };
-  }, [isAuthenticated, user, playNotificationSound]);
+  }, [isAuthenticated, upsertNotification, user]);
 
   // Update unread count
   useEffect(() => {

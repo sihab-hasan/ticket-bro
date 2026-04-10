@@ -179,12 +179,34 @@ const persistSavedEvents = (items) => {
   window.localStorage.setItem(SAVED_EVENTS_STORAGE_KEY, JSON.stringify(items));
 };
 
-const getOrganizerId = (event) =>
-  event?.organizer?._id ||
-  event?.organizer?.id ||
-  event?.organizerProfile?.user ||
-  event?.organizerProfile?.owner ||
+const getIdentityId = (value) =>
+  value?._id ||
+  value?.id ||
+  value?.user?._id ||
+  value?.user ||
+  value?.owner ||
+  value?.userId ||
   null;
+
+const getManagerIds = (event) => {
+  const ids = new Set();
+
+  [event?.organizer, event?.organizerProfile].forEach((entry) => {
+    const id = getIdentityId(entry);
+    if (id) {
+      ids.add(String(id));
+    }
+  });
+
+  (event?.coOrganizers || []).forEach((entry) => {
+    const id = getIdentityId(entry) || entry;
+    if (id) {
+      ids.add(String(id));
+    }
+  });
+
+  return ids;
+};
 
 const getPreviewBanner = (event, user) => {
   if (!event) {
@@ -192,10 +214,8 @@ const getPreviewBanner = (event, user) => {
   }
 
   const userId = user?._id || user?.id || null;
-  const organizerId = getOrganizerId(event);
-  const isOwner = Boolean(
-    userId && organizerId && String(userId) === String(organizerId),
-  );
+  const managerIds = getManagerIds(event);
+  const isOwner = Boolean(userId && managerIds.has(String(userId)));
   const isStaff = STAFF_ROLES.has(user?.role);
   const canManage = isOwner || isStaff;
 

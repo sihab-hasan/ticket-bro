@@ -16,7 +16,12 @@ let socket = null;
  * @returns {import('socket.io-client').Socket}
  */
 export const connectSocket = () => {
-  if (socket?.connected) return socket;
+  if (socket) {
+    if (!socket.connected) {
+      socket.connect();
+    }
+    return socket;
+  }
 
   socket = io(SOCKET_URL, {
     // FIX: access token goes in auth object, NOT httpOnly cookie.
