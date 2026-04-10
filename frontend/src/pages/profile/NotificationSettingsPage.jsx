@@ -1,6 +1,6 @@
 // pages/profile/NotificationSettingsPage.jsx
 import React, { useState, useEffect } from 'react';
-import { Bell, Save } from 'lucide-react';
+import { Save } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import PageHeader from '@/components/shared/PageHeader';
 import { toast } from '@/components/shared/common';
 import { notificationsService } from '@/api';
 import Container from '@/components/layout/Container';
+import { useNotification } from '@/context/NotificationContext';
 
 const PREFS = [
   { group: 'Bookings', items: [
@@ -34,6 +35,7 @@ const PREFS = [
 const DEFAULT_PREF_VALUES = { soundEnabled: true };
 
 const NotificationSettingsPage = () => {
+  const { updatePreferences } = useNotification();
   const [prefs, setPrefs] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -52,7 +54,13 @@ const NotificationSettingsPage = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await notificationsService.updatePreferences(prefs);
+      const savedPreferences = await updatePreferences(prefs);
+      if (savedPreferences) {
+        setPrefs((currentPrefs) => ({
+          ...currentPrefs,
+          ...savedPreferences,
+        }));
+      }
       toast.success('Preferences saved');
     } catch { toast.error('Failed to save'); }
     finally { setSaving(false); }
