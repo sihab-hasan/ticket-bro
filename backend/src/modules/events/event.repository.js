@@ -9,7 +9,74 @@ const Event = require('./event.model');
 const eventPopulate = require('./event.populate');
 
 class EventRepository {
-  async create(data) { return new Event(data).save(); }
+  _buildListFilter({ status, category, organizer, managerId, visibility, isFeatured, from, to, search } = {}) {
+    const filter = { deletedAt: null };
+    const andFilters = [];
+
+    if (status) filter.status = status;
+    if (category) filter.category = category;
+    if (organizer) filter.organizer = organizer;
+    if (visibility) filter.visibility = visibility;
+    if (typeof isFeatured === 'boolean') filter.isFeatured = isFeatured;
+
+    if (managerId) {
+      andFilters.push({
+        $or: [
+          { organizer: managerId },
+          { coOrganizers: managerId },
+        ],
+      });
+    }
+
+    if (from || to) {
+      filter.startDate = {};
+      if (from) filter.startDate.$gte = new Date(from);
+      if (to) filter.startDate.$lte = new Date(to);
+    }
+
+    if (search) {
+      const re = new RegExp(search, 'i');
+      andFilters.push({
+        $or: [{ title: re }, { shortDescription: re }, { description: re }],
+      });
+    }
+
+    if (andFilters.length) {
+      filter.$and = andFilters;
+    }
+
+    return filter;
+  }
+
+  _buildUpdateDocument(data = {}) {
+    const update = {};
+    const set = {};
+    const unset = {};
+
+    Object.entries(data).forEach(([key, value]) => {
+      if (value === undefined) {
+        unset[key] = 1;
+        return;
+      }
+
+      set[key] = value;
+    });
+
+    if (Object.keys(set).length) {
+      update.$set = set;
+    }
+
+    if (Object.keys(unset).length) {
+      update.$unset = unset;
+    }
+
+    return update;
+  }
+
+  async create(data) {
+    const event = await new Event(data).save();
+    return this.findById(event._id);
+  }
 
   async findById(id) {
     return Event.findOne({ _id: id, deletedAt: null })
@@ -23,22 +90,18 @@ class EventRepository {
       .exec();
   }
 
-  async findAll({ status, category, organizer, visibility, isFeatured, from, to, page = 1, limit = 20, sort = '-createdAt', search } = {}) {
-    const filter = { deletedAt: null };
-    if (status) filter.status = status;
-    if (category) filter.category = category;
-    if (organizer) filter.organizer = organizer;
-    if (visibility) filter.visibility = visibility;
-    if (typeof isFeatured === 'boolean') filter.isFeatured = isFeatured;
-    if (from || to) {
-      filter.startDate = {};
-      if (from) filter.startDate.$gte = new Date(from);
-      if (to) filter.startDate.$lte = new Date(to);
-    }
-    if (search) {
-      const re = new RegExp(search, 'i');
-      filter.$or = [{ title: re }, { description: re }];
-    }
+  async findAll({ status, category, organizer, managerId, visibility, isFeatured, from, to, page = 1, limit = 20, sort = '-createdAt', search } = {}) {
+    const filter = this._buildListFilter({
+      status,
+      category,
+      organizer,
+      managerId,
+      visibility,
+      isFeatured,
+      from,
+      to,
+      search,
+    });
     const skip = (Number(page) - 1) * Number(limit);
     const [events, total] = await Promise.all([
       Event.find(filter)
@@ -78,11 +141,21 @@ class EventRepository {
   }
 
   async findByOrganizer(organizerId, query = {}) {
-    return this.findAll({ ...query, organizer: organizerId });
+    return this.findAll({ ...query, managerId: organizerId });
   }
 
   async updateById(id, data) {
-    return Event.findByIdAndUpdate(id, { $set: data }, { new: true, runValidators: true }).exec();
+    const update = this._buildUpdateDocument(data);
+    const updated = await Event.findByIdAndUpdate(id, update, {
+      new: true,
+      runValidators: true,
+    }).select('_id').exec();
+
+    if (!updated) {
+      return null;
+    }
+
+    return this.findById(updated._id);
   }
 
   async incrementViewCount(id) {

@@ -132,8 +132,21 @@ class EventService {
   }
 
   _isOwner(event, user) {
+    const userId = getId(user);
+    if (!userId) {
+      return false;
+    }
+
+    if (typeof event?.isManagedBy === 'function') {
+      return event.isManagedBy(userId);
+    }
+
     const organizerId = event.organizer?._id?.toString?.() || event.organizer?.toString?.();
-    return organizerId === getId(user);
+    const coOrganizerIds = Array.isArray(event?.coOrganizers)
+      ? event.coOrganizers.map((member) => member?._id?.toString?.() || member?.toString?.())
+      : [];
+
+    return organizerId === userId || coOrganizerIds.includes(userId);
   }
 
   _canViewDirectLink(event) {
@@ -173,6 +186,15 @@ class EventService {
       }
 
       payload.location = location;
+    }
+
+    if (Array.isArray(payload.coOrganizers)) {
+      const ownerId = getId(user);
+      payload.coOrganizers = [...new Set(
+        payload.coOrganizers
+          .map((member) => member?._id?.toString?.() || member?.id?.toString?.() || member?.toString?.())
+          .filter(Boolean),
+      )].filter((memberId) => memberId !== ownerId);
     }
 
     if (!isAdminLike) {

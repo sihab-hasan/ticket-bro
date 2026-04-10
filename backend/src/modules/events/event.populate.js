@@ -2,6 +2,7 @@
 
 module.exports = [
   { path: 'organizer', select: 'firstName lastName email avatar organizationName' },
+  { path: 'coOrganizers', select: 'firstName lastName email avatar organizationName' },
   {
     path: 'organizerProfile',
     select: 'user displayName slug bio logo coverImage website phone email socialLinks verificationStatus eventCount',
