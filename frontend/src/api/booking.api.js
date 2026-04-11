@@ -25,7 +25,10 @@ const bookingService = {
   cancel: (ref, data) => post(ENDPOINTS.BOOKINGS.CANCEL(ref), data || {}, { select: pickBooking }),
   requestRefund: (ref, data) =>
     post(ENDPOINTS.BOOKINGS.REFUND(ref), data || {}, { select: pickBooking }),
-  getTickets: (ref) => get(ENDPOINTS.BOOKINGS.TICKETS(ref)),
+  getTickets: (ref) =>
+    get(ENDPOINTS.BOOKINGS.TICKETS(ref), {
+      select: (payload) => ({ tickets: Array.isArray(payload?.tickets) ? payload.tickets : [] }),
+    }),
   getInvoice: (ref) => download(ENDPOINTS.BOOKINGS.INVOICE(ref)),
   getOrganizerBookings: (params) =>
     get(ENDPOINTS.BOOKINGS.ORGANIZER_LIST, { params, select: pickBookings }),

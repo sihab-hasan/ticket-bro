@@ -1,6 +1,6 @@
 // pages/payments/PaymentPage.jsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Lock, CreditCard, Wallet, ArrowRight, Shield } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,8 +17,9 @@ import Container from '@/components/layout/Container';
 
 const PaymentPage = () => {
   const navigate = useNavigate();
+  const { bookingId } = useParams();
   const [searchParams] = useSearchParams();
-  const bookingRef = searchParams.get('bookingRef') || searchParams.get('bookingId') || searchParams.get('id');
+  const bookingRef = bookingId || searchParams.get('bookingRef') || searchParams.get('bookingId') || searchParams.get('id');
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(!!bookingRef);
   const [processing, setProcessing] = useState(false);

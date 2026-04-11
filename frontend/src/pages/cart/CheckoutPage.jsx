@@ -114,8 +114,8 @@ const CheckoutPage = () => {
     cart?.subtotal ?? items.reduce((s, i) => s + Number(i?.totalPrice || 0), 0),
   );
   const discount = Number(cart?.discount ?? cart?.discountAmount ?? 0);
-  const serviceFee = subtotal > 0 ? subtotal * 0.05 : 0;
-  const total = Math.max(0, subtotal - discount + serviceFee);
+  const serviceFee = Number(cart?.serviceFee ?? 0);
+  const total = Number(cart?.total ?? Math.max(0, subtotal - discount + serviceFee));
 
   return (
     <Container aria-label="Checkout"><div className="py-5 max-w-lg mx-auto space-y-5 font-sans">
@@ -183,10 +183,12 @@ const CheckoutPage = () => {
                 <span>-{formatPrice(discount, currency)}</span>
               </div>
             )}
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Service fee</span>
-              <span>{formatPrice(serviceFee, currency)}</span>
-            </div>
+            {serviceFee > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Service fee</span>
+                <span>{formatPrice(serviceFee, currency)}</span>
+              </div>
+            )}
             <Separator />
             <div className="flex justify-between font-bold text-base">
               <span>Total</span>

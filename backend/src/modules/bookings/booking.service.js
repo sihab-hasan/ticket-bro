@@ -18,9 +18,62 @@ const ticketRepository = require('../tickets/ticket.repository');
 const ticketService = require('../tickets/ticket.service');
 const TicketType = require('../tickets/ticketType.model');
 
-const getId = (user) => user?.id || user?._id?.toString() || user?.userId;
+const ADMIN_ROLES = new Set([ROLES.ADMIN, ROLES.SUPER_ADMIN]);
+
+const getId = (user) => {
+  if (!user) {
+    return null;
+  }
+
+  if (typeof user === 'string') {
+    return user;
+  }
+
+  if (typeof user?.toString === 'function' && user?.constructor?.name === 'ObjectId') {
+    return user.toString();
+  }
+
+  return user?.id || user?._id?.toString?.() || user?.userId || null;
+};
 
 class BookingService {
+  _isAdmin(user) {
+    return ADMIN_ROLES.has(user?.role);
+  }
+
+  _isOrganizer(user) {
+    return user?.role === ROLES.ORGANIZER;
+  }
+
+  _assertBookingAccess(booking, user) {
+    if (this._isAdmin(user)) {
+      return;
+    }
+
+    const actorId = getId(user);
+
+    if (this._isOrganizer(user)) {
+      if (getId(booking.organizer) !== actorId) {
+        throw new ForbiddenError('Access denied.');
+      }
+      return;
+    }
+
+    if (getId(booking.user) !== actorId) {
+      throw new ForbiddenError('Access denied.');
+    }
+  }
+
+  _assertOrganizerOwnsBooking(booking, user) {
+    if (this._isAdmin(user)) {
+      return;
+    }
+
+    if (getId(booking.organizer) !== getId(user)) {
+      throw new ForbiddenError('Access denied.');
+    }
+  }
+
   _assertTicketOnSale(ticketType) {
     const now = Date.now();
     const salesStart = ticketType?.salesStart
@@ -209,10 +262,9 @@ class BookingService {
   }
 
   async getBookingByRef(bookingRef, user) {
-    const isAdminOrOrganizer = [ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.ORGANIZER].includes(user.role);
-    const userId = isAdminOrOrganizer ? null : getId(user);
-    const booking = await bookingRepository.findByRef(bookingRef, userId);
+    const booking = await bookingRepository.findByRef(bookingRef);
     if (!booking) throw new NotFoundError('Booking not found.');
+    this._assertBookingAccess(booking, user);
     return booking;
   }
 
@@ -264,9 +316,9 @@ class BookingService {
   }
 
   async getBookingTickets(bookingRef, user) {
-    const booking = await bookingRepository.findByRef(bookingRef, getId(user));
-    if (!booking) throw new NotFoundError('Booking not found.');
-    return { tickets: booking.items || [] };
+    const booking = await this.getBookingByRef(bookingRef, user);
+    const tickets = await ticketRepository.findByBookingId(booking._id);
+    return { tickets };
   }
 
   async getInvoice(bookingRef, user) {
@@ -285,14 +337,16 @@ class BookingService {
   async checkIn(bookingRef, staffUser) {
     const booking = await bookingRepository.findByRef(bookingRef);
     if (!booking) throw new NotFoundError('Booking not found.');
+    this._assertOrganizerOwnsBooking(booking, staffUser);
     if (booking.status === 'checked_in') throw new BadRequestError('Already checked in.');
     if (booking.status !== 'confirmed') throw new BadRequestError('Only confirmed bookings can be checked in.');
 
-    const updated = await bookingRepository.updateByRef(bookingRef, {
+    await bookingRepository.updateByRef(bookingRef, {
       status:      'checked_in',
       checkedInAt: new Date(),
       checkedInBy: getId(staffUser),
     });
+    const updated = await bookingRepository.findByRef(bookingRef);
     logger.info(`Check-in: ${bookingRef} by ${getId(staffUser)}`);
 
     // Emit real-time check-in event

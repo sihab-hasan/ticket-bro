@@ -112,11 +112,35 @@ const fmtMoney = (val, sym = "BDT") => {
   return isNaN(n) ? `${sym} 0.00` : `${sym} ${n.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
 };
 
+const formatLocationLabel = (location = {}) => {
+  const parts = [
+    location.name,
+    location.address,
+    location.city,
+    location.state,
+    location.country,
+  ].filter(Boolean);
+
+  if (parts.length) {
+    return parts.join(", ");
+  }
+
+  if (location.type === "online") {
+    return "Online event";
+  }
+
+  if (location.type === "hybrid") {
+    return "Hybrid event";
+  }
+
+  return "Venue TBA";
+};
+
 // ─── Content stream builder ───────────────────────────────────────────────────
 const buildContentStream = (invoice) => {
   const booking = invoice.booking || {};
   const event   = booking.event   || {};
-  const venue   = event.venue     || {};
+  const venue   = event.location  || event.venue || {};
   const user    = booking.user    || {};
   const items   = Array.isArray(booking.items) ? booking.items : [];
 
@@ -128,7 +152,7 @@ const buildContentStream = (invoice) => {
   const customerEmail = booking.contactEmail || user.email     || "N/A";
   const eventTitle    = event.title          || "N/A";
   const eventDate     = fmtDate(event.startDate);
-  const venueLine     = [venue.name, venue.city].filter(Boolean).join(", ") || "N/A";
+  const venueLine     = formatLocationLabel(venue);
   const subtotal      = booking.subtotal     ?? 0;
   const total         = booking.totalAmount  ?? 0;
   const payStatus     = (booking.paymentStatus || "").toUpperCase();
@@ -279,8 +303,7 @@ const buildContentStream = (invoice) => {
 // ─── PDF object / xref / trailer assembly ────────────────────────────────────
 const createObj = (id, body) => `${id} 0 obj\n${body}\nendobj\n`;
 
-const buildPdf = (invoice) => {
-  const stream    = buildContentStream(invoice);
+const buildPdfFromStream = (stream) => {
   const streamLen = Buffer.byteLength(stream, "latin1");
 
   const objects = [
@@ -326,7 +349,120 @@ const buildPdf = (invoice) => {
   ]);
 };
 
+const buildPdf = (invoice) => buildPdfFromStream(buildContentStream(invoice));
+const buildTicketPassStream = (ticket) => {
+  const event = ticket?.event || {};
+  const booking = ticket?.booking || {};
+  const attendee = ticket?.attendee || {};
+  const organizer = event?.organizerProfile || {};
+  const holderName =
+    [attendee.firstName, attendee.lastName].filter(Boolean).join(" ").trim()
+    || booking.contactName
+    || [ticket?.user?.firstName, ticket?.user?.lastName].filter(Boolean).join(" ").trim()
+    || "Guest";
+  const eventDate = fmtDate(event.startDate, true);
+  const venueLine = formatLocationLabel(event.location || {});
+  const organizerName =
+    organizer.displayName
+    || event?.organizer?.organizationName
+    || [event?.organizer?.firstName, event?.organizer?.lastName].filter(Boolean).join(" ").trim()
+    || "TicketBro Organizer";
+  const status = String(ticket?.status || "active").toUpperCase();
+
+  let s = "";
+
+  s += fillRect(0, PAGE_H - 140, PAGE_W, 140, DARK);
+  s += fillRect(0, PAGE_H - 154, PAGE_W, 14, LIME);
+  s += text("TicketBro", ML, PAGE_H - 78, { font: "F2", size: 24, rgb: LIGHT });
+  s += textRight("EVENT PASS", PAGE_W - MR, PAGE_H - 78, { font: "F2", size: 22, rgb: LIGHT });
+  s += text(
+    "Bring this pass or the in-app QR code when you arrive.",
+    ML,
+    PAGE_H - 102,
+    { font: "F1", size: 10, rgb: BORDER },
+  );
+
+  const cardX = ML;
+  const cardY = 150;
+  const cardH = 520;
+  const leftW = CONTENT_W * 0.62;
+  const rightX = cardX + leftW + 18;
+  const rightW = CONTENT_W - leftW - 18;
+
+  s += fillRect(cardX, cardY, CONTENT_W, cardH, LIGHT);
+  s += hLine(cardX, cardY + cardH, CONTENT_W, BORDER, 0.75);
+  s += hLine(cardX, cardY, CONTENT_W, BORDER, 0.75);
+  s += vLine(rightX - 9, cardY + 28, cardY + cardH - 28, BORDER, 0.75);
+
+  let leftY = cardY + cardH - 46;
+  s += text("EVENT", cardX + 18, leftY, { font: "F2", size: 8, rgb: MUTED });
+  const titleBlock = wrapText(event.title || "Event", cardX + 18, leftY - 20, leftW - 36, {
+    font: "F2",
+    size: 18,
+    rgb: DARK,
+    lineH: 22,
+  });
+  s += titleBlock.ops;
+  leftY = titleBlock.nextY - 8;
+
+  const detailRows = [
+    ["Ticket Code", ticket?.ticketCode || "N/A"],
+    ["Booking Ref", booking?.bookingRef || "N/A"],
+    ["Holder", holderName],
+    ["Ticket Type", ticket?.ticketType?.name || ticket?.ticketTypeName || "General Admission"],
+    ["Status", status],
+    ["Date", eventDate],
+    ["Venue", venueLine],
+    ["Organizer", organizerName],
+  ];
+
+  detailRows.forEach(([label, value]) => {
+    s += text(label.toUpperCase(), cardX + 18, leftY, { font: "F2", size: 7, rgb: MUTED });
+    const row = wrapText(value, cardX + 18, leftY - 16, leftW - 36, {
+      font: "F1",
+      size: 11,
+      rgb: DARK,
+      lineH: 14,
+    });
+    s += row.ops;
+    leftY = row.nextY - 8;
+  });
+
+  const qrBoxY = cardY + cardH - 180;
+  s += fillRect(rightX + 12, qrBoxY, rightW - 24, 150, "1 1 1");
+  s += hLine(rightX + 12, qrBoxY + 150, rightW - 24, BORDER, 0.75);
+  s += hLine(rightX + 12, qrBoxY, rightW - 24, BORDER, 0.75);
+  s += vLine(rightX + 12, qrBoxY, qrBoxY + 150, BORDER, 0.75);
+  s += vLine(rightX + rightW - 12, qrBoxY, qrBoxY + 150, BORDER, 0.75);
+  s += textCenter("Scan at Gate", rightX + rightW / 2, qrBoxY + 114, { font: "F2", size: 16, rgb: DARK });
+  s += textCenter("Use the QR code in the app", rightX + rightW / 2, qrBoxY + 92, { font: "F1", size: 10, rgb: MUTED });
+  s += textCenter(ticket?.ticketCode || "N/A", rightX + rightW / 2, qrBoxY + 58, { font: "F2", size: 12, rgb: DARK });
+
+  const notesY = qrBoxY - 56;
+  s += text("ENTRY NOTES", rightX + 12, notesY + 34, { font: "F2", size: 8, rgb: MUTED });
+  const notes = wrapText(
+    "Tickets are valid for one attendee. Entry staff can verify this code against the event booking record.",
+    rightX + 12,
+    notesY + 16,
+    rightW - 24,
+    { font: "F1", size: 10, rgb: DARK, lineH: 13 },
+  );
+  s += notes.ops;
+
+  s += hLine(ML, 52, CONTENT_W, BORDER, 0.5);
+  s += textCenter(
+    "Need help? support@ticketbro.com | ticketbro.com",
+    PAGE_W / 2,
+    34,
+    { font: "F1", size: 8, rgb: MUTED },
+  );
+
+  return s;
+};
+
+const generateTicketPassPDF = (ticket) => buildPdfFromStream(buildTicketPassStream(ticket));
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 const generateInvoicePDF = (invoice) => buildPdf(invoice);
 
-module.exports = { generateInvoicePDF };
+module.exports = { generateInvoicePDF, generateTicketPassPDF };
