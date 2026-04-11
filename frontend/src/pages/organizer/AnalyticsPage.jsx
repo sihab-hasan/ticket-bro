@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { BarChart3, RefreshCw, Ticket, TrendingUp, Users } from 'lucide-react';
 import { organizersService } from '@/api';
 import { getApiErrorMessage } from '@/api/client';
@@ -17,6 +17,7 @@ import PageHeader from '@/components/shared/PageHeader';
 import StatCard from '@/components/shared/StatCard';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { toast } from '@/components/shared/common';
+import { useSocket } from '@/hooks';
 import { formatPrice } from '@/utils/formatters';
 
 const BarChart = ({ data = [], color = 'bg-primary', label }) => {
@@ -64,7 +65,7 @@ const AnalyticsPage = () => {
   const [ticketStats, setTicketStats] = useState({});
   const [audience, setAudience] = useState({});
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     setLoading(true);
 
     try {
@@ -88,11 +89,35 @@ const AnalyticsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [eventFilter]);
 
   useEffect(() => {
     fetchAnalytics();
-  }, [eventFilter]);
+  }, [fetchAnalytics]);
+
+  const handleSocketEvent = useCallback((event) => {
+    if (
+      event === 'organizer:booking.new'
+      || event === 'organizer:booking.cancelled'
+      || event === 'organizer:checkin.new'
+      || event === 'organizer:revenue.update'
+      || event === 'organizer:ticket.sold'
+      || event === 'organizer:ticket.refunded'
+      || event === 'organizer:analytics.update'
+    ) {
+      fetchAnalytics();
+    }
+  }, [fetchAnalytics]);
+
+  useSocket([
+    'organizer:booking.new',
+    'organizer:booking.cancelled',
+    'organizer:checkin.new',
+    'organizer:revenue.update',
+    'organizer:ticket.sold',
+    'organizer:ticket.refunded',
+    'organizer:analytics.update',
+  ], { onEvent: handleSocketEvent });
 
   const selectedEvents = useMemo(() => {
     if (eventFilter === 'all') return events.slice(0, 5);
