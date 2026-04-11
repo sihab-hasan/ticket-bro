@@ -1,10 +1,15 @@
 'use strict';
+const mongoose = require('mongoose');
 const Booking = require('../bookings/booking.model');
 const Event   = require('../events/event.model');
 const User    = require('../users/user.model');
 const logger  = require('../../infrastructure/logger/logger');
 
 const getId = (u) => u?._id?.toString() || u?.id || u?.userId;
+const toObjectId = (value) =>
+  mongoose.Types.ObjectId.isValid(value)
+    ? new mongoose.Types.ObjectId(value)
+    : null;
 
 class AnalyticsService {
   async getOverview(userId, query = {}) {
@@ -86,7 +91,7 @@ class AnalyticsService {
     return { months: results };
   }
 
-  async getTicketStats(userId) {
+  async getTicketStats(userId, query = {}) {
     /**
      * Compute ticket statistics for all events owned by the organizer.
      * sold      – total number of tickets sold across all ticket types
@@ -95,7 +100,12 @@ class AnalyticsService {
      * checkedIn – number of tickets with status 'used'
      */
     // Fetch all event IDs for the organizer
-    const events = await Event.find({ organizer: userId, deletedAt: null }).select('_id');
+    const eventFilter = { organizer: userId, deletedAt: null };
+    if (query.eventId) {
+      eventFilter._id = query.eventId;
+    }
+
+    const events = await Event.find(eventFilter).select('_id');
     const eventIds = events.map((e) => e._id);
     if (eventIds.length === 0) return { sold: 0, available: 0, cancelled: 0, checkedIn: 0 };
     // Aggregate ticket statuses
@@ -189,7 +199,7 @@ class AnalyticsService {
     return { eventId: String(event._id), views, bookings: bookingsCount, revenue, conversionRate };
   }
 
-  async getAudience(userId) {
+  async getAudience(userId, query = {}) {
     /**
      * Compute audience statistics for the organizer's events.
      * totalAttendees – number of unique users who have booked any event
@@ -197,19 +207,90 @@ class AnalyticsService {
      * demographics – currently returns an empty object; can be extended
      *               to include demographic distribution such as age or location.
      */
-    // Get list of user IDs from bookings of organizer events
-    const attendees = await Booking.aggregate([
-      { $match: { organizer: require('mongoose').Types.ObjectId.isValid(userId) ? new (require('mongoose').Types.ObjectId)(userId) : null, deletedAt: null, paymentStatus: 'paid' } },
-      { $group: { _id: '$user', count: { $sum: 1 } } },
-    ]);
+    const eventFilter = { organizer: userId, deletedAt: null };
+    if (query.eventId) {
+      eventFilter._id = query.eventId;
+    }
+
+    const events = await Event.find(eventFilter).select('_id').lean();
+    const eventIds = events.map((event) => event._id);
+
+    if (eventIds.length === 0) {
+      return {
+        totalAttendees: 0,
+        uniqueAttendees: 0,
+        repeatAttendees: 0,
+        demographics: {},
+      };
+    }
+
+    const organizerId = toObjectId(userId);
+    const bookings = await Booking.find({
+      organizer: organizerId,
+      event: { $in: eventIds },
+      deletedAt: null,
+      paymentStatus: 'paid',
+    })
+      .select('user contactEmail contactPhone contactName bookingRef items')
+      .lean();
+
+    const attendeeCounts = new Map();
     let totalAttendees = 0;
-    let repeatAttendees = 0;
-    attendees.forEach((a) => {
-      totalAttendees += 1;
-      if (a.count > 1) repeatAttendees += 1;
+
+    const trackIdentity = (identity) => {
+      if (!identity) {
+        return;
+      }
+
+      attendeeCounts.set(identity, (attendeeCounts.get(identity) || 0) + 1);
+    };
+
+    bookings.forEach((booking) => {
+      (booking.items || []).forEach((item) => {
+        const quantity = Math.max(0, Number(item?.quantity || 0));
+        const attendees = Array.isArray(item?.attendees) ? item.attendees : [];
+
+        for (let index = 0; index < quantity; index += 1) {
+          totalAttendees += 1;
+
+          const attendee = attendees[index] || {};
+          const normalizedEmail = attendee?.email?.trim?.().toLowerCase();
+          const normalizedPhone = attendee?.phone?.trim?.();
+          const normalizedName = [attendee?.firstName, attendee?.lastName]
+            .filter(Boolean)
+            .join(' ')
+            .trim()
+            .toLowerCase();
+          const fallbackUserId =
+            booking?.user?._id?.toString?.()
+            || booking?.user?.toString?.()
+            || null;
+          const fallbackEmail = booking?.contactEmail?.trim?.().toLowerCase();
+          const fallbackPhone = booking?.contactPhone?.trim?.();
+          const fallbackName = booking?.contactName?.trim?.().toLowerCase();
+
+          const identity =
+            (normalizedEmail && `email:${normalizedEmail}`)
+            || (normalizedPhone && `phone:${normalizedPhone}`)
+            || (normalizedName && `name:${normalizedName}`)
+            || (fallbackUserId && `user:${fallbackUserId}`)
+            || (fallbackEmail && `contact:${fallbackEmail}`)
+            || (fallbackPhone && `contact-phone:${fallbackPhone}`)
+            || (fallbackName && `contact-name:${fallbackName}`)
+            || `booking:${booking.bookingRef}:${item._id || 'item'}:${index}`;
+
+          trackIdentity(identity);
+        }
+      });
     });
+
+    const uniqueAttendees = attendeeCounts.size;
+    const repeatAttendees = Array.from(attendeeCounts.values())
+      .filter((count) => count > 1)
+      .length;
+
     // Demographics stub: could compute distribution by gender, location, etc.
-    return { totalAttendees, repeatAttendees, demographics: {} };
+    return { totalAttendees, uniqueAttendees, repeatAttendees, demographics: {} };
   }
 
   // Admin-level platform analytics

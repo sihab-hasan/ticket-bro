@@ -1,7 +1,9 @@
 'use strict';
+const mongoose = require('mongoose');
 const bookingRepository = require('./booking.repository');
 const { NotFoundError, ForbiddenError, BadRequestError } = require('../../common/errors/AppError');
 const { ROLES } = require('../../common/constants/roles');
+const { invalidateCachePatterns } = require('../../common/middleware/cache.middleware');
 const logger = require('../../infrastructure/logger/logger');
 const emailService = require('../../infrastructure/mail/emailService');
 const {
@@ -37,6 +39,25 @@ const getId = (user) => {
 };
 
 class BookingService {
+  _normalizeObjectId(value) {
+    const normalizedValue =
+      value?._id?.toString?.()
+      || value?.id?.toString?.()
+      || value?.toString?.()
+      || value;
+
+    return mongoose.Types.ObjectId.isValid(normalizedValue)
+      ? new mongoose.Types.ObjectId(normalizedValue)
+      : null;
+  }
+
+  async _invalidatePublicEventCaches() {
+    await invalidateCachePatterns([
+      'http-cache:GET:*/events*',
+      'http-cache:GET:*/search*',
+    ]);
+  }
+
   _isAdmin(user) {
     return ADMIN_ROLES.has(user?.role);
   }
@@ -93,12 +114,13 @@ class BookingService {
   }
 
   async _syncEventInventorySummary(eventId) {
-    if (!eventId) {
+    const normalizedEventId = this._normalizeObjectId(eventId);
+    if (!normalizedEventId) {
       return;
     }
 
     const summary = await TicketType.aggregate([
-      { $match: { event: eventId, deletedAt: null } },
+      { $match: { event: normalizedEventId, deletedAt: null } },
       {
         $group: {
           _id: null,
@@ -109,11 +131,13 @@ class BookingService {
       },
     ]);
 
-    await Event.findByIdAndUpdate(eventId, {
+    await Event.findByIdAndUpdate(normalizedEventId, {
       totalSold: summary[0]?.sold || 0,
       totalReserved: summary[0]?.reserved || 0,
       totalCapacity: summary[0]?.capacity || 0,
     });
+
+    await this._invalidatePublicEventCaches();
   }
 
   async _buildBookingItems(eventId, items = []) {
@@ -414,7 +438,7 @@ class BookingService {
       }
     }
 
-try {
+    try {
       await this._syncEventInventorySummary(booking.event?._id || booking.event);
     } catch (err) {
       logger.error(`Error updating event inventory summary for booking ${bookingRef}: ${err.message}`);
@@ -435,6 +459,16 @@ try {
         socketEvents.emitOrganizerRevenueUpdate(organizerId, { 
           bookingRef, 
           totalAmount: confirmedBooking.totalAmount 
+        });
+        socketEvents.emitOrganizerTicketSold(organizerId, {
+          bookingRef,
+          eventId: getId(booking.event),
+          quantity: booking.items?.reduce((sum, item) => sum + Number(item.quantity || 0), 0) || 0,
+          totalAmount: confirmedBooking.totalAmount,
+        });
+        socketEvents.emitOrganizerAnalyticsUpdate(organizerId, {
+          bookingRef,
+          eventId: getId(booking.event),
         });
       }
     } catch (err) {
