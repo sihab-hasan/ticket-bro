@@ -4,19 +4,18 @@ import { Calendar, MapPin, Clock, Ticket, Radio } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Container from "@/components/layout/Container";
 import { useBrowse } from "@/hooks";
+import {
+  eventOverlapsDay,
+  eventOverlapsRange,
+  startOfDay,
+} from "@/lib/eventDates";
 
 const FALLBACK = "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&w=500&q=80";
 
-const isSameDay = (a, b) =>
-  a.getFullYear() === b.getFullYear() &&
-  a.getMonth() === b.getMonth() &&
-  a.getDate() === b.getDate();
-
-const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
 const addDays = (d, n) => new Date(d.getTime() + n * 86400000);
 
 const fmtLabel = (d) => d.toLocaleDateString("en-US", { month:"short", day:"numeric" });
-const fmtDate  = (d) => {
+const fmtDate = (d) => {
   if (!d) return "Date TBA";
   try { return new Date(d).toLocaleDateString("en-US", { weekday:"short", month:"short", day:"numeric" }); }
   catch { return ""; }
@@ -29,7 +28,7 @@ const fmtTime = (d) => {
 
 const ExploreByDate = () => {
   const navigate = useNavigate();
-  const { getUpcoming, getEvents, buildEventUrl, locationLabel } = useBrowse();
+  const { getEvents, buildEventUrl, locationLabel } = useBrowse();
 
   const [tab, setTab] = useState("today");
   const [customDate, setCustomDate] = useState(null);
@@ -38,6 +37,7 @@ const ExploreByDate = () => {
   const today     = startOfDay(new Date());
   const tomorrow  = addDays(today, 1);
   const weekEnd   = addDays(today, 7);
+  const browseEvents = getEvents();
 
   const tabs = [
     { id: "today",    label: "Today",       sublabel: fmtLabel(today)    },
@@ -47,19 +47,26 @@ const ExploreByDate = () => {
     { id: "custom",   label: "Custom Date", sublabel: customDate ? fmtLabel(customDate) : "Pick Date", isCustom: true },
   ];
 
-  const allEvents = [...getUpcoming(), ...getEvents()];
+  const allEvents = browseEvents;
 
   const filtered = useMemo(() => {
     const uniq = new Map();
-    allEvents.forEach((e) => uniq.set(e._id, e));
-    const pool = [...uniq.values()].filter((e) => e.startDate);
-    if (tab === "today")    return pool.filter((e) => isSameDay(new Date(e.startDate), today));
-    if (tab === "tomorrow") return pool.filter((e) => isSameDay(new Date(e.startDate), tomorrow));
-    if (tab === "weekend")  return pool.filter((e) => { const d = startOfDay(new Date(e.startDate)); return d >= today && d < weekEnd; });
-    if (tab === "next")     return pool.filter((e) => { const d = startOfDay(new Date(e.startDate)); return d >= weekEnd && d < addDays(today, 14); });
-    if (tab === "custom" && customDate) return pool.filter((e) => isSameDay(new Date(e.startDate), customDate));
+    allEvents.forEach((event) => {
+      const key = event?._id || event?.id || event?.slug;
+      if (key) {
+        uniq.set(String(key), event);
+      }
+    });
+    const pool = [...uniq.values()]
+      .filter((event) => event?.startDate)
+      .sort((left, right) => new Date(left.startDate) - new Date(right.startDate));
+    if (tab === "today")    return pool.filter((event) => eventOverlapsDay(event, today));
+    if (tab === "tomorrow") return pool.filter((event) => eventOverlapsDay(event, tomorrow));
+    if (tab === "weekend")  return pool.filter((event) => eventOverlapsRange(event, today, addDays(today, 6)));
+    if (tab === "next")     return pool.filter((event) => eventOverlapsRange(event, weekEnd, addDays(weekEnd, 6)));
+    if (tab === "custom" && customDate) return pool.filter((event) => eventOverlapsDay(event, customDate));
     return pool;
-  }, [tab, customDate, allEvents]);
+  }, [tab, customDate, allEvents, today, tomorrow, weekEnd]);
 
   return (
     <section className="py-12 bg-background">
@@ -135,7 +142,7 @@ const ExploreByDate = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filtered.slice(0, 6).map((ev) => (
                 <div
-                  key={ev._id}
+                  key={ev._id || ev.id || ev.slug}
                   onClick={() => navigate(buildEventUrl(ev))}
                   className="group bg-card rounded-sm overflow-hidden hover:shadow-lg cursor-pointer transition-all duration-300"
                 >

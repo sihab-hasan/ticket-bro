@@ -713,7 +713,7 @@ class EventService {
   async uploadCoverImage(slug, file, user) {
     const event = await this._getEventBySlugOrThrow(slug);
     await this._assertCanManage(event, user);
-    const url = await eventImageService.uploadCover(file.buffer, event._id.toString());
+    const url = await eventImageService.uploadCover(file, event._id.toString());
     // Delete old cover if it was a different URL (stable public_id means same URL on overwrite)
     if (event.coverImage && event.coverImage !== url) {
       await eventImageService.deleteCover(event.coverImage);
