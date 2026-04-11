@@ -37,19 +37,19 @@ class AuthRepository {
   }
 
   async updateUser(id, updates) {
-    return User.findByIdAndUpdate(id, updates, { new: true, runValidators: true }).exec();
+    return User.findByIdAndUpdate(id, updates, { returnDocument: 'after', runValidators: true }).exec();
   }
 
   async updateUserByEmail(email, updates) {
     return User.findOneAndUpdate(
       { email: email.toLowerCase(), deletedAt: null },
       updates,
-      { new: true, runValidators: true },
+      { returnDocument: 'after', runValidators: true },
     ).exec();
   }
 
   async softDeleteUser(id) {
-    return User.findByIdAndUpdate(id, { deletedAt: new Date(), isActive: false }, { new: true }).exec();
+    return User.findByIdAndUpdate(id, { deletedAt: new Date(), isActive: false }, { returnDocument: 'after' }).exec();
   }
 
   // ── Email Verification ──────────────────────────────────────────────────────
@@ -75,7 +75,7 @@ class AuthRepository {
     return User.findByIdAndUpdate(userId, {
       isEmailVerified: true,
       $unset: { emailVerificationToken: 1, emailVerificationExpires: 1 },
-    }, { new: true }).exec();
+    }, { returnDocument: 'after' }).exec();
   }
 
   // ── Password Reset ──────────────────────────────────────────────────────────
@@ -94,7 +94,7 @@ class AuthRepository {
     return User.findOneAndUpdate(
       { email: email.toLowerCase(), deletedAt: null },
       { passwordResetToken: token, passwordResetExpires: expires },
-      { new: true },
+      { returnDocument: 'after' },
     ).exec();
   }
 
@@ -106,7 +106,7 @@ class AuthRepository {
         passwordChangedAt: new Date(),
         $unset: { passwordResetToken: 1, passwordResetExpires: 1 },
       },
-      { new: true },
+      { returnDocument: 'after' },
     ).exec();
   }
 
@@ -116,7 +116,7 @@ class AuthRepository {
     return User.findByIdAndUpdate(
       userId,
       { lastLoginAt: new Date(), lastLoginIp: ipAddress, lastLoginDevice: device },
-      { new: true },
+      { returnDocument: 'after' },
     ).exec();
   }
 
@@ -147,7 +147,7 @@ class AuthRepository {
     return User.findByIdAndUpdate(
       userId,
       { twoFactorSecret: secret, twoFactorRecoveryCodes: recoveryCodes, isTwoFactorEnabled: true },
-      { new: true },
+      { returnDocument: 'after' },
     ).exec();
   }
 
@@ -155,7 +155,7 @@ class AuthRepository {
     return User.findByIdAndUpdate(
       userId,
       { isTwoFactorEnabled: false, $unset: { twoFactorSecret: 1, twoFactorRecoveryCodes: 1 } },
-      { new: true },
+      { returnDocument: 'after' },
     ).exec();
   }
 
@@ -178,7 +178,7 @@ class AuthRepository {
     return RefreshToken.findOneAndUpdate(
       { token },
       { isRevoked: true, revokedAt: new Date(), revokedReason: reason },
-      { new: true },
+      { returnDocument: 'after' },
     ).exec();
   }
 

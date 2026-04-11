@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { PANEL_META } from "@/config/panels.config";
 import { PANEL_ICON_BY_ID } from "@/config/panel-navigation.config";
 import { useAuth } from "@/context/AuthContext";
+import FloatingMessengerWidget from "@/components/shared/FloatingMessengerWidget";
 
 const getFullName = (user) => {
   if (!user) return "Workspace";
@@ -264,6 +265,8 @@ const ControlPanelLayout = ({
           </Container>
         </main>
       </div>
+
+      <FloatingMessengerWidget />
     </div>
   );
 };

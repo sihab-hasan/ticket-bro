@@ -34,11 +34,11 @@ class TicketRepository {
   }
 
   async updateById(id, data) {
-    return Ticket.findByIdAndUpdate(id, { $set: data }, { new: true }).exec();
+    return Ticket.findByIdAndUpdate(id, { $set: data }, { returnDocument: 'after' }).exec();
   }
 
   async updateByCode(ticketCode, data) {
-    return Ticket.findOneAndUpdate({ ticketCode }, { $set: data }, { new: true }).exec();
+    return Ticket.findOneAndUpdate({ ticketCode }, { $set: data }, { returnDocument: 'after' }).exec();
   }
 
   // Ticket Types
@@ -51,7 +51,7 @@ class TicketRepository {
   }
 
   async createType(data)       { return new TicketType(data).save(); }
-  async updateType(id, data)   { return TicketType.findByIdAndUpdate(id, { $set: data }, { new: true, runValidators: true }).exec(); }
+  async updateType(id, data)   { return TicketType.findByIdAndUpdate(id, { $set: data }, { returnDocument: 'after', runValidators: true }).exec(); }
   async incrementSold(id, qty) { return TicketType.findByIdAndUpdate(id, { $inc: { sold: qty } }).exec(); }
   async decrementSold(id, qty) { return TicketType.findByIdAndUpdate(id, { $inc: { sold: -qty } }).exec(); }
 
@@ -62,7 +62,7 @@ class TicketRepository {
    * @param {Number} qty - Quantity to reserve
    */
   async incrementReserved(id, qty) {
-    return TicketType.findByIdAndUpdate(id, { $inc: { reserved: qty } }, { new: true }).exec();
+    return TicketType.findByIdAndUpdate(id, { $inc: { reserved: qty } }, { returnDocument: 'after' }).exec();
   }
 
   /**
@@ -72,7 +72,7 @@ class TicketRepository {
    * @param {Number} qty - Quantity to reduce
    */
   async decrementReserved(id, qty) {
-    return TicketType.findByIdAndUpdate(id, { $inc: { reserved: -qty } }, { new: true }).exec();
+    return TicketType.findByIdAndUpdate(id, { $inc: { reserved: -qty } }, { returnDocument: 'after' }).exec();
   }
 }
 

@@ -159,11 +159,11 @@ class EventRepository {
   }
 
   async incrementViewCount(id) {
-    return Event.findByIdAndUpdate(id, { $inc: { viewCount: 1 } }, { new: true }).exec();
+    return Event.findByIdAndUpdate(id, { $inc: { viewCount: 1 } }, { returnDocument: 'after' }).exec();
   }
 
   async softDeleteById(id) {
-    return Event.findByIdAndUpdate(id, { $set: { deletedAt: new Date(), status: 'cancelled' } }, { new: true }).exec();
+    return Event.findByIdAndUpdate(id, { $set: { deletedAt: new Date(), status: 'cancelled' } }, { returnDocument: 'after' }).exec();
   }
 
   async getStats() {

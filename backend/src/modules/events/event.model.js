@@ -188,7 +188,6 @@ const eventSchema = new mongoose.Schema({
   parentEvent: {                  // set on recurring child instances
     type: mongoose.Schema.Types.ObjectId,
     ref:  'Event',
-    index: true,
   },
   agenda: [agendaItemSchema],
 
