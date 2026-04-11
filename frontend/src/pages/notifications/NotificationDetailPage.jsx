@@ -43,7 +43,7 @@ const NotificationDetailPage = () => {
     (async () => {
       try {
         const data = await notificationsService.getById(notifId);
-        setNotif(data.notification || data);
+        setNotif(data);
         if (!data.isRead) {
           await notificationsService.markRead(notifId).catch(() => {});
         }
