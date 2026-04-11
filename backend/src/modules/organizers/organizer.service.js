@@ -3,7 +3,7 @@
 const organizerRepository = require('./organizer.repository');
 const User = require('../users/user.model');
 const Event = require('../events/event.model');
-const { uploadImage, deleteImage } = require('../../infrastructure/storage/cloudinary');
+const { uploadImage, deleteImage } = require('../../infrastructure/storage/imageStorage');
 const { NotFoundError, BadRequestError } = require('../../common/errors/AppError');
 
 class OrganizerService {
@@ -194,7 +194,7 @@ class OrganizerService {
   async uploadLogo(userId, file) {
     if (!file?.buffer) throw new BadRequestError('No file buffer — check multer config.');
     const organizer = await this._ensureProfile(userId);
-    const result = await uploadImage(file.buffer, 'organizerLogo', `logo-${organizer._id}`);
+    const result = await uploadImage(file, 'organizerLogo', `logo-${organizer._id}`);
     if (organizer.logo && organizer.logo !== result.url) await deleteImage(organizer.logo);
     const updated = await organizerRepository.updateById(organizer._id, { logo: result.url });
     return this._serialiseProfile(updated, { includePrivateFields: true });
@@ -211,7 +211,7 @@ class OrganizerService {
   async uploadBanner(userId, file) {
     if (!file?.buffer) throw new BadRequestError('No file buffer — check multer config.');
     const organizer = await this._ensureProfile(userId);
-    const result = await uploadImage(file.buffer, 'organizerBanner', `banner-${organizer._id}`);
+    const result = await uploadImage(file, 'organizerBanner', `banner-${organizer._id}`);
     if (organizer.coverImage && organizer.coverImage !== result.url) await deleteImage(organizer.coverImage);
     const updated = await organizerRepository.updateById(organizer._id, { coverImage: result.url });
     return this._serialiseProfile(updated, { includePrivateFields: true });

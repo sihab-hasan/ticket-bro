@@ -3,22 +3,20 @@
 // backend/src/modules/users/avatar.service.js
 // All avatar operations now go through Cloudinary.
 
-const { uploadImage, deleteImage } = require('../../infrastructure/storage/cloudinary');
+const { uploadImage, deleteImage } = require('../../infrastructure/storage/imageStorage');
 
 class AvatarService {
   // ── Upload avatar buffer to Cloudinary ───────────────────────────────────────
-  async upload(buffer, userId, mimetype) {
-    if (!buffer) throw new Error('No file buffer provided.');
+  async upload(file, userId) {
+    if (!file?.buffer) throw new Error('No file buffer provided.');
 
-    const result = await uploadImage(buffer, 'avatar', `avatar-${userId}`);
+    const result = await uploadImage(file, 'avatar', `avatar-${userId}`);
     return result.url;
   }
 
   // ── Delete old Cloudinary avatar ─────────────────────────────────────────────
   async deleteOldAvatar(avatarUrl) {
     if (!avatarUrl) return;
-    // Only delete Cloudinary-hosted URLs, not legacy local paths
-    if (!avatarUrl.includes('res.cloudinary.com')) return;
     await deleteImage(avatarUrl);
   }
 

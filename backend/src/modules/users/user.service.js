@@ -112,7 +112,7 @@ class UserService {
     avatarService.validateFile(file);
     const existing = await userRepository.findById(id, 'avatar');
     // Upload to Cloudinary (overwrites previous with same public_id)
-    const avatarUrl = await avatarService.upload(file.buffer, id, file.mimetype);
+    const avatarUrl = await avatarService.upload(file, id);
     // Delete old avatar if it was from a different public_id (shouldn't happen with overwrite, but safe)
     if (existing?.avatar && existing.avatar !== avatarUrl) {
       await avatarService.deleteOldAvatar(existing.avatar);

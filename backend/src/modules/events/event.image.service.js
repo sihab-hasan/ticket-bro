@@ -9,33 +9,33 @@
  *   - delete all images when event is deleted
  */
 
-const { uploadImage, deleteImage } = require('../../infrastructure/storage/cloudinary');
+const { uploadImage, deleteImage } = require('../../infrastructure/storage/imageStorage');
 
 class EventImageService {
   /**
    * Upload (or replace) the cover image for an event.
    * Uses a stable public_id so the CDN URL stays the same on re-upload.
-   * @param {Buffer}  buffer    multer memoryStorage buffer
+   * @param {object}  file      multer file object
    * @param {string}  eventId   MongoDB _id string
-   * @returns {Promise<string>} Cloudinary secure_url
+   * @returns {Promise<string>} Public image URL
    */
-  async uploadCover(buffer, eventId) {
-    if (!buffer) throw new Error('No file buffer provided for cover image.');
-    const result = await uploadImage(buffer, 'eventCover', `cover-${eventId}`);
+  async uploadCover(file, eventId) {
+    if (!file?.buffer) throw new Error('No file buffer provided for cover image.');
+    const result = await uploadImage(file, 'eventCover', `cover-${eventId}`);
     return result.url;
   }
 
   /**
    * Upload multiple gallery images for an event.
    * Each gets a unique public_id using a timestamp suffix.
-   * @param {Buffer[]} buffers  Array of multer buffer objects: [{ buffer, originalname, mimetype }]
+   * @param {object[]} files    Array of multer file objects
    * @param {string}   eventId
-   * @returns {Promise<string[]>} Array of Cloudinary secure_urls
+   * @returns {Promise<string[]>} Array of public image URLs
    */
-  async uploadGallery(buffers, eventId) {
-    if (!buffers || buffers.length === 0) return [];
-    const uploads = buffers.map((file, i) =>
-      uploadImage(file.buffer, 'eventGallery', `gallery-${eventId}-${Date.now()}-${i}`)
+  async uploadGallery(files, eventId) {
+    if (!files || files.length === 0) return [];
+    const uploads = files.map((file, i) =>
+      uploadImage(file, 'eventGallery', `gallery-${eventId}-${Date.now()}-${i}`)
     );
     const results = await Promise.all(uploads);
     return results.map((r) => r.url);
