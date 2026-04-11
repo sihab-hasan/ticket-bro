@@ -123,14 +123,21 @@ const normalizeOrganizer = (organizer, organizerProfile) => {
     // userId = the User account _id (needed to open a chat conversation)
     userId: userAccountId,
     name,
+    displayName: organizerProfile?.displayName || organizer?.displayName || name,
     slug: organizerProfile?.slug || organizer?.slug || organizerProfile?._id || organizer?._id,
     avatar: organizerProfile?.logo || organizer?.avatar || null,
+    cover: organizerProfile?.coverImage || organizer?.coverImage || null,
     bio: organizerProfile?.bio || organizer?.bio || "",
     email: organizerProfile?.email || organizer?.email || "",
     phone: organizerProfile?.phone || organizer?.phone || "",
     website: organizerProfile?.website || organizer?.website || "",
+    verificationStatus:
+      organizerProfile?.verificationStatus ||
+      organizer?.verificationStatus ||
+      (organizer?.isVerified ? "verified" : "unverified"),
     isVerified:
       organizerProfile?.verificationStatus === "verified" ||
+      organizer?.verificationStatus === "verified" ||
       organizer?.isVerified ||
       false,
     socials:

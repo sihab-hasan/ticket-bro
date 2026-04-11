@@ -19,6 +19,7 @@ const subcategoryRoutes = require("./modules/subcategories/subcategory.routes");
 const eventTypeRoutes = require("./modules/eventTypes/eventTypes.routes");
 const eventRoutes = require("./modules/events/event.routes");
 const ticketRoutes = require("./modules/tickets/ticket.routes");
+const ticketController = require("./modules/tickets/ticket.controller");
 const bookingRoutes = require("./modules/bookings/booking.routes");
 const cartRoutes = require("./modules/cart/cart.routes");
 const paymentRoutes = require("./modules/payments/payment.routes");
@@ -154,6 +155,8 @@ router.use("/events", eventRoutes);
 //   User reads own tickets — System issues — Organizer validates
 //   Require verified email for all ticket operations
 // ════════════════════════════════════════════════════════════════════════════
+router.get("/tickets/verify/:code", (req, res, next) =>
+  ticketController.verifyPublicTicket(req, res, next));
 router.use("/tickets", authenticate, requireEmailVerified, ticketRoutes);
 
 // GET    /tickets                                 user — my tickets

@@ -114,6 +114,7 @@ export const ENDPOINTS = {
 
   TICKETS: {
     LIST: "/tickets",
+    PUBLIC_VERIFY: (code) => `/tickets/verify/${code}`,
     DETAIL: (code) => `/tickets/${code}`,
     DOWNLOAD: (code) => `/tickets/${code}/download`,
     VALIDATE: (code) => `/tickets/${code}/validate`,

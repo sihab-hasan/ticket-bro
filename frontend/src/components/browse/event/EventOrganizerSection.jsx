@@ -86,6 +86,15 @@ const EventOrganizerSection = ({ event }) => {
               </p>
               {organizer.isVerified && <BadgeCheck size={15} className="text-foreground shrink-0" />}
             </div>
+            {organizer.isVerified && (
+              <span
+                className="mt-2 inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-green-700"
+                style={{ fontFamily: "var(--font-sans)" }}
+              >
+                <BadgeCheck size={11} />
+                Trusted Organizer
+              </span>
+            )}
             <div className="mt-0.5 flex flex-wrap items-center gap-3 text-xs text-muted-foreground" style={{ fontFamily: "var(--font-sans)" }}>
               {stats.map(({ label, value }) => (
                 <span key={label}>{value} {label}</span>

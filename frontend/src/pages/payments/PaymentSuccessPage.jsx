@@ -24,6 +24,7 @@ const PaymentSuccessPage = () => {
         </div>
       )}
       <div className="flex flex-col w-full max-w-xs gap-2">
+        {ref && <Link to={ROUTES.TICKETS.DOWNLOAD(ref)}><Button className="w-full font-bold">View Tickets <ArrowRight className="h-4 w-4 ml-2" /></Button></Link>}
         <Link to={ROUTES.BOOKINGS.ROOT}><Button className="w-full font-bold">View My Bookings <ArrowRight className="h-4 w-4 ml-2" /></Button></Link>
         <Link to={ROUTES.BROWSE.ROOT}><Button variant="ghost" className="w-full text-muted-foreground">Browse More Events</Button></Link>
       </div>

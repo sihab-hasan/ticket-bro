@@ -23,8 +23,15 @@ const Field = ({ label, required, children }) => (
   </div>
 );
 
+const sanitizeAttendee = (attendee = {}, fallback = {}) => ({
+  firstName: attendee.firstName?.trim() || fallback.firstName || 'Guest',
+  lastName: attendee.lastName?.trim() || fallback.lastName || '',
+  email: attendee.email?.trim() || fallback.email || '',
+  phone: attendee.phone?.trim() || fallback.phone || '',
+});
+
 const TicketBookingPage = () => {
-  const { ticketId: eventId } = useParams(); // route param is ticketId (treated as bookingId for payment)
+  const { ticketId: eventParam } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [cart, setCart] = useState(null);
@@ -68,15 +75,39 @@ const TicketBookingPage = () => {
         setSubmitting(false);
         return;
       }
-      // Derive event id from the first cart item (cart items should all belong to the same event)
-      const eventIdActual = currentCart.items[0]?.event?._id || currentCart.items[0]?.event || eventId;
-      // Build booking items array using authoritative ticketType IDs and quantities
-      const bookingItems = currentCart.items.map((item) => ({
-        ticketTypeId: item?.ticketType?._id || item?.ticketType || item?.ticketTypeId,
-        quantity: Number(item?.quantity ?? 0),
-        seats: [],
-        attendees: [],
-      }));
+      const primaryAttendee = sanitizeAttendee(
+        {
+          firstName: form.firstName,
+          lastName: form.lastName,
+          email: form.email,
+          phone: form.phone,
+        },
+        { firstName: 'Guest', lastName: '', email: form.email, phone: form.phone },
+      );
+      const attendeeQueue = [
+        primaryAttendee,
+        ...form.attendees.map((attendee) => sanitizeAttendee(attendee, primaryAttendee)),
+      ];
+      const eventIdActual =
+        currentCart.items[0]?.event?._id ||
+        currentCart.items[0]?.event ||
+        eventParam;
+      let attendeeOffset = 0;
+      const bookingItems = currentCart.items.map((item) => {
+        const quantity = Number(item?.quantity ?? 0);
+        const attendees = attendeeQueue
+          .slice(attendeeOffset, attendeeOffset + quantity)
+          .map((attendee) => sanitizeAttendee(attendee, primaryAttendee));
+
+        attendeeOffset += quantity;
+
+        return {
+          ticketTypeId: item?.ticketType?._id || item?.ticketType || item?.ticketTypeId,
+          quantity,
+          seats: [],
+          attendees,
+        };
+      });
       // Create booking on the backend; this will also reserve inventory
       const booking = await bookingService.create({
         eventId: eventIdActual,

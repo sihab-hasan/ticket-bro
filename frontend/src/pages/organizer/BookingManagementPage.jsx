@@ -8,7 +8,7 @@ import {
   RefreshCw,
   Users,
 } from 'lucide-react';
-import { bookingService } from '@/api';
+import { bookingService, ticketsService } from '@/api';
 import { getApiErrorMessage } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +31,12 @@ import { toast } from '@/components/shared/common';
 import { formatDate, formatPrice } from '@/utils/formatters';
 
 const LIMIT = 15;
+const isTicketCode = (value = '') => /^TK-/i.test(value.trim());
+const getTicketHolderName = (ticket) =>
+  [ticket?.attendee?.firstName, ticket?.attendee?.lastName].filter(Boolean).join(' ').trim() ||
+  ticket?.booking?.contactName ||
+  [ticket?.user?.firstName, ticket?.user?.lastName].filter(Boolean).join(' ').trim() ||
+  'Guest';
 
 const BookingManagementPage = () => {
   const [bookings, setBookings] = useState([]);
@@ -90,19 +96,36 @@ const BookingManagementPage = () => {
     setCheckInLoading(true);
 
     try {
-      const booking = await bookingService.checkIn(ref);
-      setCheckInResult({
-        success: true,
-        message: 'Check-in successful!',
-        booking,
-      });
+      if (isTicketCode(ref)) {
+        const ticket = await ticketsService.validate(ref);
+        setCheckInResult({
+          success: true,
+          message: 'Ticket validated successfully!',
+          booking: ticket?.booking || null,
+          attendee: getTicketHolderName(ticket),
+          meta: ticket?.ticketCode,
+        });
+        toast.success('Ticket validated');
+      } else {
+        const booking = await bookingService.checkIn(ref);
+        setCheckInResult({
+          success: true,
+          message: 'Booking check-in successful!',
+          booking,
+          attendee:
+            `${booking?.user?.firstName || ''} ${booking?.user?.lastName || ''}`.trim() ||
+            booking?.contactName ||
+            'Attendee',
+          meta: booking?.bookingRef || ref,
+        });
+        toast.success('Attendee checked in');
+      }
       setCheckInCode('');
-      toast.success('Attendee checked in');
       fetchBookings();
     } catch (error) {
       setCheckInResult({
         success: false,
-        message: getApiErrorMessage(error, 'Invalid ticket code'),
+        message: getApiErrorMessage(error, 'Invalid ticket code or booking reference'),
       });
     } finally {
       setCheckInLoading(false);
@@ -255,10 +278,10 @@ const BookingManagementPage = () => {
             }`}
           >
             {checkInResult.success ? 'OK' : 'ERR'} {checkInResult.message}
-            {checkInResult.success && checkInResult.booking && (
+            {checkInResult.success && (checkInResult.attendee || checkInResult.meta) && (
               <span className="ml-2 text-xs text-muted-foreground">
-                {checkInResult.booking.user?.firstName}{' '}
-                {checkInResult.booking.user?.lastName}
+                {checkInResult.attendee}
+                {checkInResult.meta ? ` - ${checkInResult.meta}` : ''}
               </span>
             )}
           </div>

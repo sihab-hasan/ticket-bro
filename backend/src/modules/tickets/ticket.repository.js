@@ -2,21 +2,33 @@
 const Ticket     = require('./ticket.model');
 const TicketType = require('./ticketType.model');
 
+const ticketEventPopulate = {
+  path: 'event',
+  select: 'title slug startDate endDate location coverImage organizer organizerProfile',
+  populate: {
+    path: 'organizerProfile',
+    select: 'displayName slug verificationStatus verifiedAt logo',
+  },
+};
+
 class TicketRepository {
   async create(data)   { return new Ticket(data).save(); }
   async createMany(arr){ return Ticket.insertMany(arr); }
 
   async findByCode(ticketCode) {
     return Ticket.findOne({ ticketCode, deletedAt: null })
-      .populate('event', 'title slug startDate endDate location')
+      .populate(ticketEventPopulate)
+      .populate('booking', 'bookingRef contactName contactEmail contactPhone status')
       .populate('user', 'firstName lastName email')
-      .populate('ticketType')
+      .populate('ticketType', 'name type')
       .select('+qrCode').exec();
   }
 
   async findByBookingId(bookingId) {
     return Ticket.find({ booking: bookingId, deletedAt: null })
-      .populate('event', 'title slug startDate')
+      .populate(ticketEventPopulate)
+      .populate('user', 'firstName lastName email')
+      .populate('ticketType', 'name type')
       .select('+qrCode').lean();
   }
 

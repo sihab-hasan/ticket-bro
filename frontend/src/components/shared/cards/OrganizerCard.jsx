@@ -33,6 +33,12 @@ const OrganizerCard = ({ organizer, variant = "card", onFollow, className }) => 
             {organizer.name}
             {organizer.isVerified && <BadgeCheck className="size-3.5 text-foreground shrink-0" />}
           </p>
+          {organizer.isVerified && (
+            <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-bold text-green-700">
+              <BadgeCheck className="size-3" />
+              Trusted Organizer
+            </span>
+          )}
           <p className="text-xs text-muted-foreground">{organizer.eventCount ?? 0} events</p>
         </div>
       </Link>
@@ -76,6 +82,12 @@ const OrganizerCard = ({ organizer, variant = "card", onFollow, className }) => 
             {organizer.isVerified && <BadgeCheck className="size-3.5 shrink-0" />}
           </h3>
         </Link>
+        {organizer.isVerified && (
+          <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-bold text-green-700">
+            <BadgeCheck className="size-3" />
+            Trusted Organizer
+          </span>
+        )}
 
         {organizer.bio && (
           <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{organizer.bio}</p>

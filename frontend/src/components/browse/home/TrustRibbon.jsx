@@ -1,17 +1,37 @@
-import React, { useState } from "react";
-import { ShieldCheck, QrCode, Lock, X, ArrowRight, Shield } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  BadgeCheck,
+  Building2,
+  CheckCircle2,
+  CreditCard,
+  Lock,
+  QrCode,
+  Shield,
+  ShieldCheck,
+  X,
+} from "lucide-react";
 import Container from "@/components/layout/Container";
+import { ticketsService } from "@/api";
+import { getApiErrorMessage } from "@/api/client";
+import { ROUTES } from "@/app/AppRoutes";
+import useBrowse from "@/hooks/useBrowse";
+import OrganizerCard from "@/components/shared/cards/OrganizerCard";
 
 const TrustRibbon = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(null);
+  const [ticketCode, setTicketCode] = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [verification, setVerification] = useState(null);
+  const { getEvents } = useBrowse();
 
   const trustDetails = {
     qr: {
       title: "Anti-Fraud Ticket Verification",
       description:
-        "Every ticket has a unique hash. Enter yours to verify authenticity and prevent scalping.",
-      placeholder: "TKT-2026-XXXX",
-      button: "Verify Now",
+        "Every ticket can be checked against the live booking record before someone buys or scans it.",
+      placeholder: "TK-XXXXXXXXXXXX",
       color: "border-green-500/30",
       accent: "bg-green-500",
       lightAccent: "bg-green-500/10",
@@ -20,24 +40,75 @@ const TrustRibbon = () => {
     verify: {
       title: "Verified Organizer Network",
       description:
-        "We solve the 'unreliable registration' problem by vetting every host before they can list events.",
-      button: "Host Standards",
+        "Trusted organizers are shown with a visible badge so attendees can spot verified hosts before booking.",
       color: "border-blue-500/30",
       accent: "bg-blue-500",
       lightAccent: "bg-blue-500/10",
       text: "text-blue-600 dark:text-blue-400",
     },
     secure: {
-      title: "Encrypted Payments",
+      title: "Protected Payments",
       description:
-        "Using SSL encryption to ensure your personal data and payments are 100% secure.",
-      button: "Security Docs",
-      color: "border-purple-500/30",
-      accent: "bg-purple-500",
-      lightAccent: "bg-purple-500/10",
-      text: "text-purple-600 dark:text-purple-400",
+        "Checkout totals, payment verification, and booking confirmation stay in sync so buyers see the same protected amount end to end.",
+      color: "border-amber-500/30",
+      accent: "bg-amber-500",
+      lightAccent: "bg-amber-500/10",
+      text: "text-amber-600 dark:text-amber-400",
     },
   };
+
+  const trustedOrganizers = useMemo(() => {
+    const seen = new Map();
+
+    for (const event of getEvents()) {
+      const organizer = event?.organizerProfile || event?.organizer;
+      const key = organizer?.slug || organizer?.id || organizer?._id;
+
+      if (!key || !organizer?.isVerified) {
+        continue;
+      }
+
+      const current = seen.get(key) || {
+        ...organizer,
+        eventCount: 0,
+      };
+
+      current.eventCount += 1;
+      seen.set(key, current);
+    }
+
+    return [...seen.values()]
+      .sort((a, b) => (b.eventCount || 0) - (a.eventCount || 0))
+      .slice(0, 6);
+  }, [getEvents]);
+
+  const handleVerifyTicket = async () => {
+    const code = ticketCode.trim().toUpperCase();
+    if (!code) {
+      setVerification({
+        success: false,
+        message: "Enter a ticket code to verify it.",
+      });
+      return;
+    }
+
+    setVerifying(true);
+
+    try {
+      const ticket = await ticketsService.verifyPublic(code);
+      setVerification({ success: true, ticket });
+    } catch (error) {
+      setVerification({
+        success: false,
+        message: getApiErrorMessage(error, "We could not verify that ticket."),
+      });
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const verifiedTicket = verification?.ticket;
+  const ticketLocation = verifiedTicket?.event?.location || {};
 
   return (
     <div className="w-full bg-white dark:bg-[#0a0a0a] border-y border-slate-200 dark:border-white/5 transition-all duration-500 ease-in-out">
@@ -154,18 +225,139 @@ const TrustRibbon = () => {
                       <input
                         type="text"
                         autoFocus
+                        value={ticketCode}
+                        onChange={(event) => setTicketCode(event.target.value.toUpperCase())}
                         placeholder={trustDetails[activeTab].placeholder}
                         className="bg-white dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-4 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500/50 w-full lg:w-72 transition-all shadow-inner"
+                        onKeyDown={(event) => event.key === "Enter" && handleVerifyTicket()}
                       />
                     )}
                     <button
+                      onClick={
+                        activeTab === "qr"
+                          ? handleVerifyTicket
+                          : () =>
+                              navigate(
+                                activeTab === "verify"
+                                  ? ROUTES.BROWSE.ROOT
+                                  : ROUTES.CART.CHECKOUT,
+                              )
+                      }
                       className={`w-full sm:w-auto px-8 py-4 ${trustDetails[activeTab].accent} text-white font-bold rounded-2xl hover:brightness-110 hover:shadow-lg active:scale-95 transition-all flex items-center justify-center gap-3 whitespace-nowrap`}
                     >
-                      {trustDetails[activeTab].button}
-                      <ArrowRight size={18} />
+                      {activeTab === "qr" ? (verifying ? "Verifying..." : "Verify Ticket") : activeTab === "verify" ? "Trusted Hosts" : "Protected Checkout"}
                     </button>
                   </div>
                 </div>
+
+                {activeTab === "qr" && verification && (
+                  <div className={`mt-6 rounded-3xl border p-5 ${verification.success ? "border-green-500/20 bg-green-500/5" : "border-red-500/20 bg-red-500/5"}`}>
+                    {verification.success ? (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 text-sm font-bold text-green-700 dark:text-green-300">
+                          <CheckCircle2 size={18} />
+                          {verifiedTicket?.isValid ? "Valid ticket found" : "Ticket found with a non-active status"}
+                        </div>
+                        <div className="grid gap-3 md:grid-cols-2 text-sm text-slate-700 dark:text-slate-200">
+                          <div>
+                            <p className="text-[11px] uppercase tracking-[0.15em] text-slate-400">Event</p>
+                            <p className="font-semibold">{verifiedTicket?.event?.title}</p>
+                          </div>
+                          <div>
+                            <p className="text-[11px] uppercase tracking-[0.15em] text-slate-400">Attendee</p>
+                            <p className="font-semibold">{verifiedTicket?.attendeeName}</p>
+                          </div>
+                          <div>
+                            <p className="text-[11px] uppercase tracking-[0.15em] text-slate-400">Ticket</p>
+                            <p className="font-semibold">{verifiedTicket?.ticketCode}</p>
+                          </div>
+                          <div>
+                            <p className="text-[11px] uppercase tracking-[0.15em] text-slate-400">Status</p>
+                            <p className="font-semibold capitalize">{verifiedTicket?.status}</p>
+                          </div>
+                          <div>
+                            <p className="text-[11px] uppercase tracking-[0.15em] text-slate-400">Organizer</p>
+                            <p className="font-semibold inline-flex items-center gap-1.5">
+                              {verifiedTicket?.organizer?.name}
+                              {verifiedTicket?.organizer?.isTrusted && <BadgeCheck size={14} className="text-green-600" />}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[11px] uppercase tracking-[0.15em] text-slate-400">Location</p>
+                            <p className="font-semibold">
+                              {[ticketLocation.name, ticketLocation.city, ticketLocation.country].filter(Boolean).join(", ") || "Online event"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm font-medium text-red-600 dark:text-red-300">{verification.message}</p>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === "verify" && (
+                  <div className="mt-6 space-y-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        Verified organizers are surfaced with a trusted badge across public event cards and event pages.
+                      </p>
+                      <Link
+                        to={ROUTES.BROWSE.ROOT}
+                        className="inline-flex items-center gap-2 rounded-2xl border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm font-semibold text-blue-700 dark:text-blue-300"
+                      >
+                        <Building2 size={16} />
+                        Browse Events
+                      </Link>
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                      {trustedOrganizers.length > 0 ? (
+                        trustedOrganizers.map((organizer) => (
+                          <OrganizerCard
+                            key={organizer.slug || organizer.id || organizer._id}
+                            organizer={organizer}
+                            variant="compact"
+                          />
+                        ))
+                      ) : (
+                        <div className="rounded-2xl border border-dashed border-slate-300 px-5 py-6 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
+                          Verified organizers will appear here as soon as published trusted hosts are available.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === "secure" && (
+                  <div className="mt-6 grid gap-3 md:grid-cols-3">
+                    {[
+                      {
+                        title: "Exact totals",
+                        copy: "Checkout and payment now use the real backend total instead of a made-up service charge.",
+                        icon: CreditCard,
+                      },
+                      {
+                        title: "Verified payment state",
+                        copy: "Tickets are only generated after the booking payment is confirmed and marked paid.",
+                        icon: ShieldCheck,
+                      },
+                      {
+                        title: "Encrypted handoff",
+                        copy: "Payment intent creation, verification, and booking confirmation are chained together securely.",
+                        icon: Lock,
+                      },
+                    ].map(({ title, copy, icon: Icon }) => (
+                      <div key={title} className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4">
+                        <div className="mb-3 inline-flex rounded-2xl bg-amber-500/15 p-2 text-amber-700 dark:text-amber-300">
+                          <Icon size={18} />
+                        </div>
+                        <h5 className="text-sm font-bold text-slate-900 dark:text-white">{title}</h5>
+                        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{copy}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
