@@ -19,6 +19,7 @@ import {
 } from "@/utils/event-card";
 import Container from "@/components/layout/Container";
 import { useBrowse } from "@/hooks";
+import { formatEventDateSpanLabel, getEventDaysInMonth } from "@/lib/eventDates";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -38,18 +39,18 @@ const CalendarSection = () => {
   const cells = Array.from({ length: firstDay + daysInMonth }, (_, i) => i < firstDay ? null : i - firstDay + 1);
   while (cells.length % 7 !== 0) cells.push(null);
 
-  // Group events by the day of the month using their actual start dates.
-  // Only events with a valid startDate will appear on the calendar.
   const eventsByDay = {};
   events.forEach((e) => {
-    // If the event has a startDate, parse it into a Date object.
-    const dt = e.startDate ? new Date(e.startDate) : null;
-    if (!dt || Number.isNaN(dt.getTime())) return;
-    // Only include events occurring in the currently displayed month/year.
-    if (dt.getMonth() !== month || dt.getFullYear() !== year) return;
-    const day = dt.getDate();
-    if (!eventsByDay[day]) eventsByDay[day] = [];
-    eventsByDay[day].push(e);
+    getEventDaysInMonth(e, year, month).forEach((day) => {
+      if (!eventsByDay[day]) {
+        eventsByDay[day] = [];
+      }
+      eventsByDay[day].push(e);
+    });
+  });
+
+  Object.values(eventsByDay).forEach((dayEvents) => {
+    dayEvents.sort((left, right) => new Date(left.startDate) - new Date(right.startDate));
   });
 
   const selectedEvents = eventsByDay[selectedDay] || [];
@@ -134,6 +135,7 @@ const CalendarSection = () => {
                     const href = getEventUrl(e);
                     const image = getEventImage(e);
                     const title = e?.title || "Untitled";
+                    const scheduleLabel = formatEventDateSpanLabel(e, "en-BD");
                     const time = e?.startDate
                       ? new Date(e.startDate).toLocaleTimeString("en-BD", {
                           hour: "numeric",
@@ -173,6 +175,15 @@ const CalendarSection = () => {
                             {title}
                             {verified && <BadgeCheck size={11} className="inline ml-1" />}
                           </h4>
+                          <div
+                            className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5"
+                            style={{ fontFamily: "var(--font-sans)" }}
+                          >
+                            <span className="flex items-center gap-0.5">
+                              <Calendar size={9} />
+                              {scheduleLabel}
+                            </span>
+                          </div>
                           <div
                             className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5"
                             style={{ fontFamily: "var(--font-sans)" }}

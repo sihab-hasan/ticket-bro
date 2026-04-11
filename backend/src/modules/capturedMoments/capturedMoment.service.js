@@ -2,7 +2,7 @@
 
 const path = require('path');
 const CapturedMoment = require('./capturedMoment.model');
-const { uploadImage } = require('../../infrastructure/storage/cloudinary');
+const { uploadImage } = require('../../infrastructure/storage/imageStorage');
 const { invalidateCachePatterns } = require('../../common/middleware/cache.middleware');
 const {
   BadRequestError,
@@ -151,7 +151,7 @@ class CapturedMomentService {
 
     for (const [index, file] of files.entries()) {
       const uploadResult = await uploadImage(
-        file.buffer,
+        file,
         'capturedMoment',
         `moment-${uploaderId}-${Date.now()}-${index}`,
       );

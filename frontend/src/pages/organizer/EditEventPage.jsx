@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import Container from '@/components/layout/Container';
 import PageHeader from '@/components/shared/PageHeader';
 import ImagePicker from '@/components/shared/ImagePicker';
 import { ConfirmDialog, StatusBadge } from '@/components/shared/StatusBadge';
@@ -130,6 +131,9 @@ const EditEventPage = () => {
       setLoading(true);
       try {
         const currentEvent = await eventsService.getEventBySlug(eventId);
+        if (!currentEvent) {
+          throw new Error('Event not found');
+        }
         if (!canManageEvent(currentEvent, user)) {
           toast.error('You do not have permission to manage this event.');
           navigate(ROUTES.ORGANIZER.EVENTS);
@@ -188,9 +192,7 @@ const EditEventPage = () => {
     .filter(Boolean);
 
   const validateForSave = () => {
-    const nextErrors = isDraftLikeStatus
-      ? createDraftErrors(form)
-      : createReviewErrors(form, { requireTickets: false });
+    const nextErrors = createDraftErrors(form);
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
@@ -201,9 +203,16 @@ const EditEventPage = () => {
     return Object.keys(nextErrors).length === 0;
   };
 
+  const syncRouteToLatestEvent = (updatedEvent) => {
+    const nextSlug = updatedEvent?.slug;
+    if (nextSlug && nextSlug !== eventId) {
+      navigate(ROUTES.ORGANIZER.EDIT_EVENT(nextSlug), { replace: true });
+    }
+  };
+
   const handleSave = async () => {
     if (!validateForSave()) {
-      toast.error(isDraftLikeStatus ? 'Please fix the draft errors before saving' : 'Please complete the required event details');
+      toast.error('Please fix the highlighted event fields before saving');
       return;
     }
     setSaving(true);
@@ -219,6 +228,7 @@ const EditEventPage = () => {
         }
       } catch (imageError) {
         syncEventMediaState(updatedEvent || event);
+        syncRouteToLatestEvent(updatedEvent || event);
         broadcastBrowseRefresh({
           slug: updatedEvent?.slug || eventKey,
           reason: 'event-updated',
@@ -228,6 +238,7 @@ const EditEventPage = () => {
       }
 
       syncEventMediaState(latestEvent);
+      syncRouteToLatestEvent(latestEvent);
       broadcastBrowseRefresh({
         slug: latestEvent?.slug || eventKey,
         reason: 'event-updated',
