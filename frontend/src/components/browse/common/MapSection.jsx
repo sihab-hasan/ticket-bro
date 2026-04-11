@@ -5,6 +5,7 @@ import { MapPin, Navigation, Layers } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import { useBrowse } from "@/hooks";
+import { useLocation } from "@/context/LocationContext";
 import SectionShell from "./SectionShell";
 
 // Fix default marker icon issue with webpack
@@ -55,33 +56,37 @@ const MapController = ({ center }) => {
 
 const MapSection = () => {
   const { getNearby, locationLabel, locationFlag, config, level, buildEventUrl } = useBrowse();
+  const { selectedLocation } = useLocation();
   const events = getNearby();
   const [activeEvent, setActiveEvent] = useState(null);
   const title = level === "root" ? `Events Map — ${locationLabel}` : `${config.label} Map`;
 
-  // Default center (Dhaka, Bangladesh)
-  const defaultCenter = [23.8103, 90.4125];
-  const center = defaultCenter;
+  const eventMarkers = events
+    .filter((event) => event.location?.latLng)
+    .slice(0, 10)
+    .map((event) => ({
+      id: event.id || event._id,
+      title: event.title,
+      priceLabel: event.priceLabel,
+      location: event.location?.name || event.location?.city || "Venue TBA",
+      lat: event.location.latLng.lat,
+      lng: event.location.latLng.lng,
+      url: buildEventUrl(event),
+      image: event.coverImage,
+    }));
 
-  if (!events.length) {
+  if (!eventMarkers.length) {
     return null;
   }
 
-  const eventMarkers = events.slice(0, 10).map((e) => ({
-    id: e.id,
-    title: e.title,
-    priceLabel: e.priceLabel,
-    location: e.location?.name || e.location?.city || "Venue TBA",
-    lat: e.location?.coordinates?.lat || defaultCenter[0] + (Math.random() - 0.5) * 0.1,
-    lng: e.location?.coordinates?.lng || defaultCenter[1] + (Math.random() - 0.5) * 0.1,
-    url: buildEventUrl(e),
-    image: e.coverImage
-  }));
+  const center = selectedLocation?.coords
+    ? [selectedLocation.coords.lat, selectedLocation.coords.lng]
+    : [eventMarkers[0].lat, eventMarkers[0].lng];
 
   return (
     <SectionShell
       title={title}
-      subtitle={`${locationFlag} ${events.length} events near you in ${locationLabel}`}
+      subtitle={`${locationFlag} ${eventMarkers.length} mapped events in ${locationLabel}`}
       icon={Navigation}
       divider={false}
     >
@@ -142,10 +147,13 @@ const MapSection = () => {
         {/* Event List Sidebar */}
         <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold text-foreground">{events.length} events</span>
+            <span className="text-sm font-semibold text-foreground">{eventMarkers.length} events</span>
             <button className="text-xs text-primary hover:underline">View all on map</button>
           </div>
-          {events.slice(0, 8).map((e) => (
+          {events
+            .filter((event) => event.location?.latLng)
+            .slice(0, 8)
+            .map((e) => (
             <Link 
               key={e.id} 
               to={buildEventUrl(e)}
