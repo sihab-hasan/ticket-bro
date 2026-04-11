@@ -30,7 +30,7 @@ class NotificationRepository {
   }
 
   async markRead(id, userId) {
-    return Notification.findOneAndUpdate({ _id: id, user: userId }, { $set: { isRead: true, readAt: new Date() } }, { new: true }).exec();
+    return Notification.findOneAndUpdate({ _id: id, user: userId }, { $set: { isRead: true, readAt: new Date() } }, { returnDocument: 'after' }).exec();
   }
 
   async markAllRead(userId) {

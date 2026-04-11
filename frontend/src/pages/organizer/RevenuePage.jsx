@@ -139,7 +139,7 @@ const RevenuePage = () => {
   ];
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 font-sans">
+    <div className="space-y-6 font-sans">
       <div className="flex items-start justify-between gap-3">
         <PageHeader
           title="Revenue"

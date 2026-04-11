@@ -19,6 +19,6 @@ class PayoutRepository {
     ]);
     return { payouts, pagination: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total/Number(limit)) } };
   }
-  async updateById(id, data) { return Payout.findByIdAndUpdate(id, { $set: data }, { new: true }).exec(); }
+  async updateById(id, data) { return Payout.findByIdAndUpdate(id, { $set: data }, { returnDocument: 'after' }).exec(); }
 }
 module.exports = new PayoutRepository();

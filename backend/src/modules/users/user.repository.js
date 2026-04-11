@@ -63,7 +63,7 @@ class UserRepository {
     return User.findByIdAndUpdate(
       id,
       { $set: data },
-      { new: true, runValidators: true },
+      { returnDocument: 'after', runValidators: true },
     );
   }
 
@@ -71,7 +71,7 @@ class UserRepository {
     return User.findByIdAndUpdate(
       id,
       { $set: { deletedAt: new Date(), isActive: false, status: 'inactive' } },
-      { new: true },
+      { returnDocument: 'after' },
     );
   }
 

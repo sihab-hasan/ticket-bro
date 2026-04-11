@@ -19,7 +19,7 @@ class LocationRepository {
     ]);
     return { locations, pagination: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total/Number(limit)) } };
   }
-  async updateById(id, data) { return Location.findByIdAndUpdate(id, { $set: data }, { new: true, runValidators: true }).exec(); }
+  async updateById(id, data) { return Location.findByIdAndUpdate(id, { $set: data }, { returnDocument: 'after', runValidators: true }).exec(); }
   async deleteById(id)       { return Location.findByIdAndUpdate(id, { $set: { deletedAt: new Date() } }).exec(); }
 }
 module.exports = new LocationRepository();

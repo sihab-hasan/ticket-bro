@@ -31,7 +31,7 @@ const paymentSchema = new mongoose.Schema({
   gateway:   { type: String, enum: Object.values(PAYMENT_GATEWAY), default: PAYMENT_GATEWAY.STRIPE },
 
   // Gateway-specific fields
-  gatewayPaymentId:  { type: String, sparse: true, index: true },  // Stripe payment_intent / PayPal order id
+  gatewayPaymentId:  { type: String, sparse: true },  // Stripe payment_intent / PayPal order id
   gatewayCustomerId: { type: String },
   clientSecret:      { type: String, select: false },
   gatewayResponse:   { type: mongoose.Schema.Types.Mixed, select: false },

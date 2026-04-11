@@ -30,6 +30,7 @@ import ImagePicker from '@/components/shared/ImagePicker';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
 import useEventImages from '@/hooks/useEventImages';
+import Container from '@/components/layout/Container';
 
 const StepIndicator = ({ steps, current }) => (
   <div className="flex items-center justify-center gap-2 mb-8 flex-wrap">
@@ -649,7 +650,7 @@ const CreateEventPage = () => {
   };
 
   return (
-    <div className="p-4 sm:p-6 max-w-3xl mx-auto space-y-6 font-sans">
+    <Container className=" mx-auto space-y-6 font-sans">
       <div className="flex items-center gap-3">
         <Button
           variant="ghost"
@@ -1523,7 +1524,7 @@ const CreateEventPage = () => {
           </Button>
         )}
       </div>
-    </div>
+    </Container>
   );
 };
 

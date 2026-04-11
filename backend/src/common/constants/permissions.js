@@ -59,6 +59,11 @@ const PERMISSIONS = Object.freeze({
   CATEGORY_UPDATE: 'category:update',
   CATEGORY_DELETE: 'category:delete',
   CATEGORY_LIST: 'category:list',
+  EVENT_TYPE_CREATE: 'event_type:create',
+  EVENT_TYPE_READ: 'event_type:read',
+  EVENT_TYPE_UPDATE: 'event_type:update',
+  EVENT_TYPE_DELETE: 'event_type:delete',
+  EVENT_TYPE_LIST: 'event_type:list',
 
   REVIEW_CREATE: 'review:create',
   REVIEW_READ: 'review:read',
@@ -216,6 +221,7 @@ const PERMISSION_GROUPS = {
   SYSTEM: "system",
   ROLE: "role",
   AUDIT: "audit",
+  EVENT_TYPE: "event_type",
 };
 
 module.exports = {

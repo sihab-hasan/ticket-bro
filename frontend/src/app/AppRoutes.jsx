@@ -91,6 +91,7 @@ const SuperAdminDashboard = lazy(() => import("@/pages/super-admin/SuperAdminDas
 const RoleManagementPage = lazy(() => import("@/pages/super-admin/RoleManagementPage"));
 const AuditCenterPage = lazy(() => import("@/pages/super-admin/AuditCenterPage"));
 const PlatformControlPage = lazy(() => import("@/pages/super-admin/PlatformControlPage"));
+const CategoryManagementPage = lazy(() => import("@/pages/super-admin/CategoryManagementPage"));
 const AboutPage = lazy(() => import("@/pages/static/AboutPage"));
 const ContactPage = lazy(() => import("@/pages/static/ContactPage"));
 const FAQPage = lazy(() => import("@/pages/static/FAQPage"));
@@ -225,6 +226,7 @@ export const ROUTES = {
     ROLES: "/super-admin/roles",
     AUDIT: "/super-admin/audit",
     PLATFORM: "/super-admin/platform",
+    CATEGORIES: "/super-admin/categories",
   },
 
   STATIC: {
@@ -434,6 +436,7 @@ const AppRoutes = () => (
             <Route path="roles" element={<RoleManagementPage />} />
             <Route path="audit" element={<AuditCenterPage />} />
             <Route path="platform" element={<PlatformControlPage />} />
+            <Route path="categories" element={<CategoryManagementPage />} />
           </Route>
         </Route>
       </Route>

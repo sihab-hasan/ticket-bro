@@ -12,10 +12,10 @@ const TICKET_STATUS = Object.freeze({
 
 const ticketSchema = new mongoose.Schema({
   ticketCode: {
-    type: String, unique: true, index: true,
+    type: String, unique: true,
     default: () => `TK-${uuidv4().replace(/-/g,'').slice(0,12).toUpperCase()}`,
   },
-  booking:    { type: mongoose.Schema.Types.ObjectId, ref: 'Booking', required: true, index: true },
+  booking:    { type: mongoose.Schema.Types.ObjectId, ref: 'Booking', required: true },
   event:      { type: mongoose.Schema.Types.ObjectId, ref: 'Event',   required: true, index: true },
   user:       { type: mongoose.Schema.Types.ObjectId, ref: 'User',    required: true, index: true },
   ticketType: { type: mongoose.Schema.Types.ObjectId, ref: 'TicketType', required: true },
