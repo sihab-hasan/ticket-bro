@@ -286,6 +286,10 @@ const galleryImagesOrderSchema = Joi.object({
   images: Joi.array().items(fileOrUrl.required()).max(10).unique().required(),
 });
 
+const imageReactionSchema = Joi.object({
+  url: fileOrUrl.required(),
+});
+
 module.exports = {
   createEventSchema,
   updateEventSchema,
@@ -301,4 +305,5 @@ module.exports = {
   rejectEventSchema,
   galleryImagesDeleteSchema,
   galleryImagesOrderSchema,
+  imageReactionSchema,
 };

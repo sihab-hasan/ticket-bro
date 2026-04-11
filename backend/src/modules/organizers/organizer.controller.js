@@ -56,7 +56,7 @@ class OrganizerController {
 
   getMyEvents = asyncHandler(async (req, res) => {
     const eventService = require('../events/event.service');
-    const events = await eventService.getOrganizerEvents(getId(req.user), req.query);
+    const events = await eventService.getOrganizerEvents(getId(req.user), req.query, req.user);
     sendSuccess(res, 'Events fetched.', events);
   });
 

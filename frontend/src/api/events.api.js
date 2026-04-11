@@ -243,6 +243,18 @@ export const cancelEvent = (slug, data) =>
     select: pickEntity("event"),
   });
 
+export const toggleEventImageReaction = (slug, url) =>
+  post(
+    ENDPOINTS.EVENTS.IMAGE_REACTION(slug),
+    { url },
+    {
+      select: (payload) => ({
+        event: pickEntity("event")(payload),
+        reaction: payload?.reaction || null,
+      }),
+    },
+  );
+
 export const approveEvent = (slug) =>
   put(ENDPOINTS.EVENTS.APPROVE(slug), {}, { select: pickEntity("event") });
 
@@ -383,6 +395,7 @@ export default {
   deleteEvent,
   publishEvent,
   cancelEvent,
+  toggleEventImageReaction,
   approveEvent,
   rejectEvent,
   // postponeEvent,

@@ -21,6 +21,7 @@ const FOLDERS = {
   AVATARS:          'ticketbro/avatars',
   EVENT_COVERS:     'ticketbro/events/covers',
   EVENT_GALLERY:    'ticketbro/events/gallery',
+  CAPTURED_MOMENTS: 'ticketbro/captured-moments',
   ORGANIZER_LOGOS:  'ticketbro/organizers/logos',
   ORGANIZER_BANNERS:'ticketbro/organizers/banners',
 };
@@ -45,6 +46,14 @@ const UPLOAD_OPTIONS = {
   },
   eventGallery: {
     folder:         FOLDERS.EVENT_GALLERY,
+    transformation: [
+      { width: 1200, crop: 'limit' },
+      { quality: 'auto:good', fetch_format: 'auto' },
+    ],
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+  },
+  capturedMoment: {
+    folder:         FOLDERS.CAPTURED_MOMENTS,
     transformation: [
       { width: 1200, crop: 'limit' },
       { quality: 'auto:good', fetch_format: 'auto' },

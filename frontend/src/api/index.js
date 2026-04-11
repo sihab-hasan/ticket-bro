@@ -7,6 +7,7 @@ export { default as categoriesService } from "./categories.api";
 export { default as subcategoriesService } from "./subcategories.api";
 export { default as searchService } from "./search.api";
 export { default as reviewsService } from "./reviews.api";
+export { default as capturedMomentsService } from "./captured-moments.api";
 export { default as ticketsService } from "./tickets.api";
 export { default as paymentsService } from "./payments.api";
 export { default as messagingService } from "./messaging.api";
