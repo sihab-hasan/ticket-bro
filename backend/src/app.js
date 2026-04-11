@@ -23,6 +23,9 @@ const logger = require("./infrastructure/logger/logger");
 // Audit middleware logs create/update/delete actions for privileged routes.
 const { auditMiddleware } = require("./common/middleware/audit.middleware");
 
+// Carbon footprint middleware tracks CO2 emissions per request.
+const { carbonFootprintMiddleware, getCarbonStats } = require("./common/middleware/carbonFootprint.middleware");
+
 require("./modules/auth/strategies/passport");
 
 const app = express();
@@ -120,6 +123,12 @@ app.use(compression());
 if (!env.isTest()) {
   app.use(morgan("combined", { stream: logger.stream }));
 }
+
+// 25002500 Carbon Footprint Tracking 2500250025002500250025002500250025002500250025002500250025002500250025002500250025002500250025002500250025002500250025002500250025002500250025002500250025002500250025002500250025002500250025002500250025002500250025002500250025002500250025002500250025002500250025002500250025002500250025002500250025002500
+// Measures bytes transferred per request and estimates CO2 emissions.
+app.use(carbonFootprintMiddleware);
+const API_PREFIX_FULL = env.API_PREFIX + "/" + env.API_VERSION;
+app.get(API_PREFIX_FULL + "/carbon/stats", getCarbonStats);
 
 // ── Health Check ──────────────────────────────────────────────────────────────
 app.get("/health", (req, res) => {

@@ -10,7 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@faker-js/faker": "^10.3.0",
     "@greatsumini/react-facebook-login": "^3.4.0",
     "@hookform/resolvers": "^5.2.2",
     "@reduxjs/toolkit": "^2.11.2",
@@ -36,7 +35,8 @@
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.0",
     "zod": "^4.3.6",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.1",
+    "react-carbon-footprint": "^1.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

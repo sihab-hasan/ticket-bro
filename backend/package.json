@@ -47,7 +47,8 @@
     "winston-daily-rotate-file": "^5.0.0",
     "xss-clean": "^0.1.4",
     "socket.io": "^4.8.1",
-    "cloudinary": "^2.5.1"
+    "cloudinary": "^2.5.1",
+    "@tgwf/co2": "^0.18.0"
   },
   "devDependencies": {
     "@faker-js/faker": "^10.3.0",
