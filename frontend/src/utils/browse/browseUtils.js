@@ -113,7 +113,7 @@ export const filterEventsByContext = (
   let filtered = [...pool];
 
   // Location filter — supports both flat mock field and nested API location.city
-  if (locationId && locationId !== "current") {
+  if (locationId && locationId !== "all") {
     filtered = filtered.filter((e) =>
       (e.city ?? e.location?.city) === locationId
     );

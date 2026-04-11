@@ -7,6 +7,7 @@ require('../eventTypes/eventTypes.model');
 require('../tags/tag.model');
 const Event = require('./event.model');
 const eventPopulate = require('./event.populate');
+const { buildFlexibleExactRegex } = require('../locations/location.utils');
 
 class EventRepository {
   _buildListFilter({ status, category, organizer, managerId, visibility, isFeatured, from, to, search } = {}) {
@@ -115,13 +116,41 @@ class EventRepository {
     return { events, pagination: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / Number(limit)) } };
   }
 
-  async findPublished({ category, organizer, isFeatured, isTrending, isFree, ids, excludeId, page = 1, limit = 20, sort = '-createdAt', search, startDate, endDate } = {}) {
+  async findPublished({
+    category,
+    organizer,
+    isFeatured,
+    isTrending,
+    isFree,
+    city,
+    country,
+    ids,
+    excludeId,
+    page = 1,
+    limit = 20,
+    sort = '-createdAt',
+    search,
+    startDate,
+    endDate,
+  } = {}) {
     const filter = { status: 'published', visibility: 'public', deletedAt: null };
     if (category) filter.category = category;
     if (organizer) filter.organizer = organizer;
     if (typeof isFeatured === 'boolean') filter.isFeatured = isFeatured;
     if (typeof isTrending === 'boolean') filter.isTrending = isTrending;
     if (typeof isFree === 'boolean') filter.isFree = isFree;
+    if (city) {
+      const cityRegex = buildFlexibleExactRegex(city);
+      if (cityRegex) {
+        filter['location.city'] = cityRegex;
+      }
+    }
+    if (country) {
+      const countryRegex = buildFlexibleExactRegex(country);
+      if (countryRegex) {
+        filter['location.country'] = countryRegex;
+      }
+    }
     if (Array.isArray(ids) && ids.length) filter._id = { $in: ids };
     if (excludeId) filter._id = { $ne: excludeId };
     if (search) { const re = new RegExp(search, 'i'); filter.$or = [{ title: re }, { description: re }]; }

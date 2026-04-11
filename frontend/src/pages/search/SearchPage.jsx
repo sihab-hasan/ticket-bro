@@ -16,10 +16,70 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/components/shared/common';
+import { useLocation as useLocationCtx } from '@/context/LocationContext';
 import searchService from '@/api/search.api';
+import { getLocationQueryValue } from '@/lib/locationSelection';
 import { normalizeEvent } from '@/utils/browse.utils';
 import BrowseEventCard from "@/components/shared/cards/EventCard";
 import Container from '@/components/layout/Container';
+
+const EMPTY_FILTERS = {
+  category: '',
+  subcategory: '',
+  city: '',
+  location: '',
+  startDate: '',
+  endDate: '',
+  minPrice: '',
+  maxPrice: '',
+  isFree: false,
+  tags: [],
+};
+
+const FILTER_PARAM_KEYS = [
+  'category',
+  'subcategory',
+  'city',
+  'location',
+  'startDate',
+  'endDate',
+  'minPrice',
+  'maxPrice',
+  'isFree',
+  'tags',
+];
+
+const buildFiltersFromParams = (params) => ({
+  category: params.get('category') || '',
+  subcategory: params.get('subcategory') || '',
+  city: params.get('city') || '',
+  location: params.get('location') || '',
+  startDate: params.get('startDate') || '',
+  endDate: params.get('endDate') || '',
+  minPrice: params.get('minPrice') || '',
+  maxPrice: params.get('maxPrice') || '',
+  isFree: params.get('isFree') === 'true',
+  tags: (params.get('tags') || '')
+    .split(',')
+    .map((tag) => tag.trim())
+    .filter(Boolean),
+});
+
+const hasExplicitFilterParams = (params) =>
+  FILTER_PARAM_KEYS.some((key) => params.has(key));
+
+const areFiltersEqual = (left, right) => JSON.stringify(left) === JSON.stringify(right);
+
+const countActiveFilters = (currentFilters) =>
+  Object.values(currentFilters).filter((value) => {
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+    if (typeof value === 'boolean') {
+      return value;
+    }
+    return Boolean(value);
+  }).length;
 
 const EventCardSkeleton = () => (
   <div className="rounded-2xl border border-border bg-card overflow-hidden">
@@ -202,31 +262,24 @@ const FilterPanel = ({ facets, tempFilters, setTempFilters, onApply, onClear }) 
 
 const SearchPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { selectedLocation } = useLocationCtx();
+  const implicitCityFilter = useMemo(
+    () => getLocationQueryValue(selectedLocation) || '',
+    [selectedLocation],
+  );
   
   const [results, setResults] = useState([]);
   const [facets, setFacets] = useState(null);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [query, setQuery] = useState(searchParams.get('q') || '');
+  const [query, setQuery] = useState(() => searchParams.get('q') || '');
   const [sort, setSort] = useState('-createdAt');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [viewMode, setViewMode] = useState('grid');
-  const [filters, setFilters] = useState({
-    category: '',
-    subcategory: '',
-    city: '',
-    location: '',
-    startDate: '',
-    endDate: '',
-    minPrice: '',
-    maxPrice: '',
-    isFree: false,
-    tags: []
-  });
-  
-  const [tempFilters, setTempFilters] = useState(filters);
+  const [filters, setFilters] = useState(() => buildFiltersFromParams(searchParams));
+  const [tempFilters, setTempFilters] = useState(() => buildFiltersFromParams(searchParams));
 
   const searchTimeoutRef = useRef(null);
   const LIMIT = 12;
@@ -243,97 +296,136 @@ const SearchPage = () => {
     fetchFacets();
   }, []);
 
-  const debouncedSearch = useCallback((searchQuery, searchFilters, searchSort, searchPage, append = false) => {
+  useEffect(() => {
+    const nextQuery = searchParams.get('q') || '';
+    const nextFilters = buildFiltersFromParams(searchParams);
+
+    setQuery((current) => (current === nextQuery ? current : nextQuery));
+
+    if (!hasExplicitFilterParams(searchParams)) {
+      return;
+    }
+
+    setFilters((current) => (areFiltersEqual(current, nextFilters) ? current : nextFilters));
+    setTempFilters((current) => (areFiltersEqual(current, nextFilters) ? current : nextFilters));
+  }, [searchParams]);
+
+  const runSearch = useCallback(async ({
+    searchQuery,
+    searchFilters,
+    searchSort,
+    searchPage,
+    append = false,
+    showLoadingState = true,
+  }) => {
+    if (showLoadingState) {
+      setLoading(true);
+    }
+
+    try {
+      const params = {
+        page: searchPage,
+        limit: LIMIT,
+        sort: searchSort,
+      };
+
+      if (searchQuery && searchQuery.trim() && searchQuery.trim().length >= 2) {
+        params.q = searchQuery.trim();
+      }
+
+      if (searchFilters.category) params.category = searchFilters.category;
+      if (searchFilters.subcategory) params.subcategory = searchFilters.subcategory;
+      if (searchFilters.city) params.city = searchFilters.city;
+      if (searchFilters.location) params.location = searchFilters.location;
+      if (!searchFilters.city && !searchFilters.location && implicitCityFilter) {
+        params.city = implicitCityFilter;
+      }
+      if (searchFilters.startDate) params.startDate = searchFilters.startDate;
+      if (searchFilters.endDate) params.endDate = searchFilters.endDate;
+
+      const minPrice = Number(searchFilters.minPrice);
+      const maxPrice = Number(searchFilters.maxPrice);
+      if (!Number.isNaN(minPrice) && searchFilters.minPrice !== '' && minPrice >= 0) {
+        params.minPrice = minPrice;
+      }
+      if (!Number.isNaN(maxPrice) && searchFilters.maxPrice !== '' && maxPrice >= 0) {
+        params.maxPrice = maxPrice;
+      }
+
+      if (searchFilters.isFree === true) {
+        params.isFree = true;
+      }
+
+      if (Array.isArray(searchFilters.tags) && searchFilters.tags.length > 0) {
+        params.tags = searchFilters.tags.join(',');
+      }
+
+      const data = await searchService.search(params);
+      const normalizedEvents = (data.events || []).map(normalizeEvent);
+
+      if (append) {
+        setResults((current) => [...current, ...normalizedEvents]);
+      } else {
+        setResults(normalizedEvents);
+      }
+
+      setTotal(data.total || 0);
+      setTotalPages(data.totalPages || 0);
+      return data;
+    } catch (error) {
+      toast.error('Search failed. Please try again.');
+      console.error('Search error:', error);
+      throw error;
+    } finally {
+      if (showLoadingState) {
+        setLoading(false);
+      }
+    }
+  }, [implicitCityFilter]);
+
+  useEffect(() => {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
 
-    searchTimeoutRef.current = setTimeout(async () => {
-      setLoading(true);
-      try {
-        const params = {
-          page: searchPage,
-          limit: LIMIT,
-          sort: searchSort
-        };
-        
-        if (searchQuery && searchQuery.trim() && searchQuery.trim().length >= 2) {
-          params.q = searchQuery.trim();
-        }
-        
-        if (searchFilters.category) params.category = searchFilters.category;
-        if (searchFilters.subcategory) params.subcategory = searchFilters.subcategory;
-        if (searchFilters.city) params.city = searchFilters.city;
-        if (searchFilters.location) params.location = searchFilters.location;
-        if (searchFilters.startDate) params.startDate = searchFilters.startDate;
-        if (searchFilters.endDate) params.endDate = searchFilters.endDate;
-        
-        const minP = Number(searchFilters.minPrice);
-        const maxP = Number(searchFilters.maxPrice);
-        if (!isNaN(minP) && minP >= 0) params.minPrice = minP;
-        if (!isNaN(maxP) && maxP >= 0) params.maxPrice = maxP;
-        
-        if (searchFilters.isFree === true) params.isFree = true;
-        
-        if (searchFilters.tags && Array.isArray(searchFilters.tags) && searchFilters.tags.length > 0) {
-          params.tags = searchFilters.tags.join(',');
-        }
-        
-        const data = await searchService.search(params);
-        
-        if (append) {
-          setResults(prev => [...prev, ...(data.events || []).map(normalizeEvent)]);
-        } else {
-          setResults((data.events || []).map(normalizeEvent));
-        }
-        setTotal(data.total || 0);
-        setTotalPages(data.totalPages || 0);
-      } catch (e) {
-        toast.error('Search failed. Please try again.');
-        console.error('Search error:', e);
-      } finally {
-        setLoading(false);
-      }
-    }, 300);
-  }, []);
-
-  useEffect(() => {
-    debouncedSearch(query, filters, sort, 1);
-  }, []);
-
-  useEffect(() => {
     setPage(1);
-    debouncedSearch(query, filters, sort, 1);
-  }, [query, filters, sort]);
+    searchTimeoutRef.current = window.setTimeout(() => {
+      runSearch({
+        searchQuery: query,
+        searchFilters: filters,
+        searchSort: sort,
+        searchPage: 1,
+      });
+    }, 300);
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [filters, implicitCityFilter, query, runSearch, sort]);
 
   const handleSearch = (searchQuery = query) => {
     setQuery(searchQuery);
-    setSearchParams(searchQuery ? { q: searchQuery } : {});
+    const nextParams = new URLSearchParams(searchParams);
+
+    if (searchQuery) {
+      nextParams.set('q', searchQuery);
+    } else {
+      nextParams.delete('q');
+    }
+
+    setSearchParams(nextParams, { replace: true });
   };
 
   const handleApplyFilters = () => {
     setFilters(tempFilters);
-    setPage(1);
-    debouncedSearch(query, tempFilters, sort, 1);
   };
 
   const handleClearFilters = () => {
-    const emptyFilters = {
-      category: '',
-      subcategory: '',
-      city: '',
-      location: '',
-      startDate: '',
-      endDate: '',
-      minPrice: '',
-      maxPrice: '',
-      isFree: false,
-      tags: []
-    };
+    const emptyFilters = { ...EMPTY_FILTERS };
     setFilters(emptyFilters);
     setTempFilters(emptyFilters);
-    setPage(1);
-    debouncedSearch(query, emptyFilters, sort, 1);
   };
 
   const handleSortChange = (newSort) => {
@@ -342,15 +434,28 @@ const SearchPage = () => {
 
   const handleLoadMore = () => {
     if (loadingMore || page >= totalPages) return;
+
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
     setLoadingMore(true);
     const next = page + 1;
-    setPage(next);
-    debouncedSearch(query, filters, sort, next, true).finally(() => setLoadingMore(false));
+    runSearch({
+      searchQuery: query,
+      searchFilters: filters,
+      searchSort: sort,
+      searchPage: next,
+      append: true,
+      showLoadingState: false,
+    })
+      .then(() => {
+        setPage(next);
+      })
+      .finally(() => setLoadingMore(false));
   };
 
-  const activeFiltersCount = useMemo(() => {
-    return Object.values(filters).filter(v => v && v !== false && (typeof v !== 'string' || v.length > 0)).length;
-  }, [filters]);
+  const activeFiltersCount = useMemo(() => countActiveFilters(filters), [filters]);
 
   const sortOptions = [
     { value: '-createdAt', label: 'Most Recent' },
@@ -474,14 +579,13 @@ const SearchPage = () => {
       {/* Active Filters */}
       {activeFiltersCount > 0 && (
         <div className="flex flex-wrap gap-2">
-          {filters.category && (
+              {filters.category && (
             <Badge variant="secondary" className="gap-1.5 pl-2">
               {facets?.categories?.find(c => c.slug === filters.category)?.name || filters.category}
               <button onClick={() => { 
                 const updated = { ...filters, category: '' };
                 setFilters(updated);
                 setTempFilters(updated);
-                debouncedSearch(query, updated, sort, 1);
               }} className="hover:text-destructive">
                 <X className="h-3 w-3" />
               </button>
@@ -494,7 +598,6 @@ const SearchPage = () => {
                 const updated = { ...filters, city: '' };
                 setFilters(updated);
                 setTempFilters(updated);
-                debouncedSearch(query, updated, sort, 1);
               }} className="hover:text-destructive">
                 <X className="h-3 w-3" />
               </button>
@@ -507,7 +610,6 @@ const SearchPage = () => {
                 const updated = { ...filters, isFree: false };
                 setFilters(updated);
                 setTempFilters(updated);
-                debouncedSearch(query, updated, sort, 1);
               }} className="hover:text-destructive">
                 <X className="h-3 w-3" />
               </button>
@@ -520,7 +622,6 @@ const SearchPage = () => {
                 const updated = { ...filters, startDate: '' };
                 setFilters(updated);
                 setTempFilters(updated);
-                debouncedSearch(query, updated, sort, 1);
               }} className="hover:text-destructive">
                 <X className="h-3 w-3" />
               </button>
@@ -533,7 +634,6 @@ const SearchPage = () => {
                 const updated = { ...filters, minPrice: '', maxPrice: '' };
                 setFilters(updated);
                 setTempFilters(updated);
-                debouncedSearch(query, updated, sort, 1);
               }} className="hover:text-destructive">
                 <X className="h-3 w-3" />
               </button>
@@ -578,7 +678,17 @@ const SearchPage = () => {
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={() => { const prev = page - 1; setPage(prev); debouncedSearch(query, filters, sort, prev); }}
+                onClick={() => {
+                  if (page <= 1 || loading) return;
+                  const previousPage = page - 1;
+                  setPage(previousPage);
+                  runSearch({
+                    searchQuery: query,
+                    searchFilters: filters,
+                    searchSort: sort,
+                    searchPage: previousPage,
+                  });
+                }}
                 disabled={page === 1 || loading}
               >
                 <ChevronLeft className="h-4 w-4" />

@@ -3,14 +3,10 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Search,
-  MapPin,
   Calendar,
   Tag,
   Layers,
-  ChevronDown,
-  Check,
-  Locate,
-  X,
+  MapPin,
 } from "lucide-react";
 import Container from "@/components/layout/Container";
 import {
@@ -18,147 +14,8 @@ import {
 } from "@/context/LocationContext";
 import { useBrowse, unslugify } from "@/hooks";
 import Breadcrumb from "@/components/shared/common/Breadcrumb";
-
-const InlineLocationPicker = ({ locations, selectedLocation, onLocationChange }) => {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const ref = React.useRef(null);
-  const inputRef = React.useRef(null);
-  React.useEffect(() => {
-    const h = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) {
-        setOpen(false);
-        setQuery("");
-      }
-    };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, []);
-  React.useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 50);
-  }, [open]);
-  const filtered = locations.filter(
-    (l) =>
-      l.label.toLowerCase().includes(query.toLowerCase()) ||
-      l.country.toLowerCase().includes(query.toLowerCase()),
-  );
-  const handleDetect = () => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(() => {
-      onLocationChange({
-        id: "current",
-        label: "Current Location",
-        country: "",
-        flag: "📍",
-      });
-      setOpen(false);
-    });
-  };
-  return (
-    <div className="relative shrink-0" ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen((p) => !p)}
-        className="flex items-center gap-1.5 px-3 h-full text-muted-foreground hover:text-primary "
-      >
-        <MapPin size={13} className="text-primary shrink-0" />
-        <span
-          className="text-xs font-medium hidden sm:inline max-w-[80px] truncate"
-          style={{ fontFamily: "var(--font-sans)" }}
-        >
-          {selectedLocation?.label || "Location"}
-        </span>
-        <ChevronDown
-          size={11}
-          className={`shrink-0 transition-all duration-200 ${open ? "rotate-180 text-primary" : ""}`}
-        />
-      </button>
-      {open && (
-        <div className="absolute top-[calc(100%+8px)] left-0 w-64 rounded-md border border-border bg-popover shadow-lg z-[60] overflow-hidden">
-          <div className="p-2 border-b border-border">
-            <div className="relative">
-              <Search
-                size={12}
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
-              />
-              <input
-                ref={inputRef}
-                type="text"
-                placeholder="Search city..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="w-full pl-7 pr-7 py-1.5 text-xs bg-muted rounded outline-none text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary"
-              />
-              {query && (
-                <button
-                  type="button"
-                  onClick={() => setQuery("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary"
-                >
-                  <X size={11} />
-                </button>
-              )}
-            </div>
-          </div>
-          <div className="px-1 pt-1 border-b border-border pb-1">
-            <button
-              type="button"
-              onClick={handleDetect}
-              className="flex items-center gap-2 w-full px-2.5 py-1.5 rounded text-xs hover:bg-primary/10 hover:text-primary  text-left group"
-            >
-              <Locate size={12} className="text-primary shrink-0" />
-              <span className="font-medium text-foreground group-hover:text-primary">
-                Use my current location
-              </span>
-            </button>
-          </div>
-          <div className="max-h-48 overflow-y-auto p-1">
-            {!query && (
-              <p className="text-[10px] font-semibold text-muted-foreground px-2.5 py-1 uppercase tracking-wider">
-                Popular Cities
-              </p>
-            )}
-            {filtered.length === 0 ? (
-              <p className="text-xs text-muted-foreground text-center py-3">
-                No results
-              </p>
-            ) : (
-              filtered.map((loc) => (
-                <button
-                  key={loc.id}
-                  type="button"
-                  onClick={() => {
-                    onLocationChange(loc);
-                    setOpen(false);
-                    setQuery("");
-                  }}
-                  className="flex items-center gap-2 w-full px-2.5 py-1.5 rounded text-xs hover:bg-primary/10  text-left group"
-                >
-                  <span className="text-sm leading-none shrink-0">
-                    {loc.flag}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground group-hover:text-primary leading-none">
-                      {loc.label}
-                    </p>
-                    {loc.country && (
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
-                        {loc.country}
-                      </p>
-                    )}
-                  </div>
-                  {selectedLocation?.id === loc.id && (
-                    <Check size={12} className="text-primary shrink-0" />
-                  )}
-                </button>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
+import LocationPicker from "@/components/shared/LocationPicker";
+import { getLocationQueryValue } from "@/lib/locationSelection";
 
 const StatCard = ({ icon: Icon, value, label }) => (
   <div className="flex items-center gap-3 px-4 py-3 rounded-md border border-border bg-secondary/5 hover:bg-secondary/10 transition-all group hover:border-primary/30">
@@ -184,7 +41,14 @@ const StatCard = ({ icon: Icon, value, label }) => (
 
 const HeroSection = () => {
   const navigate = useNavigate();
-  const { selectedLocation, changeLocation, locations } = useLocationCtx();
+  const {
+    selectedLocation,
+    changeLocation,
+    clearLocation,
+    detectCurrentLocation,
+    locations,
+    isDetectingLocation,
+  } = useLocationCtx();
   const {
     level,
     categorySlug,
@@ -208,11 +72,14 @@ const HeroSection = () => {
     if (!search.trim()) return;
     const p = new URLSearchParams({
       q: search,
-      location: selectedLocation?.id || "",
       ...(categorySlug && { category: categorySlug }),
       ...(subCategorySlug && { sub: subCategorySlug }),
       ...(eventTypeSlug && { type: eventTypeSlug }),
     });
+    const selectedCity = getLocationQueryValue(selectedLocation);
+    if (selectedCity) {
+      p.set("city", selectedCity);
+    }
     navigate(`/search?${p.toString()}`);
   };
 
@@ -344,10 +211,14 @@ const HeroSection = () => {
                 onSubmit={handleSearch}
                 className="flex items-center gap-0 rounded-md border border-border bg-background overflow-hidden mb-6 h-10 shadow-sm hover:border-foreground/30 focus-within:border-primary "
               >
-                <InlineLocationPicker
+                <LocationPicker
                   locations={locations}
                   selectedLocation={selectedLocation}
                   onLocationChange={changeLocation}
+                  onClearLocation={clearLocation}
+                  onDetectLocation={detectCurrentLocation}
+                  isDetecting={isDetectingLocation}
+                  inline
                 />
                 <div className="w-px h-5 bg-border shrink-0" />
                 <div className="flex flex-1 items-center gap-2 px-3">

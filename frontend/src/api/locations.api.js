@@ -5,6 +5,8 @@ const locationsService = {
   getAll: (params) => get(ENDPOINTS.LOCATIONS.LIST, { params, select: pickList("locations") }),
   getCities: (params) => get(ENDPOINTS.LOCATIONS.CITIES, { params, select: pickList("cities") }),
   getCountries: () => get(ENDPOINTS.LOCATIONS.COUNTRIES, { select: pickList("countries") }),
+  reverseGeocode: (params) =>
+    get(ENDPOINTS.LOCATIONS.REVERSE, { params, select: pickEntity("location") }),
   getBySlug: (slug) =>
     get(ENDPOINTS.LOCATIONS.DETAIL(slug), { select: pickEntity("location") }),
 };

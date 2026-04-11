@@ -2,33 +2,21 @@
 const asyncHandler = require('../../common/utils/asyncHandler');
 const { sendSuccess } = require('../../common/utils/apiResponse');
 const locationService = require('./location.service');
-
-const toSlug = (value = '') =>
-  String(value)
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/[\s_-]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-
-const normalizeCity = (city) => ({
-  slug: city.slug || toSlug(city.name || city.label || city._id),
-  name: city.name || city.label || city._id,
-  state: city.state || '',
-  country: city.country || '',
-  count: Number(city.count || 0),
-});
+const {
+  normalizeLocationOption,
+  toLocationSlug,
+} = require('./location.utils');
 
 class LocationController {
   getAll      = asyncHandler(async (_req, res) => {
     const { cities } = await locationService.getCities();
-    const locations = cities.map((city) => normalizeCity(city));
+    const locations = cities.map((city) => normalizeLocationOption(city));
     sendSuccess(res, 'Locations fetched.', { locations });
   });
 
   getCities   = asyncHandler(async (_req, res) => {
     const { cities } = await locationService.getCities();
-    const normalized = cities.map((city) => normalizeCity(city));
+    const normalized = cities.map((city) => normalizeLocationOption(city));
     sendSuccess(res, 'Cities fetched.', { cities: normalized });
   });
 
@@ -36,7 +24,7 @@ class LocationController {
     const { cities } = await locationService.getCities();
     const countriesMap = cities.reduce((acc, city) => {
       const name = city.country || 'Unknown';
-      const slug = toSlug(name);
+      const slug = toLocationSlug(name);
       const entry = acc.get(slug) || { slug, name, count: 0 };
       entry.count += Number(city.count || 0);
       acc.set(slug, entry);
@@ -50,9 +38,14 @@ class LocationController {
 
   getBySlug   = asyncHandler(async (req, res) => {
     const { cities } = await locationService.getCities();
-    const locations = cities.map((city) => normalizeCity(city));
+    const locations = cities.map((city) => normalizeLocationOption(city));
     const location = locations.find((city) => city.slug === req.params.slug) || null;
     sendSuccess(res, 'Location fetched.', { location });
+  });
+
+  reverseGeocode = asyncHandler(async (req, res) => {
+    const location = await locationService.reverseGeocode(req.query.lat, req.query.lng);
+    sendSuccess(res, 'Location resolved.', { location });
   });
 }
 module.exports = new LocationController();
