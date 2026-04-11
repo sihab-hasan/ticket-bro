@@ -27,6 +27,7 @@ import FilterBar from '@/components/shared/FilterBar';
 import { ConfirmDialog, StatusBadge } from '@/components/shared/StatusBadge';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
+import { useSocket } from '@/hooks';
 import { formatDate, formatPrice } from '@/utils/formatters';
 
 const LIMIT = 12;
@@ -79,6 +80,26 @@ const EventManagementPage = () => {
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents]);
+
+  const handleSocketEvent = useCallback((event) => {
+    if (
+      event === 'organizer:booking.new'
+      || event === 'organizer:booking.cancelled'
+      || event === 'organizer:ticket.sold'
+      || event === 'organizer:ticket.refunded'
+      || event === 'organizer:analytics.update'
+    ) {
+      fetchEvents();
+    }
+  }, [fetchEvents]);
+
+  useSocket([
+    'organizer:booking.new',
+    'organizer:booking.cancelled',
+    'organizer:ticket.sold',
+    'organizer:ticket.refunded',
+    'organizer:analytics.update',
+  ], { onEvent: handleSocketEvent });
 
   const handleDelete = async () => {
     if (!deleteConfirm) return;

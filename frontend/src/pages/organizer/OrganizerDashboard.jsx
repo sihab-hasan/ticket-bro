@@ -30,38 +30,38 @@ const OrganizerDashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchDashboard = async () => {
-      setLoading(true);
+  const fetchDashboard = useCallback(async () => {
+    setLoading(true);
 
-      try {
-        const [dashboard, eventsResult, bookingsResult, payoutsResult] =
-          await Promise.all([
-            organizersService.getDashboard(),
-            organizersService.getMyEvents({ page: 1, limit: 4 }),
-            organizersService.getMyBookings({ page: 1, limit: 4 }),
-            organizersService.getPayouts({ page: 1, limit: 20 }),
-          ]);
+    try {
+      const [dashboard, eventsResult, bookingsResult, payoutsResult] =
+        await Promise.all([
+          organizersService.getDashboard(),
+          organizersService.getMyEvents({ page: 1, limit: 4 }),
+          organizersService.getMyBookings({ page: 1, limit: 4 }),
+          organizersService.getPayouts({ page: 1, limit: 20 }),
+        ]);
 
-        const pendingPayout = (payoutsResult?.payouts || [])
-          .filter((payout) => ['pending', 'processing'].includes(payout.status))
-          .reduce((sum, payout) => sum + Number(payout.amount || 0), 0);
+      const pendingPayout = (payoutsResult?.payouts || [])
+        .filter((payout) => ['pending', 'processing'].includes(payout.status))
+        .reduce((sum, payout) => sum + Number(payout.amount || 0), 0);
 
-        setData({
-          ...dashboard,
-          pendingPayout,
-          recentEvents: eventsResult?.events || [],
-          recentBookings: bookingsResult?.bookings || [],
-        });
-      } catch (error) {
-        toast.error(getApiErrorMessage(error, 'Failed to load dashboard'));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDashboard();
+      setData({
+        ...dashboard,
+        pendingPayout,
+        recentEvents: eventsResult?.events || [],
+        recentBookings: bookingsResult?.bookings || [],
+      });
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Failed to load dashboard'));
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchDashboard();
+  }, [fetchDashboard]);
 
   const handleSocketEvent = useCallback((event, data) => {
     if (event === 'organizer:dashboard.update') {
@@ -86,7 +86,7 @@ const OrganizerDashboard = () => {
     } else if (event === 'organizer:analytics.update') {
       fetchDashboard();
     }
-  }, []);
+  }, [fetchDashboard]);
 
   useSocket([
     'organizer:dashboard.update',
