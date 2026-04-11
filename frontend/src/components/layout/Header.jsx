@@ -21,7 +21,7 @@ import { Link, useNavigate, useLocation }                  from "react-router-do
 import {
   Menu, Search, ShoppingBag, Sun, Moon, Monitor,
   X,
-  ChevronLeft, Calendar, ChevronRight,
+  ChevronLeft, ChevronRight, ChevronDown, Calendar,
   PlusCircle, Tag, TrendingUp, MessageSquare, Bell,
 } from "lucide-react";
 import { Button }    from "@/components/ui/button";
@@ -56,7 +56,7 @@ const useNotifCount = (isAuthenticated) => {
     const fetch = async () => {
       try {
         const data = await notificationsService.getUnreadCount();
-        if (!cancelled) setCount(data?.count ?? data?.unreadCount ?? 0);
+        if (!cancelled) setCount(typeof data === 'number' ? data : data?.count ?? 0);
       } catch {}
     };
     fetch();

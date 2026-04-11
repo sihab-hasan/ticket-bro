@@ -83,11 +83,18 @@ const notificationsService = {
     }),
   getById: (id) =>
     get(ENDPOINTS.NOTIFICATIONS.DETAIL(id), {
-      select: (payload) => normalizeNotification(pickEntity("notification")(payload)),
+      select: (payload) => {
+        const notif = payload?.notification;
+        if (!notif) return null;
+        return normalizeNotification(notif);
+      },
     }),
   getUnreadCount: () =>
     get(ENDPOINTS.NOTIFICATIONS.UNREAD, {
-      select: (payload) => payload?.count ?? 0,
+      select: (payload) => {
+        if (!payload) return 0;
+        return typeof payload === 'number' ? payload : payload?.count ?? 0;
+      },
     }),
   markRead: (id) => put(ENDPOINTS.NOTIFICATIONS.MARK_READ(id), {}),
   markAllRead: () => put(ENDPOINTS.NOTIFICATIONS.MARK_ALL, {}),
