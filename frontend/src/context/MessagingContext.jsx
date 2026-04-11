@@ -85,6 +85,10 @@ export const MessagingProvider = ({ children }) => {
     if (!isAuthenticated || !user) return;
 
     const socket = connectSocket();
+    if (!socket) {
+      return;
+    }
+
     const handleMessageNew = ({ conversationId, message }) => {
       dispatch(appendMessage({ conversationId, message }));
       dispatch(updateConversationLastMessage({ conversationId, message }));

@@ -20,6 +20,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import PageHeader from '@/components/shared/PageHeader';
+import OrganizerImageManager from '@/components/roles/organizer/OrganizerImageManager';
 import { toast } from '@/components/shared/common';
 import { formatDate } from '@/utils/formatters';
 
@@ -91,6 +92,17 @@ const SettingsPage = () => {
   const setValue = (key, value) =>
     setForm((current) => ({ ...current, [key]: value }));
 
+  const handleProfileImagesUpdated = (updatedProfile) => {
+    if (!updatedProfile) return;
+
+    setProfile(updatedProfile);
+    setForm((current) => ({
+      ...current,
+      logo: updatedProfile.logo || '',
+      coverImage: updatedProfile.coverImage || '',
+    }));
+  };
+
   const saveProfile = async () => {
     setSaving(true);
 
@@ -101,8 +113,6 @@ const SettingsPage = () => {
         website: form.website || undefined,
         phone: form.phone || undefined,
         email: form.email || undefined,
-        logo: form.logo || undefined,
-        coverImage: form.coverImage || undefined,
         socialLinks: {
           instagram: form.instagram || undefined,
           facebook: form.facebook || undefined,
@@ -185,7 +195,7 @@ const SettingsPage = () => {
     <div className="p-4 sm:p-6 space-y-6 font-sans">
       <PageHeader
         title="Organizer Settings"
-        subtitle="Profile settings are wired to the shared organizer API service"
+        subtitle="Profile details and organizer media are managed through the shared API and Cloudinary uploads"
       />
       <Tabs defaultValue="profile">
         <TabsList className="flex-wrap h-auto gap-1">
@@ -273,25 +283,15 @@ const SettingsPage = () => {
                     </Field>
                   </div>
                   <Separator />
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Field label="Logo URL">
-                      <Input
-                        value={form.logo}
-                        onChange={(event) => setValue('logo', event.target.value)}
-                        placeholder="https://..."
-                        className="h-9"
-                      />
-                    </Field>
-                    <Field label="Cover Image URL">
-                      <Input
-                        value={form.coverImage}
-                        onChange={(event) =>
-                          setValue('coverImage', event.target.value)
-                        }
-                        placeholder="https://..."
-                        className="h-9"
-                      />
-                    </Field>
+                  <div className="space-y-3">
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Organizer Media
+                    </p>
+                    <OrganizerImageManager
+                      organizer={profile || { logo: form.logo, coverImage: form.coverImage }}
+                      onUpdated={handleProfileImagesUpdated}
+                      isLoading={loading || saving}
+                    />
                   </div>
                   <Separator />
                   <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">

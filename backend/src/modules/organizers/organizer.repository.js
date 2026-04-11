@@ -5,6 +5,31 @@ const Organizer = require('./organizer.model');
 const basePopulate = 'firstName lastName email avatar phone role isActive createdAt updatedAt';
 
 class OrganizerRepository {
+  _buildUpdateDocument(data = {}) {
+    const update = {};
+    const set = {};
+    const unset = {};
+
+    Object.entries(data).forEach(([key, value]) => {
+      if (value === undefined) {
+        unset[key] = 1;
+        return;
+      }
+
+      set[key] = value;
+    });
+
+    if (Object.keys(set).length) {
+      update.$set = set;
+    }
+
+    if (Object.keys(unset).length) {
+      update.$unset = unset;
+    }
+
+    return update;
+  }
+
   async findAll(query = {}) {
     const filter = { deletedAt: null, isActive: true };
     const page = Number(query.page || 1);
@@ -59,6 +84,20 @@ class OrganizerRepository {
 
   async create(data) {
     return new Organizer(data).save();
+  }
+
+  async updateById(id, data) {
+    const update = this._buildUpdateDocument(data);
+    const updated = await Organizer.findByIdAndUpdate(id, update, {
+      new: true,
+      runValidators: true,
+    }).select('_id').exec();
+
+    if (!updated) {
+      return null;
+    }
+
+    return this.findById(updated._id);
   }
 }
 

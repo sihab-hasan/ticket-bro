@@ -93,7 +93,10 @@ export const upload = (url, data, options = {}) =>
       url,
       data,
       params: options.params,
-      headers: options.headers,
+      headers: {
+        ...options.headers,
+        "Content-Type": undefined,
+      },
       signal: options.signal,
     },
     options,

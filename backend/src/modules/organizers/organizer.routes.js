@@ -11,10 +11,11 @@
 
 const express = require('express');
 const router = express.Router();
-const { authenticate, authorize } = require('../../common/middleware/auth.middleware');
+const { authenticate } = require('../../common/middleware/auth.middleware');
+const { requireOrganizerAccess } = require('../../common/middleware/organizerAccess.middleware');
 const { cache } = require('../../common/middleware/cache.middleware');
 const { validateRequest } = require('../../common/middleware/validation.middleware');
-const { ROLES } = require('../../common/constants/roles');
+const uploadMiddleware = require('../users/upload.middleware');
 const {
   updateOrganizerProfileSchema,
   submitVerificationSchema,
@@ -30,64 +31,56 @@ const ctrl = () => { if (!_ctrl) _ctrl = require('./organizer.controller'); retu
 // ORGANIZER-PRIVATE ROUTES  (accessible at /api/v1/organizer/*)
 // authenticate + authorize(ROLES.ORGANIZER) already applied in routes.js
 // ════════════════════════════════════════════════════════════════════════════════
+const organizerAuth = [authenticate, requireOrganizerAccess];
 
 // GET    /organizer/profile
 router.get('/profile',
-  authenticate,
-  authorize(ROLES.ORGANIZER, ROLES.ADMIN, ROLES.SUPER_ADMIN),
+  ...organizerAuth,
   (req, res, next) => ctrl().getOwnProfile(req, res, next));
 
 // PUT    /organizer/profile
 router.put('/profile',
-  authenticate,
-  authorize(ROLES.ORGANIZER, ROLES.ADMIN, ROLES.SUPER_ADMIN),
+  ...organizerAuth,
   validateRequest(updateOrganizerProfileSchema),
   (req, res, next) => ctrl().updateProfile(req, res, next));
 
 // POST   /organizer/verification
 router.post('/verification',
-  authenticate,
-  authorize(ROLES.ORGANIZER, ROLES.ADMIN, ROLES.SUPER_ADMIN),
+  ...organizerAuth,
   validateRequest(submitVerificationSchema),
   (req, res, next) => ctrl().submitVerification(req, res, next));
 
 // GET    /organizer/verification
 router.get('/verification',
-  authenticate,
-  authorize(ROLES.ORGANIZER, ROLES.ADMIN, ROLES.SUPER_ADMIN),
+  ...organizerAuth,
   (req, res, next) => ctrl().getVerificationStatus(req, res, next));
 
 // GET    /organizer/dashboard
 router.get('/dashboard',
-  authenticate,
-  authorize(ROLES.ORGANIZER, ROLES.ADMIN, ROLES.SUPER_ADMIN),
+  ...organizerAuth,
   (req, res, next) => ctrl().getDashboard(req, res, next));
 
 // GET    /organizer/events
 router.get('/events',
-  authenticate,
-  authorize(ROLES.ORGANIZER, ROLES.ADMIN, ROLES.SUPER_ADMIN),
+  ...organizerAuth,
   validateRequest(organizerDashboardQuerySchema, 'query'),
   (req, res, next) => ctrl().getMyEvents(req, res, next));
 
 // GET    /organizer/bookings
 router.get('/bookings',
-  authenticate,
-  authorize(ROLES.ORGANIZER, ROLES.ADMIN, ROLES.SUPER_ADMIN),
+  ...organizerAuth,
   validateRequest(organizerDashboardQuerySchema, 'query'),
   (req, res, next) => ctrl().getMyBookings(req, res, next));
 
 // GET    /organizer/revenue
 router.get('/revenue',
-  authenticate,
-  authorize(ROLES.ORGANIZER, ROLES.ADMIN, ROLES.SUPER_ADMIN),
+  ...organizerAuth,
   validateRequest(organizerDashboardQuerySchema, 'query'),
   (req, res, next) => ctrl().getRevenue(req, res, next));
 
 // GET    /organizer/payouts
 router.get('/payouts',
-  authenticate,
-  authorize(ROLES.ORGANIZER, ROLES.ADMIN, ROLES.SUPER_ADMIN),
+  ...organizerAuth,
   validateRequest(organizerDashboardQuerySchema, 'query'),
   (req, res, next) => ctrl().getPayouts(req, res, next));
 
@@ -105,5 +98,32 @@ router.get('/:slug',
   validateRequest(organizerSlugParamsSchema, 'params'),
   cache('5m'),
   (req, res, next) => ctrl().getPublicProfile(req, res, next));
+
+// ════════════════════════════════════════════════════════════════════════════════
+// ORGANIZER IMAGE UPLOAD ROUTES  (Cloudinary)
+// POST   /organizer/images/logo    → upload / replace logo
+// DELETE /organizer/images/logo    → remove logo
+// POST   /organizer/images/banner  → upload / replace banner
+// DELETE /organizer/images/banner  → remove banner
+// ════════════════════════════════════════════════════════════════════════════════
+const orgImageAuth = organizerAuth;
+
+router.post('/images/logo',
+  ...orgImageAuth,
+  uploadMiddleware.organizerLogo,
+  (req, res, next) => ctrl().uploadLogo(req, res, next));
+
+router.delete('/images/logo',
+  ...orgImageAuth,
+  (req, res, next) => ctrl().removeLogo(req, res, next));
+
+router.post('/images/banner',
+  ...orgImageAuth,
+  uploadMiddleware.organizerBanner,
+  (req, res, next) => ctrl().uploadBanner(req, res, next));
+
+router.delete('/images/banner',
+  ...orgImageAuth,
+  (req, res, next) => ctrl().removeBanner(req, res, next));
 
 module.exports = router;

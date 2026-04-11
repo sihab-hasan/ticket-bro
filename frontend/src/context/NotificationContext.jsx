@@ -9,7 +9,7 @@ import React, {
 } from "react";
 import notificationsService from "@/api/notifications.api";
 import useAuth from "./AuthContext";
-import { connectSocket } from "@/lib/socket";
+import { connectSocket, disconnectSocket } from "@/lib/socket";
 import { playAppSound } from "@/lib/appSound";
 import notificationSoundFile from "@/assets/audio/notification.mp3";
 
@@ -369,6 +369,7 @@ export const NotificationProvider = ({ children }) => {
     if (!isAuthenticated || !user) return;
 
     const socket = connectSocket();
+    if (!socket) return;
 
     const handleNotificationCreated = (data) => {
       const { notification } = data;
@@ -381,6 +382,7 @@ export const NotificationProvider = ({ children }) => {
 
     return () => {
       socket.off("notification.created", handleNotificationCreated);
+      disconnectSocket();
     };
   }, [isAuthenticated, upsertNotification, user]);
 

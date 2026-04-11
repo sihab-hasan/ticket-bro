@@ -10,13 +10,26 @@ import authConfig from '@/config/auth.config';
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || authConfig.apiBaseUrl.replace('/api/v1', '');
 
 let socket = null;
+let consumerCount = 0;
 
 /**
  * Create and connect a socket, attaching the current access token.
  * @returns {import('socket.io-client').Socket}
  */
 export const connectSocket = () => {
+  const token = storageUtils.getAccessToken();
+  if (!token) {
+    return null;
+  }
+
+  consumerCount += 1;
+
   if (socket) {
+    socket.auth = {
+      ...(socket.auth || {}),
+      token,
+    };
+
     if (!socket.connected) {
       socket.connect();
     }
@@ -27,7 +40,7 @@ export const connectSocket = () => {
     // FIX: access token goes in auth object, NOT httpOnly cookie.
     // The httpOnly cookie is browser-only and inaccessible to the WS client.
     auth: {
-      token: storageUtils.getAccessToken(),
+      token,
     },
     withCredentials: true,
     transports: ['websocket', 'polling'],
@@ -54,10 +67,19 @@ export const connectSocket = () => {
  * Disconnect and destroy the socket instance.
  */
 export const disconnectSocket = () => {
-  if (socket) {
-    socket.disconnect();
-    socket = null;
+  if (!socket) {
+    consumerCount = 0;
+    return;
   }
+
+  consumerCount = Math.max(consumerCount - 1, 0);
+
+  if (consumerCount > 0) {
+    return;
+  }
+
+  socket.disconnect();
+  socket = null;
 };
 
 /**
@@ -65,6 +87,7 @@ export const disconnectSocket = () => {
  * Call this after a silent token refresh so the socket re-authenticates.
  */
 export const reconnectSocket = () => {
+  consumerCount = 0;
   disconnectSocket();
   return connectSocket();
 };

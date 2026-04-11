@@ -399,8 +399,6 @@ export const buildEventPayload = (form, { status } = {}) => ({
   currency: form.currency,
   visibility: form.visibility,
   requiresApproval: form.requiresApproval,
-  coverImage: form.coverImage.trim() || undefined,
-  images: splitTextList(form.galleryImagesText),
   videoUrl: form.videoUrl.trim() || undefined,
   refundPolicy: form.hasRefundPolicy
     ? {
