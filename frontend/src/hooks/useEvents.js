@@ -9,7 +9,7 @@
  *   - Query param builder aligned to event.model.js field names
  *
  * All API query params match the backend query handler which accepts:
- *   category, subcategory, eventType, location.city, status, visibility,
+ *   category, subcategory, eventType, city, status, visibility,
  *   isFeatured, isTrending, isFree, startDate[gte], startDate[lte],
  *   minPrice, maxPrice, sort, page, limit
  * ─────────────────────────────────────────────────────────────────────────────
@@ -29,6 +29,7 @@ import {
   toggleBookmark,
 } from '@/store/slices/eventsSlice';
 import { useLocation as useLocationCtx } from '@/context/LocationContext';
+import { getLocationQueryValue } from '@/lib/locationSelection';
 import { EVENT_STATUS, VISIBILITY } from '@/types/event.types';
 
 // ── Selectors ──────────────────────────────────────────────────────────────
@@ -47,7 +48,7 @@ const selectError        = (s) => s.events.error;
 const useEvents = () => {
   const dispatch = useDispatch();
   const { selectedLocation } = useLocationCtx();
-  const locationId = selectedLocation?.id;
+  const cityFilter = getLocationQueryValue(selectedLocation);
 
   // Store state
   const events       = useSelector(selectList);
@@ -71,11 +72,11 @@ const useEvents = () => {
     const base = {
       status:     EVENT_STATUS.PUBLISHED,
       visibility: VISIBILITY.PUBLIC,
-      // Inject the globally selected city — maps to location.city on backend
-      ...(locationId && locationId !== 'current' ? { 'location.city': locationId } : {}),
+      // Inject the globally selected city when discovery is scoped to one city.
+      ...(cityFilter ? { city: cityFilter } : {}),
     };
     return { ...base, ...overrides };
-  }, [locationId]);
+  }, [cityFilter]);
 
   // ── Load helpers ───────────────────────────────────────────────────────
 

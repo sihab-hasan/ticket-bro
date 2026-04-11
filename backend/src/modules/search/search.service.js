@@ -3,6 +3,7 @@ const Event = require('../events/event.model');
 const Category = require('../categories/category.model');
 const Subcategory = require('../subcategories/subcategory.model');
 const Organizer = require('../organizers/organizer.model');
+const { buildFlexibleExactRegex } = require('../locations/location.utils');
 const logger = require('../../infrastructure/logger/logger');
 
 class SearchService {
@@ -70,11 +71,12 @@ class SearchService {
     }
 
     // Location/city filter
-    if (location) {
-      filter['location.city'] = new RegExp(location, 'i');
-    }
-    if (city) {
-      filter['location.city'] = new RegExp(city, 'i');
+    const locationFilter = city || location;
+    if (locationFilter) {
+      const cityRegex = buildFlexibleExactRegex(locationFilter);
+      if (cityRegex) {
+        filter['location.city'] = cityRegex;
+      }
     }
 
     // Date filters

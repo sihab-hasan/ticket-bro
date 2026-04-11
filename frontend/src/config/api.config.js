@@ -326,6 +326,7 @@ export const ENDPOINTS = {
     LIST: "/locations",
     CITIES: "/locations/cities",
     COUNTRIES: "/locations/countries",
+    REVERSE: "/locations/reverse",
     DETAIL: (slug) => `/locations/${slug}`,
   },
 
