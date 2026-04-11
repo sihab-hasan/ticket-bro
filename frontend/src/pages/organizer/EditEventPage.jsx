@@ -15,10 +15,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PageHeader from '@/components/shared/PageHeader';
-import EventImageManager from '@/components/roles/organizer/EventImageManager';
+import ImagePicker from '@/components/shared/ImagePicker';
 import { ConfirmDialog, StatusBadge } from '@/components/shared/StatusBadge';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
+import useEventImages from '@/hooks/useEventImages';
+import { broadcastBrowseRefresh } from '@/lib/browseSync';
 import {
   LOCATION_TYPES,
   VISIBILITY_OPTIONS,
@@ -100,6 +102,10 @@ const EditEventPage = () => {
   const [cancelling, setCancelling] = useState(false);
   const [errors, setErrors] = useState({});
   const [form, setForm] = useState(getDefaultEventForm);
+  const eventImages = useEventImages({
+    initialCoverUrl: event?.coverImage || '',
+    initialGalleryUrls: Array.isArray(event?.images) ? event.images : [],
+  });
 
   useEffect(() => {
     const fetchTaxonomy = async () => {
@@ -160,7 +166,7 @@ const EditEventPage = () => {
     setErrors((current) => ({ ...current, [key]: undefined }));
   };
 
-  const handleEventImagesUpdated = (updatedEvent) => {
+  const syncEventMediaState = (updatedEvent) => {
     if (!updatedEvent) return;
 
     setEvent(updatedEvent);
@@ -204,7 +210,28 @@ const EditEventPage = () => {
     setSavingMode('save');
     try {
       const updatedEvent = await eventsService.updateEvent(eventKey, buildEventPayload(form));
-      setEvent(updatedEvent || event);
+      let latestEvent = updatedEvent || event;
+
+      try {
+        const updatedImagesEvent = await eventImages.saveImages(updatedEvent?.slug || eventKey);
+        if (updatedImagesEvent) {
+          latestEvent = updatedImagesEvent;
+        }
+      } catch (imageError) {
+        syncEventMediaState(updatedEvent || event);
+        broadcastBrowseRefresh({
+          slug: updatedEvent?.slug || eventKey,
+          reason: 'event-updated',
+        });
+        toast.error(getApiErrorMessage(imageError, 'Event details were saved, but media sync failed'));
+        return;
+      }
+
+      syncEventMediaState(latestEvent);
+      broadcastBrowseRefresh({
+        slug: latestEvent?.slug || eventKey,
+        reason: 'event-updated',
+      });
       toast.success(event?.status === 'draft' ? 'Draft updated successfully' : 'Event updated successfully');
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Failed to save event'));
@@ -220,8 +247,15 @@ const EditEventPage = () => {
     setSavingMode('review');
     try {
       const updatedEvent = await eventsService.updateEvent(eventKey, buildEventPayload(form));
-      const submittedEvent = await eventsService.publishEvent(updatedEvent?.slug || eventKey);
-      setEvent(submittedEvent || updatedEvent || event);
+      const updatedImagesEvent = await eventImages.saveImages(updatedEvent?.slug || eventKey);
+      const eventForPublish = updatedImagesEvent || updatedEvent || event;
+      syncEventMediaState(eventForPublish);
+      const submittedEvent = await eventsService.publishEvent(eventForPublish?.slug || eventKey);
+      syncEventMediaState(submittedEvent || eventForPublish);
+      broadcastBrowseRefresh({
+        slug: submittedEvent?.slug || eventForPublish?.slug || eventKey,
+        reason: 'event-submitted-for-review',
+      });
       toast.success('Event submitted for review');
       navigate(ROUTES.ORGANIZER.EVENTS);
     } catch (error) {
@@ -236,6 +270,10 @@ const EditEventPage = () => {
     setCancelling(true);
     try {
       await eventsService.cancelEvent(eventKey);
+      broadcastBrowseRefresh({
+        slug: eventKey,
+        reason: 'event-cancelled',
+      });
       toast.success('Event cancelled');
       navigate(ROUTES.ORGANIZER.EVENTS);
     } catch (error) {
@@ -428,11 +466,7 @@ const EditEventPage = () => {
         <TabsContent value="media" className="mt-4">
           <Card>
             <CardContent className="space-y-5 p-6">
-              <EventImageManager
-                event={event}
-                onUpdated={handleEventImagesUpdated}
-                isLoading={saving}
-              />
+              <ImagePicker imageState={eventImages} disabled={saving} />
               <Field label="Video URL"><Input value={form.videoUrl} onChange={(e) => setValue('videoUrl', e.target.value)} placeholder="https://..." className="h-9" /></Field>
               <div className="rounded-xl border border-border bg-muted/30 p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

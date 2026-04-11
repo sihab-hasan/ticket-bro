@@ -22,6 +22,8 @@ const {
   createSeatSectionSchema,
   updateSeatSectionSchema,
   rejectEventSchema,
+  galleryImagesDeleteSchema,
+  galleryImagesOrderSchema,
 } = require('./event.validation');
 
 // Lazy-load controller
@@ -110,6 +112,20 @@ router.delete(
   ...orgAuth,
   validateRequest(eventSlugParamsSchema, 'params'),
   (req, res, next) => ctrl().removeGalleryImage(req, res, next),
+);
+router.delete(
+  '/:slug/images/gallery/batch',
+  ...orgAuth,
+  validateRequest(eventSlugParamsSchema, 'params'),
+  validateRequest(galleryImagesDeleteSchema),
+  (req, res, next) => ctrl().removeGalleryImages(req, res, next),
+);
+router.put(
+  '/:slug/images/gallery',
+  ...orgAuth,
+  validateRequest(eventSlugParamsSchema, 'params'),
+  validateRequest(galleryImagesOrderSchema),
+  (req, res, next) => ctrl().reorderGalleryImages(req, res, next),
 );
 
 module.exports = router;

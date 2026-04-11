@@ -271,6 +271,14 @@ const rejectEventSchema = Joi.object({
   reason: optionalString(1000),
 });
 
+const galleryImagesDeleteSchema = Joi.object({
+  urls: Joi.array().items(fileOrUrl.required()).min(1).max(10).unique().required(),
+});
+
+const galleryImagesOrderSchema = Joi.object({
+  images: Joi.array().items(fileOrUrl.required()).max(10).unique().required(),
+});
+
 module.exports = {
   createEventSchema,
   updateEventSchema,
@@ -284,4 +292,6 @@ module.exports = {
   createSeatSectionSchema,
   updateSeatSectionSchema,
   rejectEventSchema,
+  galleryImagesDeleteSchema,
+  galleryImagesOrderSchema,
 };

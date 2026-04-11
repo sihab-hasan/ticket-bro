@@ -169,6 +169,21 @@ class EventController {
     const event = await eventService.removeGalleryImage(req.params.slug, url, req.user);
     sendSuccess(res, 'Gallery image removed.', { event });
   });
+
+  removeGalleryImages = asyncHandler(async (req, res) => {
+    const { urls } = req.body;
+    const event = await eventService.removeGalleryImages(req.params.slug, urls, req.user);
+    sendSuccess(res, 'Gallery images removed.', { event });
+  });
+
+  reorderGalleryImages = asyncHandler(async (req, res) => {
+    const event = await eventService.reorderGalleryImages(
+      req.params.slug,
+      req.body.images,
+      req.user,
+    );
+    sendSuccess(res, 'Gallery order updated.', { event });
+  });
 }
 
 module.exports = new EventController();

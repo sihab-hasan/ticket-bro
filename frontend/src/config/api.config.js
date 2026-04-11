@@ -75,6 +75,8 @@ export const ENDPOINTS = {
     // Image upload (Cloudinary)
     COVER_IMAGE: (slug) => `/events/${slug}/images/cover`,
     GALLERY_IMAGES: (slug) => `/events/${slug}/images/gallery`,
+    GALLERY_IMAGE_BATCH: (slug) => `/events/${slug}/images/gallery/batch`,
+    GALLERY_IMAGE_ORDER: (slug) => `/events/${slug}/images/gallery`,
   },
 
   BOOKINGS: {
