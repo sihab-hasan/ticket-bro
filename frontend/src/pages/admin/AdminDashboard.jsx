@@ -210,7 +210,7 @@ const AdminDashboard = () => {
       icon: UserCheck, iconBg: 'bg-blue-500/10', iconColor: 'text-blue-500',
       title: `${stats?.pendingOrganizers || 0} Organizer Approvals`,
       desc: 'New organizer verification requests pending',
-      time: 'Requires review', href: ROUTES.ADMIN.USERS,
+      time: 'Requires review', href: ROUTES.ADMIN.ORGANIZERS,
     },
     {
       icon: Flag, iconBg: 'bg-red-500/10', iconColor: 'text-red-500',

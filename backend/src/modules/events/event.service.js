@@ -14,6 +14,105 @@ const logger = require('../../infrastructure/logger/logger');
 const getId = (user) => user?._id?.toString() || user?.id || user?.userId;
 
 class EventService {
+  _getOrganizerUserIdFromEvent(event) {
+    return (
+      event?.organizerProfile?.user?._id?.toString?.() ||
+      event?.organizerProfile?.user?.toString?.() ||
+      event?.organizer?._id?.toString?.() ||
+      event?.organizer?.id?.toString?.() ||
+      event?.organizer?.toString?.() ||
+      null
+    );
+  }
+
+  async _loadOrganizerProfilesByUserIds(userIds = []) {
+    const normalizedIds = [...new Set(userIds.filter(Boolean).map((value) => value.toString()))];
+    if (!normalizedIds.length) {
+      return new Map();
+    }
+
+    const organizers = await Organizer.find({
+      user: { $in: normalizedIds },
+      deletedAt: null,
+    })
+      .select('user displayName slug bio logo coverImage website phone email socialLinks verificationStatus verifiedAt eventCount')
+      .lean();
+
+    return organizers.reduce((map, organizer) => {
+      const key =
+        organizer?.user?._id?.toString?.() ||
+        organizer?.user?.toString?.();
+      if (key) {
+        map.set(key, organizer);
+      }
+      return map;
+    }, new Map());
+  }
+
+  async _hydrateEventOrganizerProfile(event) {
+    if (!event) {
+      return event;
+    }
+
+    const source = event.toObject ? event.toObject() : { ...event };
+    if (source.organizerProfile?.verificationStatus) {
+      return source;
+    }
+
+    const organizerUserId = this._getOrganizerUserIdFromEvent(source);
+    if (!organizerUserId) {
+      return source;
+    }
+
+    const organizersByUserId = await this._loadOrganizerProfilesByUserIds([organizerUserId]);
+    const organizerProfile = organizersByUserId.get(organizerUserId);
+
+    if (organizerProfile) {
+      source.organizerProfile = organizerProfile;
+    }
+
+    return source;
+  }
+
+  async _hydrateEventCollectionOrganizerProfiles(events = []) {
+    if (!Array.isArray(events) || !events.length) {
+      return events;
+    }
+
+    const sources = events.map((event) =>
+      event?.toObject ? event.toObject() : { ...event },
+    );
+
+    const missingOrganizerUserIds = sources
+      .filter((event) => !event?.organizerProfile?.verificationStatus)
+      .map((event) => this._getOrganizerUserIdFromEvent(event))
+      .filter(Boolean);
+
+    const organizersByUserId = await this._loadOrganizerProfilesByUserIds(
+      missingOrganizerUserIds,
+    );
+
+    return sources.map((event) => {
+      if (event?.organizerProfile?.verificationStatus) {
+        return event;
+      }
+
+      const organizerUserId = this._getOrganizerUserIdFromEvent(event);
+      const organizerProfile = organizerUserId
+        ? organizersByUserId.get(organizerUserId)
+        : null;
+
+      if (organizerProfile) {
+        return {
+          ...event,
+          organizerProfile,
+        };
+      }
+
+      return event;
+    });
+  }
+
   async _invalidatePublicEventCaches() {
     await invalidateCachePatterns(['http-cache:GET:*/events*']);
   }
@@ -404,26 +503,38 @@ class EventService {
   }
 
   async getEvents(query = {}, user = null) {
+    const result = await eventRepository.findPublished(query);
     return this._serializeEventList(
-      await eventRepository.findPublished(query),
+      {
+        ...result,
+        events: await this._hydrateEventCollectionOrganizerProfiles(result.events),
+      },
       user,
     );
   }
 
   async getFeaturedEvents(query = {}, user = null) {
+    const result = await eventRepository.findPublished({ ...query, isFeatured: true });
     return this._serializeEventList(
-      await eventRepository.findPublished({ ...query, isFeatured: true }),
+      {
+        ...result,
+        events: await this._hydrateEventCollectionOrganizerProfiles(result.events),
+      },
       user,
     );
   }
 
   async getTrendingEvents(query = {}, user = null) {
+    const result = await eventRepository.findPublished({
+      ...query,
+      startDate: query.startDate || new Date().toISOString(),
+      sort: query.sort || '-isTrending -trendScore -totalSold startDate',
+    });
     return this._serializeEventList(
-      await eventRepository.findPublished({
-        ...query,
-        startDate: query.startDate || new Date().toISOString(),
-        sort: query.sort || '-isTrending -trendScore -totalSold startDate',
-      }),
+      {
+        ...result,
+        events: await this._hydrateEventCollectionOrganizerProfiles(result.events),
+      },
       user,
     );
   }
@@ -552,12 +663,16 @@ class EventService {
   }
 
   async getUpcomingEvents(query = {}, user = null) {
+    const result = await eventRepository.findPublished({
+      ...query,
+      startDate: query.startDate || new Date().toISOString(),
+      sort: query.sort || 'startDate',
+    });
     return this._serializeEventList(
-      await eventRepository.findPublished({
-        ...query,
-        startDate: query.startDate || new Date().toISOString(),
-        sort: query.sort || 'startDate',
-      }),
+      {
+        ...result,
+        events: await this._hydrateEventCollectionOrganizerProfiles(result.events),
+      },
       user,
     );
   }
@@ -565,13 +680,19 @@ class EventService {
   async getEventById(id, user) {
     const event = await this._getEventByIdOrThrow(id);
     this._assertCanView(event, user);
-    return this._serializeEvent(event, user);
+    return this._serializeEvent(
+      await this._hydrateEventOrganizerProfile(event),
+      user,
+    );
   }
 
   async getEventBySlug(slug, user) {
     const event = await this._getEventBySlugOrThrow(slug);
     this._assertCanView(event, user);
-    return this._serializeEvent(event, user);
+    return this._serializeEvent(
+      await this._hydrateEventOrganizerProfile(event),
+      user,
+    );
   }
 
   async updateEvent(slug, data, user) {
@@ -845,14 +966,18 @@ class EventService {
     const event = await this._getEventBySlugOrThrow(slug);
     this._assertCanView(event, user);
 
+    const result = await eventRepository.findPublished({
+      category: event.category?._id || event.category,
+      excludeId: event._id,
+      page: 1,
+      limit,
+      sort: 'startDate',
+    });
     return this._serializeEventList(
-      await eventRepository.findPublished({
-        category: event.category?._id || event.category,
-        excludeId: event._id,
-        page: 1,
-        limit,
-        sort: 'startDate',
-      }),
+      {
+        ...result,
+        events: await this._hydrateEventCollectionOrganizerProfiles(result.events),
+      },
       user,
     );
   }

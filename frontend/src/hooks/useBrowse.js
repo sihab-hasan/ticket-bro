@@ -3,6 +3,7 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { useLocation as useLocationCtx } from "@/context/LocationContext";
 import { useBrowseContext } from "@/context/BrowseContext";
 import { ROUTES } from "@/app/AppRoutes";
+import { calculateDistanceKm } from "@/lib/locationSelection";
 import {
   applyBrowseFilters,
   browseFallbackIcon,
@@ -43,12 +44,11 @@ export const formatAttendees = (value) => {
 const normalizeCompareValue = (value = "") => String(value).trim().toLowerCase();
 
 const matchesSelectedLocation = (event, selectedLocation) => {
-  if (!selectedLocation || selectedLocation.id === "all" || selectedLocation.id === "current") {
+  if (!selectedLocation || selectedLocation.mode === "all") {
     return true;
   }
 
   const selectedValues = [
-    selectedLocation.id,
     selectedLocation.slug,
     selectedLocation.label,
   ]
@@ -126,7 +126,7 @@ const useBrowse = () => {
   } = useBrowseContext();
   const { selectedLocation } = useLocationCtx();
 
-  const cityId = selectedLocation?.id || "all";
+  const cityId = selectedLocation?.slug || "all";
   const cityLabel = selectedLocation?.label || "All Cities";
   const locationFlag = selectedLocation?.flag || "Location";
 
@@ -328,11 +328,34 @@ const useBrowse = () => {
       .slice(0, 8);
 
   const getNearby = () =>
-    sortByStartDate(
-      filteredEvents.filter(
-        (event) => event.location?.latLng || event.location?.city || event.location?.name,
-      ),
-    ).slice(0, 8);
+    [...filteredEvents]
+      .filter((event) => event.location?.latLng)
+      .map((event) => {
+        const distance = selectedLocation?.coords
+          ? calculateDistanceKm(selectedLocation.coords, event.location.latLng)
+          : null;
+
+        return distance === null ? event : { ...event, distance };
+      })
+      .sort((a, b) => {
+        const distanceA = Number.isFinite(a.distance) ? a.distance : null;
+        const distanceB = Number.isFinite(b.distance) ? b.distance : null;
+
+        if (distanceA !== null && distanceB !== null && distanceA !== distanceB) {
+          return distanceA - distanceB;
+        }
+
+        if (distanceA !== null) {
+          return -1;
+        }
+
+        if (distanceB !== null) {
+          return 1;
+        }
+
+        return new Date(a.startDate) - new Date(b.startDate);
+      })
+      .slice(0, 8);
 
   const getEditorsPicks = () =>
     [...filteredEvents]

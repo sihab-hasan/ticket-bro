@@ -68,7 +68,7 @@ const OrganizerTrustBadge = ({ inverse = false, compact = false }) => (
     style={{ fontFamily: "var(--font-sans)" }}
   >
     <BadgeCheck size={10} className="shrink-0" />
-    {compact ? "Trusted" : "Trusted Host"}
+    {compact ? "Trusted" : "Trusted Organizer"}
   </span>
 );
 

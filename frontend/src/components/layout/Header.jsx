@@ -20,7 +20,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Link, useNavigate, useLocation }                  from "react-router-dom";
 import {
   Menu, Search, ShoppingBag, Sun, Moon, Monitor,
-  MapPin, ChevronDown, Check, Locate, X,
+  X,
   ChevronLeft, Calendar, ChevronRight,
   PlusCircle, Tag, TrendingUp, MessageSquare, Bell,
 } from "lucide-react";
@@ -38,12 +38,14 @@ import { useCart }   from "@/context/CartContext";
 import { useSearch } from "@/context/SearchContext";
 import { useLocation as useLocationCtx } from "@/context/LocationContext";
 import { useBrowse } from "@/hooks";
+import LocationPicker from "@/components/shared/LocationPicker";
 import lightLogo     from "@/assets/images/ticket-bro-logo-light-mode.png";
 import darkLogo      from "@/assets/images/ticket-bro-logo-dark-mode.png";
 import UserMenu      from "@/components/layout/UserMenu";
 import { useSelector } from "react-redux";
 import { selectUnreadCount } from "@/store/slices/messagingSlice";
 import { notificationsService } from "@/api";
+import { getLocationQueryValue } from "@/lib/locationSelection";
 
 // Lightweight hook — polls notification unread count every 60 s
 const useNotifCount = (isAuthenticated) => {
@@ -62,144 +64,6 @@ const useNotifCount = (isAuthenticated) => {
     return () => { cancelled = true; clearInterval(id); };
   }, [isAuthenticated]);
   return count;
-};
-
-/* ════════════════════════════════════════════════════════════════
-   LOCATION SELECTOR
-════════════════════════════════════════════════════════════════ */
-const LocationSelector = ({ locations, selectedLocation, onLocationChange, compact = false }) => {
-  const [open,      setOpen]      = useState(false);
-  const [locSearch, setLocSearch] = useState("");
-  const [detecting, setDetecting] = useState(false);
-  const wrapRef  = useRef(null);
-  const inputRef = useRef(null);
-
-  useEffect(() => {
-    const handler = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
-        setOpen(false); setLocSearch("");
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 50);
-  }, [open]);
-
-  const filtered = locations.filter((l) =>
-    l.label.toLowerCase().includes(locSearch.toLowerCase()) ||
-    l.country.toLowerCase().includes(locSearch.toLowerCase()),
-  );
-
-  const handleDetect = () => {
-    setDetecting(true);
-    if (!navigator.geolocation) { setDetecting(false); return; }
-    navigator.geolocation.getCurrentPosition(
-      () => {
-        onLocationChange({ id: "current", label: "Current Location", country: "", flag: "📍" });
-        setDetecting(false); setOpen(false);
-      },
-      () => setDetecting(false),
-    );
-  };
-
-  return (
-    <div className="relative" ref={wrapRef}>
-      <button
-        onClick={() => setOpen((p) => !p)}
-        className={`flex items-center rounded-md hover:bg-accent 
-          ${compact ? "h-8 px-2 gap-1" : "h-9 px-3 gap-1.5 max-w-[160px]"}`}
-        aria-label="Select location"
-        aria-expanded={open}
-        aria-haspopup="listbox"
-      >
-        <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
-        <span className={`font-medium text-foreground truncate text-sm
-          ${compact ? "hidden sm:inline max-w-[110px]" : "max-w-full"}`}>
-          {selectedLocation?.label || "Location"}
-        </span>
-        <ChevronDown className={`h-3 w-3 text-muted-foreground shrink-0 transition-transform duration-200
-          ${compact ? "hidden sm:block" : ""}
-          ${open ? "rotate-180" : ""}`}
-        />
-      </button>
-
-      {open && (
-        <div className="absolute top-full left-0 mt-1.5 w-[min(288px,calc(100vw-1rem))] rounded-md bg-popover shadow-lg z-[60] overflow-hidden">
-          {/* Search */}
-          <div className="p-2 border-b border-border">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-              <input
-                ref={inputRef}
-                type="text"
-                placeholder="Search city or country…"
-                value={locSearch}
-                onChange={(e) => setLocSearch(e.target.value)}
-                className="w-full pl-8 pr-8 py-1.5 text-sm bg-muted rounded-md border-0 outline-none text-foreground placeholder:text-muted-foreground"
-              />
-              {locSearch && (
-                <button
-                  onClick={() => setLocSearch("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  aria-label="Clear search"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Detect */}
-          <div className="p-1 border-b border-border">
-            <button
-              onClick={handleDetect}
-              disabled={detecting}
-              className="flex items-center gap-2.5 w-full px-3 py-2 rounded-md text-sm hover:bg-accent text-left  disabled:opacity-50"
-            >
-              <Locate className="h-3.5 w-3.5 text-primary shrink-0" />
-              <span className="font-medium text-foreground">
-                {detecting ? "Detecting…" : "Use my current location"}
-              </span>
-            </button>
-          </div>
-
-          {/* List */}
-          <div className="max-h-56 overflow-y-auto p-1" role="listbox">
-            {filtered.length === 0 ? (
-              <p className="text-xs text-muted-foreground text-center py-4">No locations found</p>
-            ) : (
-              <>
-                {!locSearch && (
-                  <p className="text-[10px] font-semibold text-muted-foreground px-3 py-1.5 uppercase tracking-wider">
-                    Popular Cities
-                  </p>
-                )}
-                {filtered.map((loc) => (
-                  <button
-                    key={loc.id}
-                    role="option"
-                    aria-selected={selectedLocation?.id === loc.id}
-                    onClick={() => { onLocationChange(loc); setOpen(false); setLocSearch(""); }}
-                    className="flex items-center gap-2.5 w-full px-3 py-2 rounded-md text-sm hover:bg-accent text-left "
-                  >
-                    <span className="text-base leading-none shrink-0">{loc.flag}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-foreground text-sm leading-none">{loc.label}</p>
-                      {loc.country && <p className="text-[11px] text-muted-foreground mt-0.5">{loc.country}</p>}
-                    </div>
-                    {selectedLocation?.id === loc.id && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
-                  </button>
-                ))}
-              </>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
 };
 
 /* ════════════════════════════════════════════════════════════════
@@ -452,7 +316,14 @@ const Header = () => {
   const { isAuthenticated, hasPermission }   = useAuth();
   const { itemCount }                        = useCart();
   const { setQuery }                         = useSearch();
-  const { selectedLocation, changeLocation, locations } = useLocationCtx();
+  const {
+    selectedLocation,
+    changeLocation,
+    clearLocation,
+    detectCurrentLocation,
+    locations,
+    isDetectingLocation,
+  } = useLocationCtx();
   const { navigationItems } = useBrowse();
   const msgUnreadCount   = useSelector(selectUnreadCount);
   const notifUnreadCount = useNotifCount(isAuthenticated);
@@ -465,9 +336,12 @@ const Header = () => {
     if (!searchQuery.trim()) return;
     setQuery(searchQuery);
     setMobileSearchOpen(false);
-    navigate(
-      `/search?q=${encodeURIComponent(searchQuery)}&location=${encodeURIComponent(selectedLocation?.id || "")}`,
-    );
+    const params = new URLSearchParams({ q: searchQuery.trim() });
+    const selectedCity = getLocationQueryValue(selectedLocation);
+    if (selectedCity) {
+      params.set("city", selectedCity);
+    }
+    navigate(`/search?${params.toString()}`);
   };
 
   const openSidebar  = useCallback(() => setSidebarOpen(true),  []);
@@ -491,10 +365,13 @@ const Header = () => {
               >
                 <Menu className="h-5 w-5" />
               </Button>
-              <LocationSelector
+              <LocationPicker
                 locations={locations}
                 selectedLocation={selectedLocation}
                 onLocationChange={changeLocation}
+                onClearLocation={clearLocation}
+                onDetectLocation={detectCurrentLocation}
+                isDetecting={isDetectingLocation}
                 compact
               />
             </div>
@@ -607,7 +484,14 @@ const Header = () => {
 
             <div className="h-5 w-px bg-border shrink-0 mx-1" />
 
-            <LocationSelector locations={locations} selectedLocation={selectedLocation} onLocationChange={changeLocation} />
+            <LocationPicker
+              locations={locations}
+              selectedLocation={selectedLocation}
+              onLocationChange={changeLocation}
+              onClearLocation={clearLocation}
+              onDetectLocation={detectCurrentLocation}
+              isDetecting={isDetectingLocation}
+            />
 
             {/* Search */}
             <form onSubmit={handleSearch} className="flex-1 min-w-0 max-w-xl mx-1">
