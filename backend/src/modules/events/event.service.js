@@ -1,5 +1,6 @@
 'use strict';
 const eventRepository = require('./event.repository');
+const eventImageService = require('./event.image.service');
 const Organizer = require('../organizers/organizer.model');
 const TicketType = require('../tickets/ticketType.model');
 const SeatSection = require('../tickets/seat_section.model');
@@ -149,6 +150,29 @@ class EventService {
     return organizerId === userId || coOrganizerIds.includes(userId);
   }
 
+  _matchesOrganizerProfileOwner(event, organizerProfileId) {
+    if (!organizerProfileId) {
+      return false;
+    }
+
+    const normalizedOrganizerProfileId = organizerProfileId.toString();
+    const eventOrganizerProfileId =
+      event?.organizerProfile?._id?.toString?.() ||
+      event?.organizerProfile?.id?.toString?.() ||
+      event?.organizerProfile?.toString?.() ||
+      null;
+    const eventOrganizerId =
+      event?.organizer?._id?.toString?.() ||
+      event?.organizer?.id?.toString?.() ||
+      event?.organizer?.toString?.() ||
+      null;
+
+    return (
+      eventOrganizerProfileId === normalizedOrganizerProfileId ||
+      eventOrganizerId === normalizedOrganizerProfileId
+    );
+  }
+
   _canViewDirectLink(event) {
     return event.status === 'published' && ['public', 'unlisted'].includes(event.visibility);
   }
@@ -168,6 +192,11 @@ class EventService {
   _sanitizeEventPayload(data = {}, user, { isCreate = false } = {}) {
     const payload = { ...data };
     const isAdminLike = [ROLES.ADMIN, ROLES.SUPER_ADMIN].includes(user?.role);
+
+    // Event images are managed through dedicated Cloudinary upload endpoints.
+    // Ignore direct URL mutation through the generic create/update payloads.
+    if (payload.coverImage !== undefined) delete payload.coverImage;
+    if (payload.images !== undefined) delete payload.images;
 
     if (payload.location) {
       const location = { ...payload.location };
@@ -406,7 +435,7 @@ class EventService {
 
   async updateEvent(slug, data, user) {
     const event = await this._getEventBySlugOrThrow(slug);
-    this._assertCanManage(event, user);
+    await this._assertCanManage(event, user);
 
     const payload = this._sanitizeEventPayload(data, user);
     if (!payload.organizerProfile) {
@@ -416,16 +445,67 @@ class EventService {
     return eventRepository.updateById(event._id, payload);
   }
 
+  // ── Cover image (Cloudinary) ─────────────────────────────────────────────────
+  async uploadCoverImage(slug, file, user) {
+    const event = await this._getEventBySlugOrThrow(slug);
+    await this._assertCanManage(event, user);
+    const url = await eventImageService.uploadCover(file.buffer, event._id.toString());
+    // Delete old cover if it was a different URL (stable public_id means same URL on overwrite)
+    if (event.coverImage && event.coverImage !== url) {
+      await eventImageService.deleteCover(event.coverImage);
+    }
+    return eventRepository.updateById(event._id, { coverImage: url });
+  }
+
+  async removeCoverImage(slug, user) {
+    const event = await this._getEventBySlugOrThrow(slug);
+    await this._assertCanManage(event, user);
+    if (event.coverImage) await eventImageService.deleteCover(event.coverImage);
+    return eventRepository.updateById(event._id, { coverImage: null });
+  }
+
+  // ── Gallery images (Cloudinary) ──────────────────────────────────────────────
+  async uploadGalleryImages(slug, files, user) {
+    const event = await this._getEventBySlugOrThrow(slug);
+    await this._assertCanManage(event, user);
+    const existing = Array.isArray(event.images) ? event.images : [];
+    const incomingFiles = Array.isArray(files) ? files : [];
+    const remainingSlots = Math.max(0, 10 - existing.length);
+
+    if (!incomingFiles.length) {
+      throw new BadRequestError('No gallery images were uploaded.');
+    }
+
+    if (incomingFiles.length > remainingSlots) {
+      throw new BadRequestError(
+        remainingSlots > 0
+          ? `You can upload ${remainingSlots} more gallery image${remainingSlots === 1 ? '' : 's'}.`
+          : 'This event already has the maximum of 10 gallery images.',
+      );
+    }
+
+    const newUrls = await eventImageService.uploadGallery(incomingFiles, event._id.toString());
+    return eventRepository.updateById(event._id, { images: [...existing, ...newUrls] });
+  }
+
+  async removeGalleryImage(slug, imageUrl, user) {
+    const event = await this._getEventBySlugOrThrow(slug);
+    await this._assertCanManage(event, user);
+    await eventImageService.deleteGalleryImage(imageUrl);
+    const updated = (event.images || []).filter((u) => u !== imageUrl);
+    return eventRepository.updateById(event._id, { images: updated });
+  }
+
   async deleteEvent(slug, user) {
     const event = await this._getEventBySlugOrThrow(slug);
-    this._assertCanManage(event, user);
+    await this._assertCanManage(event, user);
     await eventRepository.softDeleteById(event._id);
     return { message: 'Event deleted.' };
   }
 
   async publishEvent(slug, user) {
     const event = await this._getEventBySlugOrThrow(slug);
-    this._assertCanManage(event, user);
+    await this._assertCanManage(event, user);
 
     if ([ROLES.ADMIN, ROLES.SUPER_ADMIN].includes(user?.role)) {
       if (event.status === 'published') {
@@ -455,7 +535,7 @@ class EventService {
 
   async cancelEvent(slug, user) {
     const event = await this._getEventBySlugOrThrow(slug);
-    this._assertCanManage(event, user);
+    await this._assertCanManage(event, user);
     return eventRepository.updateById(event._id, { status: 'cancelled' });
   }
 
@@ -530,7 +610,7 @@ class EventService {
 
   async createTicketType(slug, data, user) {
     const event = await this._getEventBySlugOrThrow(slug);
-    this._assertCanManage(event, user);
+    await this._assertCanManage(event, user);
 
     const ticketType = await TicketType.create({
       event: event._id,
@@ -543,7 +623,7 @@ class EventService {
 
   async updateTicketType(slug, ticketTypeId, data, user) {
     const event = await this._getEventBySlugOrThrow(slug);
-    this._assertCanManage(event, user);
+    await this._assertCanManage(event, user);
 
     const ticketType = await TicketType.findOneAndUpdate(
       { _id: ticketTypeId, event: event._id, deletedAt: null },
@@ -559,7 +639,7 @@ class EventService {
 
   async deleteTicketType(slug, ticketTypeId, user) {
     const event = await this._getEventBySlugOrThrow(slug);
-    this._assertCanManage(event, user);
+    await this._assertCanManage(event, user);
 
     const ticketType = await TicketType.findOneAndUpdate(
       { _id: ticketTypeId, event: event._id, deletedAt: null },
@@ -575,7 +655,7 @@ class EventService {
 
   async createSeatSection(slug, data, user) {
     const event = await this._getEventBySlugOrThrow(slug);
-    this._assertCanManage(event, user);
+    await this._assertCanManage(event, user);
 
     return SeatSection.create({
       eventId: event._id,
@@ -587,7 +667,7 @@ class EventService {
 
   async updateSeatSection(slug, sectionId, data, user) {
     const event = await this._getEventBySlugOrThrow(slug);
-    this._assertCanManage(event, user);
+    await this._assertCanManage(event, user);
 
     const section = await SeatSection.findOneAndUpdate(
       { _id: sectionId, eventId: event._id },
@@ -634,12 +714,25 @@ class EventService {
     return eventRepository.getStats();
   }
 
-  _assertCanManage(event, user) {
+  async _assertCanManage(event, user) {
     const isAdmin = [ROLES.ADMIN, ROLES.SUPER_ADMIN].includes(user?.role);
 
-    if (!isAdmin && !this._isOwner(event, user)) {
-      throw new ForbiddenError('Access denied.');
+    if (isAdmin || this._isOwner(event, user)) {
+      return;
     }
+
+    const userId = getId(user);
+    const organizerProfileId =
+      user?.organizerProfile?._id?.toString?.() ||
+      user?.organizerProfile?.id?.toString?.() ||
+      user?.organizerProfile?.toString?.() ||
+      await this._resolveOrganizerProfileId(userId);
+
+    if (this._matchesOrganizerProfileOwner(event, organizerProfileId)) {
+      return;
+    }
+
+    throw new ForbiddenError('Access denied.');
   }
 
   _pickTicketTypeFields(data) {

@@ -16,18 +16,34 @@ import authConfig from '@/config/auth.config';
 
 const api = axios.create({
   baseURL: authConfig.apiBaseUrl,
-  headers: { 'Content-Type': 'application/json' },
   withCredentials: true,   // REQUIRED: sends httpOnly refresh token cookie automatically
   timeout: 15_000,
 });
 
+const isFormDataPayload = (value) =>
+  typeof FormData !== "undefined" && value instanceof FormData;
+
 // ── Request interceptor ───────────────────────────────────────────────────────
 // Attach in-memory access token if available.
 api.interceptors.request.use((config) => {
+  config.headers = config.headers ?? {};
+
   const token = storageUtils.getAccessToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  if (isFormDataPayload(config.data)) {
+    delete config.headers?.["Content-Type"];
+    delete config.headers?.["content-type"];
+  } else if (
+    config.data !== undefined &&
+    !config.headers?.["Content-Type"] &&
+    !config.headers?.["content-type"]
+  ) {
+    config.headers["Content-Type"] = "application/json";
+  }
+
   return config;
 });
 

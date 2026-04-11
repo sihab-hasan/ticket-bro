@@ -4,6 +4,7 @@ import {
   get,
   post,
   put,
+  upload,
   pickEntity,
   pickList,
   pickPaginated,
@@ -285,6 +286,51 @@ export const trackEventView = async (slug) => {
   }
 };
 
+// ── Image Upload API (Cloudinary) ─────────────────────────────────────────────
+
+/**
+ * Upload or replace the cover image for an event.
+ * @param {string} slug  Event slug
+ * @param {File}   file  File object from input[type=file]
+ */
+export const uploadCoverImage = (slug, file) => {
+  const form = new FormData();
+  form.append("coverImage", file);
+  return upload(ENDPOINTS.EVENTS.COVER_IMAGE(slug), form, {
+    select: (p) => p?.event ?? p,
+  });
+};
+
+/** Remove the cover image for an event. */
+export const removeCoverImage = (slug) =>
+  del(ENDPOINTS.EVENTS.COVER_IMAGE(slug), {
+    select: (p) => p?.event ?? p,
+  });
+
+/**
+ * Upload one or more gallery images for an event.
+ * @param {string}   slug   Event slug
+ * @param {File[]}   files  Array of File objects
+ */
+export const uploadGalleryImages = (slug, files) => {
+  const form = new FormData();
+  files.forEach((f) => form.append("images", f));
+  return upload(ENDPOINTS.EVENTS.GALLERY_IMAGES(slug), form, {
+    select: (p) => p?.event ?? p,
+  });
+};
+
+/**
+ * Remove a single gallery image by its Cloudinary URL.
+ * @param {string} slug      Event slug
+ * @param {string} imageUrl  Full Cloudinary URL to remove
+ */
+export const removeGalleryImage = (slug, imageUrl) =>
+  del(ENDPOINTS.EVENTS.GALLERY_IMAGES(slug), {
+    data: { url: imageUrl },
+    select: (p) => p?.event ?? p,
+  });
+
 export default {
   getAllEvents,
   getFeaturedEvents,
@@ -328,4 +374,9 @@ export default {
   // unbookmarkEvent,
   // shareEvent,
   trackEventView,
+  // Image uploads (Cloudinary)
+  uploadCoverImage,
+  removeCoverImage,
+  uploadGalleryImages,
+  removeGalleryImage,
 };

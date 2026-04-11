@@ -3,6 +3,8 @@ import {
   get,
   post,
   put,
+  del,
+  upload,
   pickEntity,
   pickPaginated,
 } from "@/api/client";
@@ -101,6 +103,37 @@ const organizersService = {
   getAnalyticsEvent: (id) => get(ENDPOINTS.ORGANIZERS.ANALYTICS_EVENT(id)),
   getAnalyticsAudience: (params) =>
     get(ENDPOINTS.ORGANIZERS.ANALYTICS_AUDIENCE, { params }),
+
+  // ── Image uploads (Cloudinary) ───────────────────────────────────────────────
+  /** Upload or replace the organizer logo. */
+  uploadLogo: (file) => {
+    const form = new FormData();
+    form.append("logo", file);
+    return upload(ENDPOINTS.ORGANIZERS.LOGO_IMAGE, form, {
+      select: (p) => p?.organizer ?? p,
+    });
+  },
+
+  /** Remove the organizer logo. */
+  removeLogo: () =>
+    del(ENDPOINTS.ORGANIZERS.LOGO_IMAGE, {
+      select: (p) => p?.organizer ?? p,
+    }),
+
+  /** Upload or replace the organizer banner. */
+  uploadBanner: (file) => {
+    const form = new FormData();
+    form.append("banner", file);
+    return upload(ENDPOINTS.ORGANIZERS.BANNER_IMAGE, form, {
+      select: (p) => p?.organizer ?? p,
+    });
+  },
+
+  /** Remove the organizer banner. */
+  removeBanner: () =>
+    del(ENDPOINTS.ORGANIZERS.BANNER_IMAGE, {
+      select: (p) => p?.organizer ?? p,
+    }),
 };
 
 export default organizersService;

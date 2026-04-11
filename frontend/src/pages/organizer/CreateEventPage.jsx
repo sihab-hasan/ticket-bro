@@ -296,8 +296,6 @@ const buildEventPayload = (form, status) => ({
   currency: form.currency,
   visibility: form.visibility,
   requiresApproval: form.requiresApproval,
-  coverImage: form.coverImage.trim() || undefined,
-  images: splitTextList(form.galleryImagesText),
   videoUrl: form.videoUrl.trim() || undefined,
   refundPolicy: form.hasRefundPolicy
     ? {
@@ -1255,58 +1253,28 @@ const CreateEventPage = () => {
 
           {step === 3 && (
             <>
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm">
+                <p className="font-semibold text-foreground">
+                  Event images are uploaded after the event is created
+                </p>
+                <p className="mt-1 text-muted-foreground">
+                  Save your draft or submit the event first, then open the event editor to upload the
+                  cover image and gallery directly to Cloudinary.
+                </p>
+              </div>
               <Field
-                label="Cover Image URL"
-                hint="Recommended: 1200x630px and optimized for the web"
+                label="Promo Video URL"
+                hint="Optional YouTube, Vimeo, or hosted video link."
               >
                 <Input
-                  value={form.coverImage}
+                  value={form.videoUrl}
                   onChange={(event) =>
-                    setValue('coverImage', event.target.value)
+                    setValue('videoUrl', event.target.value)
                   }
                   placeholder="https://..."
                   className={inputCls}
                 />
               </Field>
-              {form.coverImage && (
-                <img
-                  src={form.coverImage}
-                  alt="Cover preview"
-                  className="w-full h-48 object-cover rounded-xl"
-                  onError={(event) => {
-                    event.currentTarget.style.display = 'none';
-                  }}
-                />
-              )}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field
-                  label="Gallery Image URLs"
-                  hint="Add one image URL per line for extra detail-page media."
-                >
-                  <Textarea
-                    value={form.galleryImagesText}
-                    onChange={(event) =>
-                      setValue('galleryImagesText', event.target.value)
-                    }
-                    rows={4}
-                    className="text-sm resize-none"
-                    placeholder={'https://...\nhttps://...'}
-                  />
-                </Field>
-                <Field
-                  label="Promo Video URL"
-                  hint="Optional YouTube, Vimeo, or hosted video link."
-                >
-                  <Input
-                    value={form.videoUrl}
-                    onChange={(event) =>
-                      setValue('videoUrl', event.target.value)
-                    }
-                    placeholder="https://..."
-                    className={inputCls}
-                  />
-                </Field>
-              </div>
               <Separator />
               <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 border border-border">
                 <Globe className="h-4 w-4 text-muted-foreground" />

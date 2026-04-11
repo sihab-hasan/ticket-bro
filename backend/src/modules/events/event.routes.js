@@ -4,9 +4,11 @@ const express = require('express');
 const router = express.Router();
 
 const { authenticate, authorize, optionalAuth } = require('../../common/middleware/auth.middleware');
+const { requireOrganizerAccess } = require('../../common/middleware/organizerAccess.middleware');
 const { cache } = require('../../common/middleware/cache.middleware');
 const { validateRequest } = require('../../common/middleware/validation.middleware');
 const { ROLES } = require('../../common/constants/roles');
+const uploadMiddleware = require('../users/upload.middleware');
 const {
   createEventSchema,
   updateEventSchema,
@@ -55,7 +57,7 @@ router.post('/:slug/view',      validateRequest(eventSlugParamsSchema, 'params')
 // ════════════════════════════════════════════════════════════════════════════════
 // ORGANIZER ROUTES
 // ════════════════════════════════════════════════════════════════════════════════
-const orgAuth = [authenticate, authorize(ROLES.ORGANIZER, ROLES.ADMIN, ROLES.SUPER_ADMIN)];
+const orgAuth = [authenticate, requireOrganizerAccess];
 
 router.post('/',                          ...orgAuth, validateRequest(createEventSchema), (req, res, next) => ctrl().createEvent(req, res, next));
 router.put('/:slug',                      ...orgAuth, validateRequest(eventSlugParamsSchema, 'params'), validateRequest(updateEventSchema), (req, res, next) => ctrl().updateEvent(req, res, next));
@@ -75,5 +77,39 @@ const adminAuth = [authenticate, authorize(ROLES.ADMIN, ROLES.SUPER_ADMIN)];
 
 router.put('/:slug/approve', ...adminAuth, validateRequest(eventSlugParamsSchema, 'params'), (req, res, next) => ctrl().approveEvent(req, res, next));
 router.put('/:slug/reject',  ...adminAuth, validateRequest(eventSlugParamsSchema, 'params'), validateRequest(rejectEventSchema), (req, res, next) => ctrl().rejectEvent(req, res, next));
+
+// ════════════════════════════════════════════════════════════════════════════════
+// IMAGE UPLOAD ROUTES  (Cloudinary)
+// POST   /events/:slug/images/cover         → upload / replace cover image
+// DELETE /events/:slug/images/cover         → remove cover image
+// POST   /events/:slug/images/gallery       → add gallery images (up to 10)
+// DELETE /events/:slug/images/gallery       → remove one gallery image (body: { url })
+// ════════════════════════════════════════════════════════════════════════════════
+router.post(
+  '/:slug/images/cover',
+  ...orgAuth,
+  validateRequest(eventSlugParamsSchema, 'params'),
+  uploadMiddleware.eventCover,
+  (req, res, next) => ctrl().uploadCoverImage(req, res, next),
+);
+router.delete(
+  '/:slug/images/cover',
+  ...orgAuth,
+  validateRequest(eventSlugParamsSchema, 'params'),
+  (req, res, next) => ctrl().removeCoverImage(req, res, next),
+);
+router.post(
+  '/:slug/images/gallery',
+  ...orgAuth,
+  validateRequest(eventSlugParamsSchema, 'params'),
+  uploadMiddleware.eventGallery,
+  (req, res, next) => ctrl().uploadGalleryImages(req, res, next),
+);
+router.delete(
+  '/:slug/images/gallery',
+  ...orgAuth,
+  validateRequest(eventSlugParamsSchema, 'params'),
+  (req, res, next) => ctrl().removeGalleryImage(req, res, next),
+);
 
 module.exports = router;

@@ -2,7 +2,7 @@
 const express    = require('express');
 const router     = express.Router();
 const payoutController = require('./payout.controller');
-const { authenticate } = require('../auth/auth.middleware');
+const { authenticate } = require('../../common/middleware/auth.middleware');
 const { authorize }    = require('../../common/middleware/rbac.middleware');
 const { ROLES }        = require('../../common/constants/roles');
 

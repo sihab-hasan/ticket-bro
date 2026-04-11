@@ -130,6 +130,45 @@ class EventController {
   featureEvent = asyncHandler(async (req, res) => {
     sendSuccess(res, 'Updated.', { event: await eventService.featureEvent(req.params.id, req.body.featured) });
   });
+
+  // ── POST /events/:slug/images/cover ─────────────────────────────────────────
+  uploadCoverImage = asyncHandler(async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({
+        status: 'fail',
+        message: 'No cover image uploaded. Send multipart/form-data with the "coverImage" field.',
+      });
+    }
+    const event = await eventService.uploadCoverImage(req.params.slug, req.file, req.user);
+    sendSuccess(res, 'Cover image updated.', { event });
+  });
+
+  // ── DELETE /events/:slug/images/cover ───────────────────────────────────────
+  removeCoverImage = asyncHandler(async (req, res) => {
+    const event = await eventService.removeCoverImage(req.params.slug, req.user);
+    sendSuccess(res, 'Cover image removed.', { event });
+  });
+
+  // ── POST /events/:slug/images/gallery ───────────────────────────────────────
+  uploadGalleryImages = asyncHandler(async (req, res) => {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({
+        status: 'fail',
+        message: 'No gallery images uploaded. Send multipart/form-data with one or more "images" files.',
+      });
+    }
+    const event = await eventService.uploadGalleryImages(req.params.slug, req.files, req.user);
+    sendSuccess(res, 'Gallery images uploaded.', { event });
+  });
+
+  // ── DELETE /events/:slug/images/gallery ─────────────────────────────────────
+  // Body: { url: "https://res.cloudinary.com/..." }
+  removeGalleryImage = asyncHandler(async (req, res) => {
+    const { url } = req.body;
+    if (!url) return res.status(400).json({ status: 'fail', message: 'Image URL is required.' });
+    const event = await eventService.removeGalleryImage(req.params.slug, url, req.user);
+    sendSuccess(res, 'Gallery image removed.', { event });
+  });
 }
 
 module.exports = new EventController();

@@ -12,3 +12,7 @@ export { Loader, PageLoader, SectionLoader, InlineLoader, FullScreenLoader, Cont
 // Floating widgets
 export { default as FloatingCartWidget }        from "./FloatingCartWidget";
 export { default as FloatingClosingSoonWidget } from "./FloatingClosingSoonWidget";
+
+// Image upload
+export { default as Upload } from "./ImageUpload";
+export { default as ImageUpload } from "./ImageUpload";

@@ -24,7 +24,7 @@ const EventPhotos = () => {
           id: 1,
           title: "Rock Night 2026",
           image:
-            "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&q=80&w=600",
+            "https://picsum.photos/seed/ticketbro-rock-night/600/600",
           likes: 234,
           comments: 12,
           eventId: "rock-night",
@@ -33,7 +33,7 @@ const EventPhotos = () => {
           id: 2,
           title: "Jazz Festival Live",
           image:
-            "https://images.unsplash.com/photo-1511192336575-5a79af67a629?auto=format&fit=crop&q=80&w=600",
+            "https://picsum.photos/seed/ticketbro-jazz-festival/600/600",
           likes: 189,
           comments: 8,
           eventId: "jazz-fest",
@@ -48,7 +48,7 @@ const EventPhotos = () => {
           id: 4,
           title: "Stadium Finals",
           image:
-            "https://images.unsplash.com/photo-1504450758481-7338eba7524a?auto=format&fit=crop&q=80&w=600",
+            "https://picsum.photos/seed/ticketbro-stadium-finals/600/600",
           likes: 567,
           comments: 34,
           eventId: "football-final",
