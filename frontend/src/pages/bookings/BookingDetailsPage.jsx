@@ -65,6 +65,10 @@ const BookingDetailsPage = () => {
 
   const canCancel = booking?.status === 'confirmed' && new Date(booking?.event?.startDate) > new Date();
   const canReview = booking?.status === 'confirmed' && new Date(booking?.event?.endDate) < new Date();
+  const canViewTickets = Boolean(booking?.bookingRef) && ['paid', 'confirmed', 'checked_in'].includes(booking?.paymentStatus || booking?.status);
+  const totalTickets = Array.isArray(booking?.items)
+    ? booking.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0)
+    : (booking?.quantity || 1);
 
   // booking.event.organizer = User ObjectId (the organizer's user _id)
   // booking.organizer = same field from booking model directly
@@ -114,7 +118,7 @@ const BookingDetailsPage = () => {
             {formatPrice(booking?.totalAmount)}
           </p>
           <p className="text-xs text-muted-foreground">
-            {booking?.quantity || 1} ticket{(booking?.quantity || 1) > 1 ? 's' : ''}
+            {totalTickets} ticket{totalTickets > 1 ? 's' : ''}
           </p>
         </div>
       </div>
@@ -132,11 +136,20 @@ const BookingDetailsPage = () => {
           <InfoRow label="Event"       value={booking?.event?.title}     icon={Calendar} />
           <InfoRow label="Date & Time" value={formatDate(booking?.event?.startDate)} icon={Calendar} />
           <InfoRow label="Venue"       value={[
-            booking?.event?.venue?.name, booking?.event?.venue?.city
+            booking?.event?.location?.name,
+            booking?.event?.location?.city,
+            booking?.event?.location?.country,
           ].filter(Boolean).join(', ')}                                  icon={MapPin} />
-          <InfoRow label="Ticket Type" value={booking?.ticketType?.name} icon={Ticket} />
+          <InfoRow
+            label="Ticket Type"
+            value={Array.isArray(booking?.items)
+              ? booking.items.map((item) => `${item.ticketTypeName} x${item.quantity}`).join(', ')
+              : booking?.ticketType?.name}
+            icon={Ticket}
+          />
           <InfoRow label="Organizer"   value={
             booking?.event?.organizer?.name ||
+            booking?.event?.organizerProfile?.displayName ||
             booking?.event?.organizer?.displayName ||
             booking?.event?.organizer?.firstName
           }                                                               icon={User} />
@@ -150,13 +163,13 @@ const BookingDetailsPage = () => {
         </CardHeader>
         <CardContent>
           <InfoRow label="Subtotal"
-            value={formatPrice((booking?.totalAmount || 0) - (booking?.serviceFee || 0))}
+            value={formatPrice((booking?.subtotal ?? booking?.totalAmount ?? 0), booking?.currency)}
             icon={CreditCard} />
-          <InfoRow label="Service Fee" value={formatPrice(booking?.serviceFee || 0)} />
+          {Number(booking?.serviceFee || 0) > 0 && <InfoRow label="Service Fee" value={formatPrice(booking?.serviceFee || 0, booking?.currency)} />}
           <div className="flex items-center justify-between py-3 mt-1">
             <span className="text-sm font-bold">Total Paid</span>
             <span className="text-lg font-extrabold font-heading text-green-600">
-              {formatPrice(booking?.totalAmount)}
+              {formatPrice(booking?.totalAmount, booking?.currency)}
             </span>
           </div>
           <InfoRow label="Payment Method" value={booking?.paymentMethod || 'Card'} />
@@ -166,6 +179,13 @@ const BookingDetailsPage = () => {
 
       {/* Actions */}
       <div className="flex flex-col sm:flex-row gap-3">
+        {canViewTickets && (
+          <Link to={ROUTES.TICKETS.DOWNLOAD(booking?.bookingRef)} className="flex-1">
+            <Button className="w-full">
+              <Ticket className="h-4 w-4 mr-2" /> View Tickets
+            </Button>
+          </Link>
+        )}
         <Button variant="outline" onClick={handleDownload} className="flex-1">
           <Download className="h-4 w-4 mr-2" /> Download Invoice
         </Button>

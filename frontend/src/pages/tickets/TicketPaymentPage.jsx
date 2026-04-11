@@ -73,9 +73,8 @@ const TicketPaymentPage = () => {
 
   const items = booking?.items || [];
   const subtotal = items.reduce((s, item) => s + ((item.totalPrice != null ? item.totalPrice : (item.unitPrice || 0) * (item.quantity || 0))), 0);
-  const discount = 0; // Currently no discount support for bookings
-  const serviceFee = subtotal * 0.05;
-  const total = subtotal - discount + serviceFee;
+  const serviceFee = Number(booking?.serviceFee ?? 0);
+  const total = Number(booking?.totalAmount ?? subtotal + serviceFee);
 
   return (
     <Container aria-label="Ticket payment"><div className="py-5 max-w-lg mx-auto space-y-5 font-sans">
@@ -97,15 +96,14 @@ const TicketPaymentPage = () => {
           {items.map((item, i) => (
             <div key={i} className="flex justify-between">
               <span className="text-muted-foreground">{item.ticketType?.name} × {item.quantity}</span>
-              <span className="font-medium">{formatPrice(item.totalPrice)}</span>
+              <span className="font-medium">{formatPrice(item.totalPrice, booking?.currency)}</span>
             </div>
           ))}
           <Separator />
-          <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatPrice(subtotal)}</span></div>
-          {discount > 0 && <div className="flex justify-between text-green-600"><span>Discount</span><span>-{formatPrice(discount)}</span></div>}
-          <div className="flex justify-between"><span className="text-muted-foreground">Service fee (5%)</span><span>{formatPrice(serviceFee)}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatPrice(subtotal, booking?.currency)}</span></div>
+          {serviceFee > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Service fee</span><span>{formatPrice(serviceFee, booking?.currency)}</span></div>}
           <Separator />
-          <div className="flex justify-between font-bold text-base"><span>Total</span><span className="text-primary">{formatPrice(total)}</span></div>
+          <div className="flex justify-between font-bold text-base"><span>Total</span><span className="text-primary">{formatPrice(total, booking?.currency)}</span></div>
         </CardContent>
       </Card>
 
@@ -158,7 +156,7 @@ const TicketPaymentPage = () => {
         {processing ? (
           <><span className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />Processing Payment…</>
         ) : (
-          <><Lock className="h-5 w-5 mr-2" />Pay {formatPrice(total)}</>
+          <><Lock className="h-5 w-5 mr-2" />Pay {formatPrice(total, booking?.currency)}</>
         )}
       </Button>
       <p className="text-[11px] text-center text-muted-foreground">By completing payment you agree to our Terms of Service. All transactions are encrypted.</p>

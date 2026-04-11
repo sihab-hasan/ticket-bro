@@ -40,6 +40,13 @@ const getVenueLabel = (event) => {
   return event.location?.name || event.location?.city || "Venue TBA";
 };
 
+const getOrganizerName = (event) =>
+  event?.organizer?.name ||
+  event?.organizerProfile?.displayName ||
+  event?.organizer?.displayName ||
+  event?.organizerName ||
+  "Organizer";
+
 const EventHeroSection = ({ event, saved, onSave, onShare, onBook }) => {
   const [activeImg, setActiveImg] = useState(0);
   const [lightbox, setLightbox] = useState(false);
@@ -68,6 +75,8 @@ const EventHeroSection = ({ event, saved, onSave, onShare, onBook }) => {
   }, [hasImages, images.length]);
 
   const venueLabel = getVenueLabel(event);
+  const organizerName = getOrganizerName(event);
+  const organizerTrusted = Boolean(event?.organizer?.isVerified || event?.organizerProfile?.isVerified);
   const attendanceLabel =
     event.totalCapacity != null
       ? `${fmtNum(event.totalSold)} / ${fmtNum(event.totalCapacity)}`
@@ -225,9 +234,6 @@ const EventHeroSection = ({ event, saved, onSave, onShare, onBook }) => {
                   }}
                 >
                   {event.title}
-                  {event.isVerified && (
-                    <BadgeCheck size={22} className="ml-2 inline text-lime-400" />
-                  )}
                 </h1>
                 {event.shortDescription && (
                   <p
@@ -237,6 +243,23 @@ const EventHeroSection = ({ event, saved, onSave, onShare, onBook }) => {
                     {event.shortDescription}
                   </p>
                 )}
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <span
+                    className="text-sm font-semibold text-white/85"
+                    style={{ fontFamily: "var(--font-sans)" }}
+                  >
+                    Hosted by {organizerName}
+                  </span>
+                  {organizerTrusted && (
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full border border-lime-400/35 bg-lime-400/15 px-2.5 py-1 text-[11px] font-bold text-lime-300"
+                      style={{ fontFamily: "var(--font-sans)" }}
+                    >
+                      <BadgeCheck size={12} />
+                      Trusted Host
+                    </span>
+                  )}
+                </div>
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="flex items-center gap-2">
                     <StarRow rating={event.averageRating} size={13} />

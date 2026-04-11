@@ -1,6 +1,15 @@
 'use strict';
 const Booking = require('./booking.model');
 
+const bookingEventPopulate = {
+  path: 'event',
+  select: 'title slug startDate endDate location coverImage organizer organizerProfile',
+  populate: {
+    path: 'organizerProfile',
+    select: 'displayName slug logo verificationStatus verifiedAt',
+  },
+};
+
 class BookingRepository {
 
   async create(data) {
@@ -11,7 +20,7 @@ class BookingRepository {
   async findById(id) {
     return Booking.findOne({ _id: id, deletedAt: null })
       .populate('user', 'firstName lastName email phone avatar')
-      .populate('event', 'title slug startDate endDate location organizer')
+      .populate(bookingEventPopulate)
       .populate('payment')
       .exec();
   }
@@ -21,7 +30,7 @@ class BookingRepository {
     if (userId) query.user = userId;
     return Booking.findOne(query)
       .populate('user', 'firstName lastName email phone')
-      .populate('event', 'title slug startDate endDate location coverImage organizer')
+      .populate(bookingEventPopulate)
       .populate('payment')
       .exec();
   }

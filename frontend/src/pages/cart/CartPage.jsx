@@ -106,8 +106,8 @@ const CartPage = () => {
   const currency = cart?.currency || items[0]?.currency || items[0]?.event?.currency || 'USD';
   const subtotal = Number(cart?.subtotal ?? items.reduce((sum, item) => sum + Number(item?.totalPrice || 0), 0));
   const discount = Number(cart?.discount ?? cart?.discountAmount ?? 0);
-  const serviceFee = subtotal > 0 ? subtotal * 0.05 : 0;
-  const total = Math.max(0, subtotal - discount + serviceFee);
+  const serviceFee = Number(cart?.serviceFee ?? 0);
+  const total = Number(cart?.total ?? Math.max(0, subtotal - discount + serviceFee));
 
   if (loading) return <Container><div className="py-4 space-y-4 max-w-lg mx-auto">{[1,2].map((i) => <Skeleton key={i} className="h-32 rounded-2xl" />)}</div></Container>;
 
@@ -212,7 +212,7 @@ const CartPage = () => {
             <CardContent className="p-4 space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatPrice(subtotal, currency)}</span></div>
               {discount > 0 && <div className="flex justify-between text-green-600"><span>Discount</span><span>-{formatPrice(discount, currency)}</span></div>}
-              <div className="flex justify-between"><span className="text-muted-foreground">Service fee (5%)</span><span>{formatPrice(serviceFee, currency)}</span></div>
+              {serviceFee > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Service fee</span><span>{formatPrice(serviceFee, currency)}</span></div>}
               <Separator />
               <div className="flex justify-between font-bold text-base">
                 <span>Total</span><span className="text-primary">{formatPrice(total, currency)}</span>

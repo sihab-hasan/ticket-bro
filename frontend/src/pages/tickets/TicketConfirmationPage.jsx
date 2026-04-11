@@ -1,6 +1,6 @@
 // pages/tickets/TicketConfirmationPage.jsx
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { CheckCircle2, Download, Calendar, MapPin, Share2, ArrowRight, Ticket } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,32 +10,27 @@ import { formatDate, formatPrice } from '@/utils/formatters';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
 import { bookingService } from '@/api';
-import { downloadBlob } from '@/utils/downloadFile';
 import Container from '@/components/layout/Container';
 
 const TicketConfirmationPage = () => {
-  const { bookingRef } = useParams();
+  const { bookingId } = useParams();
+  const navigate = useNavigate();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [downloading, setDownloading] = useState(false);
+  const downloading = false;
 
   useEffect(() => {
     (async () => {
       try {
-        setBooking(await bookingService.getByRef(bookingRef));
+        setBooking(await bookingService.getByRef(bookingId));
       } catch {
         // Keep the confirmation page usable even if the booking lookup fails.
       } finally { setLoading(false); }
     })();
-  }, [bookingRef]);
+  }, [bookingId]);
 
   const handleDownload = async () => {
-    setDownloading(true);
-    try {
-      const blob = await bookingService.getInvoice(bookingRef);
-      downloadBlob(blob, `tickets-${bookingRef}.pdf`);
-    } catch { toast.error('Download failed'); }
-    finally { setDownloading(false); }
+    navigate(ROUTES.TICKETS.DOWNLOAD(booking?.bookingRef || bookingId));
   };
 
   const handleShare = async () => {
@@ -63,7 +58,7 @@ const TicketConfirmationPage = () => {
         </div>
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
           <Ticket className="h-4 w-4 text-primary" />
-          <span className="text-sm font-bold font-mono text-primary">{bookingRef}</span>
+          <span className="text-sm font-bold font-mono text-primary">{booking?.bookingRef || bookingId}</span>
         </div>
       </div>
 
@@ -82,10 +77,10 @@ const TicketConfirmationPage = () => {
                 <Calendar className="h-4 w-4 shrink-0" />
                 <span>{formatDate(booking.event.startDate)}</span>
               </div>
-              {booking.event.venue && (
+              {booking.event.location && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <MapPin className="h-4 w-4 shrink-0" />
-                  <span>{[booking.event.venue.name, booking.event.venue.city].filter(Boolean).join(', ')}</span>
+                  <span>{[booking.event.location.name, booking.event.location.city, booking.event.location.country].filter(Boolean).join(', ') || 'Online event'}</span>
                 </div>
               )}
             </div>
@@ -108,7 +103,7 @@ const TicketConfirmationPage = () => {
               </div>
               <div className="text-right">
                 <p className="text-xs text-muted-foreground">Total paid</p>
-                <p className="text-base font-extrabold font-heading text-green-600">{formatPrice(booking.totalAmount)}</p>
+                <p className="text-base font-extrabold font-heading text-green-600">{formatPrice(booking.totalAmount, booking.currency)}</p>
               </div>
             </div>
           </CardContent>
@@ -134,7 +129,7 @@ const TicketConfirmationPage = () => {
 
       {/* Actions */}
       <div className="grid grid-cols-2 gap-3">
-        <Button variant="outline" onClick={handleDownload} disabled={downloading} className="font-semibold">
+        <Button variant="outline" onClick={handleDownload} className="font-semibold">
           <Download className="h-4 w-4 mr-2" />{downloading ? 'Downloading…' : 'Download'}
         </Button>
         <Button variant="outline" onClick={handleShare} className="font-semibold">

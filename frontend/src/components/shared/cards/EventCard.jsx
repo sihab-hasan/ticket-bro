@@ -58,6 +58,20 @@ const getOrganizerName = (event = {}) =>
   event?.organizerName ||
   "Organizer";
 
+const OrganizerTrustBadge = ({ inverse = false, compact = false }) => (
+  <span
+    className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-bold ${
+      inverse
+        ? "border-white/25 bg-white/12 text-white"
+        : "border-green-500/25 bg-green-500/10 text-green-700"
+    }`}
+    style={{ fontFamily: "var(--font-sans)" }}
+  >
+    <BadgeCheck size={10} className="shrink-0" />
+    {compact ? "Trusted" : "Trusted Host"}
+  </span>
+);
+
 const getFormatMeta = (event = {}) => {
   const type = event?.location?.type || (event?.isOnline ? "online" : "physical");
 
@@ -384,18 +398,20 @@ const CardGrid = ({ event: e, saved, onSave, showBadge }) => {
         <OfferCallout event={e} />
 
         <div>
-          <p
-            className="mb-0.5 text-[9px] font-medium uppercase tracking-[0.15em] text-muted-foreground"
-            style={{ fontFamily: "var(--font-sans)" }}
-          >
-            {organizerName}
-          </p>
+          <div className="mb-0.5 flex flex-wrap items-center gap-1.5">
+            <p
+              className="text-[9px] font-medium uppercase tracking-[0.15em] text-muted-foreground"
+              style={{ fontFamily: "var(--font-sans)" }}
+            >
+              {organizerName}
+            </p>
+            {e?.organizer?.isVerified && <OrganizerTrustBadge compact />}
+          </div>
           <h3
             className="text-xs font-bold leading-snug text-foreground line-clamp-2 group-hover:text-primary transition-colors"
             style={{ fontFamily: "var(--font-heading)" }}
           >
             {e?.title || "Untitled event"}
-            {e?.organizer?.isVerified && <BadgeCheck size={10} className="inline ml-1 text-primary" />}
           </h3>
         </div>
 
@@ -446,18 +462,20 @@ const CardList = ({ event: e, saved, onSave }) => {
         <div>
           <div className="mb-2 flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <p
-                className="mb-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground"
-                style={{ fontFamily: "var(--font-sans)" }}
-              >
-                {getOrganizerName(e)}
-              </p>
+              <div className="mb-1 flex flex-wrap items-center gap-1.5">
+                <p
+                  className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground"
+                  style={{ fontFamily: "var(--font-sans)" }}
+                >
+                  {getOrganizerName(e)}
+                </p>
+                {e?.organizer?.isVerified && <OrganizerTrustBadge compact />}
+              </div>
               <h3
                 className="text-base font-bold leading-snug text-foreground line-clamp-2 group-hover:underline"
                 style={{ fontFamily: "var(--font-heading)" }}
               >
                 {e?.title || "Untitled event"}
-                {e?.organizer?.isVerified && <BadgeCheck size={11} className="inline ml-1" />}
               </h3>
             </div>
             <SaveBtn saved={saved} onSave={onSave} eventId={eventId} />
@@ -573,12 +591,16 @@ const CardFeatured = ({ event: e, saved, onSave, showBadge = true }) => {
         >
           {getOrganizerName(e)}
         </p>
+        {e?.organizer?.isVerified && (
+          <div className="mt-2">
+            <OrganizerTrustBadge inverse />
+          </div>
+        )}
         <h3
           className="mt-1 text-xl font-bold leading-tight text-white line-clamp-2 group-hover:underline"
           style={{ fontFamily: "var(--font-heading)" }}
         >
           {e?.title || "Untitled event"}
-          {e?.organizer?.isVerified && <BadgeCheck size={13} className="inline ml-1 text-white/80" />}
         </h3>
         <div className="mt-3">
           <EventMetaBlock event={e} muted />
@@ -692,14 +714,16 @@ const CardHorizontal = ({ event: e, saved, onSave, showBadge, showReason, showDi
               style={{ fontFamily: "var(--font-heading)" }}
             >
               {e?.title || "Untitled event"}
-              {e?.organizer?.isVerified && <BadgeCheck size={11} className="inline ml-1" />}
             </h3>
-            <p
-              className="mt-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground"
-              style={{ fontFamily: "var(--font-sans)" }}
-            >
-              {getOrganizerName(e)}
-            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+              <p
+                className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground"
+                style={{ fontFamily: "var(--font-sans)" }}
+              >
+                {getOrganizerName(e)}
+              </p>
+              {e?.organizer?.isVerified && <OrganizerTrustBadge compact />}
+            </div>
           </div>
           <SaveBtn saved={saved} onSave={onSave} eventId={eventId} />
         </div>

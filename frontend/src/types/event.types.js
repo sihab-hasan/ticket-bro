@@ -91,6 +91,49 @@ export const canPurchase = (event) =>
   !event?.isSoldOut &&
   event?.isUpcoming !== false;
 
+const buildOrganizerName = (organizer = {}) =>
+  organizer.displayName ||
+  organizer.organizationName ||
+  organizer.name ||
+  organizer.fullName ||
+  [organizer.firstName, organizer.lastName].filter(Boolean).join(' ').trim();
+
+const normaliseOrganizer = (organizer, organizerProfile) => {
+  if (!organizer && !organizerProfile) {
+    return null;
+  }
+
+  const verificationStatus =
+    organizerProfile?.verificationStatus ||
+    organizer?.verificationStatus ||
+    (organizer?.isVerified ? 'verified' : 'unverified');
+  const userId =
+    organizer?._id ||
+    organizer?.id ||
+    organizerProfile?.user?._id ||
+    organizerProfile?.user ||
+    null;
+
+  return {
+    ...(organizer || {}),
+    ...(organizerProfile || {}),
+    _id: organizerProfile?._id || organizer?._id || null,
+    id: organizerProfile?.id || organizer?.id || organizerProfile?._id || organizer?._id || null,
+    userId,
+    name: buildOrganizerName(organizerProfile) || buildOrganizerName(organizer) || 'Organizer',
+    displayName:
+      organizerProfile?.displayName ||
+      organizer?.displayName ||
+      buildOrganizerName(organizerProfile) ||
+      buildOrganizerName(organizer) ||
+      'Organizer',
+    slug: organizerProfile?.slug || organizer?.slug || null,
+    avatar: organizerProfile?.logo || organizerProfile?.avatar || organizer?.avatar || null,
+    verificationStatus,
+    isVerified: verificationStatus === 'verified' || Boolean(organizer?.isVerified),
+  };
+};
+
 // ── normaliseEvent ─────────────────────────────────────────────────────────
 /**
  * Transforms a raw API document into the normalised frontend shape.
@@ -143,6 +186,7 @@ export const normaliseEvent = (raw) => {
   const durationMinutes = startDate && endDate
     ? Math.round((endDate - startDate) / 60000)
     : null;
+  const normalizedOrganizer = normaliseOrganizer(raw.organizer, raw.organizerProfile);
 
   return {
     // identity
@@ -154,8 +198,8 @@ export const normaliseEvent = (raw) => {
     shortDescription: raw.shortDescription || '',
 
     // ownership
-    organizer:        raw.organizer,
-    organizerProfile: raw.organizerProfile,
+    organizer:        normalizedOrganizer,
+    organizerProfile: normalizedOrganizer,
     coOrganizers:     raw.coOrganizers || [],
 
     // media
