@@ -4,6 +4,7 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Header from '@/components/layout/Header';
+import Container from '@/components/layout/Container';
 import MobileBottomNav from '@/components/layout/MobileBottomNav';
 
 const MessagingLayout = () => (
@@ -16,7 +17,9 @@ const MessagingLayout = () => (
       pb-14 xl:pb-0: reserve space for MobileBottomNav (h-14) on mobile; gone on xl.
     */}
     <main className="flex-1 min-h-0 pb-14 xl:pb-0 overflow-hidden">
-      <Outlet />
+      <Container className="h-full">
+        <Outlet />
+      </Container>
     </main>
     <MobileBottomNav />
   </div>

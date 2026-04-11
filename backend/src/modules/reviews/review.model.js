@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const reviewSchema = new mongoose.Schema({
   // Preserve the original event link for migrated legacy reviews.
   event:   { type: mongoose.Schema.Types.ObjectId, ref: 'Event', default: null, index: true },
-  user:    { type: mongoose.Schema.Types.ObjectId, ref: 'User',  required: true, index: true },
+  user:    { type: mongoose.Schema.Types.ObjectId, ref: 'User',  required: true },
   booking: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' },
   rating:  { type: Number, required: true, min: 1, max: 5 },
   title:   { type: String, trim: true, maxlength: 200 },

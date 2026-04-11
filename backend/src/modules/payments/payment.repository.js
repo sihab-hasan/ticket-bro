@@ -77,7 +77,7 @@ class PaymentRepository {
   }
 
   async updateById(id, data) {
-    return Payment.findByIdAndUpdate(id, { $set: data }, { new: true, runValidators: true }).exec();
+    return Payment.findByIdAndUpdate(id, { $set: data }, { returnDocument: 'after', runValidators: true }).exec();
   }
 
   async getStats() {

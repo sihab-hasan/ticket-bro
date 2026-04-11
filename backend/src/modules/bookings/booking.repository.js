@@ -80,11 +80,11 @@ class BookingRepository {
   }
 
   async updateById(id, data) {
-    return Booking.findByIdAndUpdate(id, { $set: data }, { new: true, runValidators: true }).exec();
+    return Booking.findByIdAndUpdate(id, { $set: data }, { returnDocument: 'after', runValidators: true }).exec();
   }
 
   async updateByRef(bookingRef, data) {
-    return Booking.findOneAndUpdate({ bookingRef }, { $set: data }, { new: true, runValidators: true }).exec();
+    return Booking.findOneAndUpdate({ bookingRef }, { $set: data }, { returnDocument: 'after', runValidators: true }).exec();
   }
 
   async countByEvent(eventId, status = null) {

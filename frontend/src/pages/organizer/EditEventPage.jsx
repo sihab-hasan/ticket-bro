@@ -285,7 +285,7 @@ const EditEventPage = () => {
 
   if (loading) {
     return (
-      <div className="space-y-6 p-4 sm:p-6">
+      <div className="space-y-6">
         <Skeleton className="h-8 w-64" />
         <Skeleton className="h-96 w-full rounded-2xl" />
       </div>
@@ -293,7 +293,7 @@ const EditEventPage = () => {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 p-4 font-sans sm:p-6">
+    <Container className="space-y-6 font-sans">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate(ROUTES.ORGANIZER.EVENTS)}>
           <ArrowLeft className="h-4 w-4" />
@@ -572,7 +572,7 @@ const EditEventPage = () => {
         onConfirm={handleCancel}
         loading={cancelling}
       />
-    </div>
+    </Container>
   );
 };
 

@@ -11,16 +11,16 @@ const toSlug = (str) => str.toLowerCase().trim()
 // ── Subcategory Schema ──────────────────────────────
 const subcategorySchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true, minlength: 2, maxlength: 100 },
-  slug: { type: String, unique: true, lowercase: true, index: true },
+  slug: { type: String, unique: true, lowercase: true },          // unique already creates index; removed index:true duplicate
   description: { type: String, trim: true, maxlength: 1000 },
-  category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true, index: true },
+  category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true }, // removed index:true; declared below
   isActive: { type: Boolean, default: true, index: true },
   deletedAt: { type: Date, default: null, index: true },
 }, { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } });
 
 // ── Indexes ───────────────────────────────────────
 subcategorySchema.index({ name: 1 });
-subcategorySchema.index({ slug: 1 });
+subcategorySchema.index({ slug: 1 });          // compound queries; unique above covers lookups
 subcategorySchema.index({ category: 1 });
 
 // ── Slug auto-generation ───────────────────────────

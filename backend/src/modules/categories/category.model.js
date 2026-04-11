@@ -11,7 +11,7 @@ const toSlug = (str) => str.toLowerCase().trim()
 // ── Category Schema ─────────────────────────────────
 const categorySchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true, minlength: 2, maxlength: 100 },
-  slug: { type: String, unique: true, lowercase: true, index: true },
+  slug: { type: String, unique: true, lowercase: true },
   description: { type: String, trim: true, maxlength: 1000 },
   isActive: { type: Boolean, default: true, index: true },
   parent: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', default: null }, // for nested categories

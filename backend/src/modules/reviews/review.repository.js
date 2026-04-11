@@ -96,7 +96,7 @@ class ReviewRepository {
   }
 
   async updateById(id, data) {
-    return Review.findByIdAndUpdate(id, { $set: data }, { new: true, runValidators: true })
+    return Review.findByIdAndUpdate(id, { $set: data }, { returnDocument: 'after', runValidators: true })
       .populate('user', 'firstName lastName avatar')
       .populate('event', 'title slug')
       .exec();
@@ -106,7 +106,7 @@ class ReviewRepository {
     return Review.findOneAndUpdate(
       { _id: id, user: userId, deletedAt: null },
       { $set: { deletedAt: new Date(), isPublished: false } },
-      { new: true },
+      { returnDocument: 'after' },
     ).exec();
   }
 
