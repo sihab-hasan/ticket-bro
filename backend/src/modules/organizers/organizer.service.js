@@ -3,6 +3,7 @@
 const organizerRepository = require('./organizer.repository');
 const User = require('../users/user.model');
 const Event = require('../events/event.model');
+const { uploadImage, deleteImage } = require('../../infrastructure/storage/cloudinary');
 const { NotFoundError, BadRequestError } = require('../../common/errors/AppError');
 
 class OrganizerService {
@@ -68,8 +69,6 @@ class OrganizerService {
     const allowedFields = [
       'displayName',
       'bio',
-      'logo',
-      'coverImage',
       'website',
       'phone',
       'email',
@@ -170,6 +169,40 @@ class OrganizerService {
         avatar: user.avatar || null,
       },
     };
+  }
+
+  // ── Logo ─────────────────────────────────────────────────────────────────────
+  async uploadLogo(userId, file) {
+    if (!file?.buffer) throw new BadRequestError('No file buffer — check multer config.');
+    const organizer = await this._ensureProfile(userId);
+    const result = await uploadImage(file.buffer, 'organizerLogo', `logo-${organizer._id}`);
+    if (organizer.logo && organizer.logo !== result.url) await deleteImage(organizer.logo);
+    const updated = await organizerRepository.updateById(organizer._id, { logo: result.url });
+    return this._serialiseProfile(updated, { includePrivateFields: true });
+  }
+
+  async removeLogo(userId) {
+    const organizer = await this._ensureProfile(userId);
+    if (organizer.logo) await deleteImage(organizer.logo);
+    const updated = await organizerRepository.updateById(organizer._id, { logo: null });
+    return this._serialiseProfile(updated, { includePrivateFields: true });
+  }
+
+  // ── Banner ───────────────────────────────────────────────────────────────────
+  async uploadBanner(userId, file) {
+    if (!file?.buffer) throw new BadRequestError('No file buffer — check multer config.');
+    const organizer = await this._ensureProfile(userId);
+    const result = await uploadImage(file.buffer, 'organizerBanner', `banner-${organizer._id}`);
+    if (organizer.coverImage && organizer.coverImage !== result.url) await deleteImage(organizer.coverImage);
+    const updated = await organizerRepository.updateById(organizer._id, { coverImage: result.url });
+    return this._serialiseProfile(updated, { includePrivateFields: true });
+  }
+
+  async removeBanner(userId) {
+    const organizer = await this._ensureProfile(userId);
+    if (organizer.coverImage) await deleteImage(organizer.coverImage);
+    const updated = await organizerRepository.updateById(organizer._id, { coverImage: null });
+    return this._serialiseProfile(updated, { includePrivateFields: true });
   }
 }
 

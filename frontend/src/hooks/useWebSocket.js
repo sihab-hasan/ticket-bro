@@ -43,6 +43,10 @@ export const useSocket = (events = [], options = {}) => {
     if (!autoConnect || events.length === 0) return;
 
     const socket = connectSocket();
+    if (!socket) {
+      return;
+    }
+
     socketRef.current = socket;
 
     const onConnect = () => {
@@ -65,6 +69,7 @@ export const useSocket = (events = [], options = {}) => {
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
       unregisterHandlers(socket, events);
+      disconnectSocket();
     };
   }, [autoConnect, events, registerHandlers, unregisterHandlers]);
 

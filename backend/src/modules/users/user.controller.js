@@ -30,7 +30,10 @@ class UserController {
   // ── POST /users/me/avatar ────────────────────────────────────────────────────
   uploadAvatar = asyncHandler(async (req, res) => {
     if (!req.file) {
-      return res.status(400).json({ status: 'fail', message: 'No file uploaded.' });
+      return res.status(400).json({
+        status: 'fail',
+        message: 'No avatar file uploaded. Send multipart/form-data with the "avatar" field.',
+      });
     }
     const user = await userService.updateAvatar(req.user.id || req.user._id || req.user.userId, req.file);
     sendSuccess(res, 'Avatar updated successfully.', user);

@@ -11,7 +11,7 @@ const ImpactSection = () => {
       category: "Volunteer",
       link: "/volunteer/blood-donation",
       image:
-        "https://images.unsplash.com/photo-1615461066841-6116ecaaba90?auto=format&fit=crop&q=80&w=600&h=400",
+        "https://picsum.photos/seed/ticketbro-blood-donation/600/400",
     },
     {
       id: 2,
@@ -35,7 +35,7 @@ const ImpactSection = () => {
       category: "Volunteer",
       link: "/volunteer/serve-people",
       image:
-        "https://images.unsplash.com/photo-1559027615-cd762186c6ca?auto=format&fit=crop&q=80&w=600&h=400",
+        "https://picsum.photos/seed/ticketbro-community-volunteer/600/400",
     },
   ];
 

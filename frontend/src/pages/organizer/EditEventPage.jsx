@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { ArrowLeft, ArrowRight, Save, Ticket } from 'lucide-react';
 import { categoriesService, eventsService, subcategoriesService } from '@/api';
 import { getApiErrorMessage } from '@/api/client';
@@ -14,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PageHeader from '@/components/shared/PageHeader';
+import EventImageManager from '@/components/roles/organizer/EventImageManager';
 import { ConfirmDialog, StatusBadge } from '@/components/shared/StatusBadge';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
@@ -39,9 +41,54 @@ const Field = ({ label, required, error, hint, children }) => (
   </div>
 );
 
+const STAFF_ROLES = new Set(['moderator', 'admin', 'super_admin']);
+
+const getIdentityId = (value) =>
+  value?._id ||
+  value?.id ||
+  value?.user?._id ||
+  value?.user ||
+  value?.owner ||
+  value?.userId ||
+  null;
+
+const getManagerIds = (event) => {
+  const ids = new Set();
+
+  [event?.organizer, event?.organizerProfile].forEach((entry) => {
+    const id = getIdentityId(entry);
+    if (id) {
+      ids.add(String(id));
+    }
+  });
+
+  (event?.coOrganizers || []).forEach((entry) => {
+    const id = getIdentityId(entry) || entry;
+    if (id) {
+      ids.add(String(id));
+    }
+  });
+
+  return ids;
+};
+
+const canManageEvent = (event, user) => {
+  if (!event || !user) {
+    return false;
+  }
+
+  if (STAFF_ROLES.has(user.role)) {
+    return true;
+  }
+
+  const userId = user?._id || user?.id;
+  return Boolean(userId && getManagerIds(event).has(String(userId)));
+};
+
 const EditEventPage = () => {
   const { eventId } = useParams();
   const navigate = useNavigate();
+  const user = useSelector((state) => state.auth?.user);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingMode, setSavingMode] = useState('');
@@ -69,10 +116,19 @@ const EditEventPage = () => {
   }, []);
 
   useEffect(() => {
+    if (!user) {
+      return;
+    }
+
     const fetchEvent = async () => {
       setLoading(true);
       try {
         const currentEvent = await eventsService.getEventBySlug(eventId);
+        if (!canManageEvent(currentEvent, user)) {
+          toast.error('You do not have permission to manage this event.');
+          navigate(ROUTES.ORGANIZER.EVENTS);
+          return;
+        }
         const key = currentEvent?.slug || eventId;
         const ticketTypes = await eventsService.getTicketTypes(key).catch(() => []);
         setEvent(currentEvent);
@@ -85,7 +141,7 @@ const EditEventPage = () => {
       }
     };
     fetchEvent();
-  }, [eventId, navigate]);
+  }, [eventId, navigate, user]);
 
   useEffect(() => {
     const fetchSubcategories = async () => {
@@ -102,6 +158,19 @@ const EditEventPage = () => {
   const setValue = (key, value) => {
     setForm((current) => ({ ...current, [key]: value }));
     setErrors((current) => ({ ...current, [key]: undefined }));
+  };
+
+  const handleEventImagesUpdated = (updatedEvent) => {
+    if (!updatedEvent) return;
+
+    setEvent(updatedEvent);
+    setForm((current) => ({
+      ...current,
+      coverImage: updatedEvent.coverImage || '',
+      galleryImagesText: Array.isArray(updatedEvent.images)
+        ? updatedEvent.images.filter(Boolean).join('\n')
+        : '',
+    }));
   };
 
   const isDraftLikeStatus = ['draft', 'rejected'].includes(event?.status);
@@ -359,9 +428,11 @@ const EditEventPage = () => {
         <TabsContent value="media" className="mt-4">
           <Card>
             <CardContent className="space-y-5 p-6">
-              <Field label="Cover Image URL"><Input value={form.coverImage} onChange={(e) => setValue('coverImage', e.target.value)} placeholder="https://..." className="h-9" /></Field>
-              {form.coverImage && <img src={form.coverImage} alt="Preview" className="h-52 w-full rounded-xl border border-border object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
-              <Field label="Gallery Images"><Textarea value={form.galleryImagesText} onChange={(e) => setValue('galleryImagesText', e.target.value)} rows={4} className="resize-none text-sm" /></Field>
+              <EventImageManager
+                event={event}
+                onUpdated={handleEventImagesUpdated}
+                isLoading={saving}
+              />
               <Field label="Video URL"><Input value={form.videoUrl} onChange={(e) => setValue('videoUrl', e.target.value)} placeholder="https://..." className="h-9" /></Field>
               <div className="rounded-xl border border-border bg-muted/30 p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

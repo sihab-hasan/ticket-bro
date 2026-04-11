@@ -3,7 +3,7 @@
 //  src/common/middleware/rbac.middleware.js
 // ============================================================
 
-const { ApiError } = require("../errors/ApiError");
+const ApiError = require("../errors/ApiError");
 const { ROLES, ROLE_HIERARCHY } = require("../constants/roles");
 const {
   PERMISSIONS,
@@ -79,7 +79,7 @@ const rbacMiddleware = (requiredRoles, options = {}) => {
           req.params.userId || req.body.userId || req.query.userId;
         if (resourceUserId && resourceUserId !== req.user._id.toString()) {
           // Allow if user has admin role
-          if (![ROLES.ADMIN, ROLES.SUPERADMIN].includes(userRole)) {
+          if (![ROLES.ADMIN, ROLES.SUPER_ADMIN].includes(userRole)) {
             throw ApiError.forbidden(
               "Cannot access another user's resource",
               "AUTHZ_RESOURCE_OWNER_MISMATCH",
@@ -158,7 +158,7 @@ const ownershipMiddleware = (getResourceOwnerId) => {
       // Allow if user is owner or has admin/superadmin role
       if (
         ownerId === req.user._id.toString() ||
-        [ROLES.ADMIN, ROLES.SUPERADMIN].includes(userRole)
+        [ROLES.ADMIN, ROLES.SUPER_ADMIN].includes(userRole)
       ) {
         return next();
       }
@@ -174,6 +174,7 @@ const ownershipMiddleware = (getResourceOwnerId) => {
 };
 
 module.exports = {
+  authorize: rbacMiddleware,
   rbacMiddleware,
   permissionMiddleware,
   ownershipMiddleware,

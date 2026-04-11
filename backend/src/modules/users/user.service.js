@@ -2,7 +2,6 @@
 
 const userRepository = require('./user.repository');
 const avatarService = require('./avatar.service');
-const fs = require('fs');
 const AuditLog = require('../auditLogs/audit.model');
 const emailService = require('../../infrastructure/mail/emailService');
 const {
@@ -108,21 +107,19 @@ class UserService {
 
   async updateAvatar(id, file) {
     if (!file) throw new BadRequestError('No file uploaded.');
-    if (!file.path) throw new BadRequestError('File path missing — check multer disk storage config.');
-    try {
-      avatarService.validateFile(file);
-      const existing = await userRepository.findById(id, 'avatar');
-      const filename = avatarService.generateFilename(id, file.originalname);
-      await avatarService.processAndSave(file, filename);
-      const avatarUrl = avatarService.getAvatarUrl(filename);
-      if (existing?.avatar) await avatarService.deleteOldAvatar(existing.avatar);
-      const user = await userRepository.updateById(id, { avatar: avatarUrl });
-      if (!user) throw new NotFoundError('User not found.');
-      return this._toSafeUser(user);
-    } catch (error) {
-      if (file?.path) fs.unlink(file.path, () => {});
-      throw error;
+    // memoryStorage: file.buffer is the uploaded bytes
+    if (!file.buffer) throw new BadRequestError('File buffer missing — check multer memoryStorage config.');
+    avatarService.validateFile(file);
+    const existing = await userRepository.findById(id, 'avatar');
+    // Upload to Cloudinary (overwrites previous with same public_id)
+    const avatarUrl = await avatarService.upload(file.buffer, id, file.mimetype);
+    // Delete old avatar if it was from a different public_id (shouldn't happen with overwrite, but safe)
+    if (existing?.avatar && existing.avatar !== avatarUrl) {
+      await avatarService.deleteOldAvatar(existing.avatar);
     }
+    const user = await userRepository.updateById(id, { avatar: avatarUrl });
+    if (!user) throw new NotFoundError('User not found.');
+    return this._toSafeUser(user);
   }
 
   async removeAvatar(id) {

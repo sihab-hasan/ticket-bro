@@ -1,8 +1,7 @@
 'use strict';
 const express = require('express');
 const router = express.Router();
-const { authorize } = require('../../common/middleware/auth.middleware');
-const { ROLES } = require('../../common/constants/roles');
+const { requireOrganizerAccess } = require('../../common/middleware/organizerAccess.middleware');
 
 // authenticate is applied in routes.js before mount
 let _c; const c = () => { if (!_c) _c = require('./booking.controller'); return _c; };
@@ -18,10 +17,10 @@ router.get('/:ref/invoice',               (req,res,next) => c().getInvoice(req,r
 
 // ── Organizer routes ──
 router.get('/organizer/all',
-  authorize(ROLES.ORGANIZER, ROLES.ADMIN, ROLES.SUPER_ADMIN),
+  requireOrganizerAccess,
   (req,res,next) => c().getOrganizerBookings(req,res,next));
 router.post('/organizer/:ref/checkin',
-  authorize(ROLES.ORGANIZER, ROLES.ADMIN, ROLES.SUPER_ADMIN),
+  requireOrganizerAccess,
   (req,res,next) => c().checkIn(req,res,next));
 
 module.exports = router;

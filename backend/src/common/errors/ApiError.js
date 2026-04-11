@@ -3,7 +3,7 @@
 //  src/common/errors/ApiError.js
 // ============================================================
 
-const AppError = require("./AppError");
+const { AppError } = require("./AppError");
 
 class ApiError extends AppError {
   constructor(message, statusCode = 500, errorCode = "API_ERROR") {

@@ -294,7 +294,7 @@ router.use("/notifications", authenticate, requireEmailVerified, notificationRou
 // Now the same router handles both; auth guards are applied inside the router
 // per-route, so public routes work without auth and private routes enforce it.
 router.use("/organizers", organizerRoutes);
-router.use("/organizer",  authenticate, authorize(ROLES.ORGANIZER, ROLES.ADMIN, ROLES.SUPER_ADMIN), organizerRoutes);
+router.use("/organizer",  authenticate, organizerRoutes);
 
 // ─── PUBLIC ─────────────────────────────────────────────────────────────────
 // GET    /organizers/:slug                        public + cached 5min

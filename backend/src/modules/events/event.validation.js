@@ -81,8 +81,6 @@ const eventBodyFields = {
   title: trimmedString(3, 200),
   description: trimmedString(3, 10000),
   shortDescription: optionalString(500),
-  coverImage: fileOrUrl.optional(),
-  images: Joi.array().items(fileOrUrl).max(20).optional(),
   videoUrl: optionalString(2048),
   thumbnail: fileOrUrl.optional(),
   category: objectId.optional(),

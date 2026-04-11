@@ -12,8 +12,6 @@ const socialLinksSchema = Joi.object({
 const updateOrganizerProfileSchema = Joi.object({
   displayName: trimmedString(2, 200).optional(),
   bio: optionalString(2000),
-  logo: optionalString(2048),
-  coverImage: optionalString(2048),
   website: optionalUrl,
   phone: optionalString(30),
   email: Joi.string().trim().lowercase().email({ tlds: { allow: false } }).empty('').optional(),

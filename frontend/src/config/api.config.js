@@ -72,6 +72,9 @@ export const ENDPOINTS = {
     BOOKMARK: (slug) => `/events/${slug}/bookmark`,
     SHARE: (slug) => `/events/${slug}/share`,
     VIEW: (slug) => `/events/${slug}/view`,
+    // Image upload (Cloudinary)
+    COVER_IMAGE: (slug) => `/events/${slug}/images/cover`,
+    GALLERY_IMAGES: (slug) => `/events/${slug}/images/gallery`,
   },
 
   BOOKINGS: {
@@ -165,6 +168,9 @@ export const ENDPOINTS = {
     ANALYTICS_EVENTS: "/analytics/events",
     ANALYTICS_EVENT: (id) => `/analytics/events/${id}`,
     ANALYTICS_AUDIENCE: "/analytics/audience",
+    // Image upload (Cloudinary)
+    LOGO_IMAGE: "/organizer/images/logo",
+    BANNER_IMAGE: "/organizer/images/banner",
   },
 
   CATEGORIES: {

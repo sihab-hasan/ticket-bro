@@ -1,3 +1,3 @@
 'use strict';
-// fileService — placeholder stub
-module.exports = {};
+// fileService — re-exports from cloudinary.js for backward-compat
+module.exports = require('./cloudinary');

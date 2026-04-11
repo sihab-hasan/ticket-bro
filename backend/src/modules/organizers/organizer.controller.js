@@ -77,6 +77,46 @@ class OrganizerController {
     const payouts = await payoutService.getMyPayouts(getId(req.user), req.query);
     sendSuccess(res, 'Payouts fetched.', payouts);
   });
+
+  // ── POST /organizer/images/logo ──────────────────────────────────────────────
+  uploadLogo = asyncHandler(async (req, res) => {
+    const organizerService = require('./organizer.service');
+    if (!req.file) {
+      return res.status(400).json({
+        status: 'fail',
+        message: 'No logo uploaded. Send multipart/form-data with the "logo" field.',
+      });
+    }
+    const organizer = await organizerService.uploadLogo(getId(req.user), req.file);
+    sendSuccess(res, 'Logo updated.', { organizer });
+  });
+
+  // ── DELETE /organizer/images/logo ────────────────────────────────────────────
+  removeLogo = asyncHandler(async (req, res) => {
+    const organizerService = require('./organizer.service');
+    const organizer = await organizerService.removeLogo(getId(req.user));
+    sendSuccess(res, 'Logo removed.', { organizer });
+  });
+
+  // ── POST /organizer/images/banner ────────────────────────────────────────────
+  uploadBanner = asyncHandler(async (req, res) => {
+    const organizerService = require('./organizer.service');
+    if (!req.file) {
+      return res.status(400).json({
+        status: 'fail',
+        message: 'No banner uploaded. Send multipart/form-data with the "banner" field.',
+      });
+    }
+    const organizer = await organizerService.uploadBanner(getId(req.user), req.file);
+    sendSuccess(res, 'Banner updated.', { organizer });
+  });
+
+  // ── DELETE /organizer/images/banner ──────────────────────────────────────────
+  removeBanner = asyncHandler(async (req, res) => {
+    const organizerService = require('./organizer.service');
+    const organizer = await organizerService.removeBanner(getId(req.user));
+    sendSuccess(res, 'Banner removed.', { organizer });
+  });
 }
 
 module.exports = new OrganizerController();
