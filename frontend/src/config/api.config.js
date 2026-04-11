@@ -72,6 +72,7 @@ export const ENDPOINTS = {
     BOOKMARK: (slug) => `/events/${slug}/bookmark`,
     SHARE: (slug) => `/events/${slug}/share`,
     VIEW: (slug) => `/events/${slug}/view`,
+    IMAGE_REACTION: (slug) => `/events/${slug}/images/reaction`,
     // Image upload (Cloudinary)
     COVER_IMAGE: (slug) => `/events/${slug}/images/cover`,
     GALLERY_IMAGES: (slug) => `/events/${slug}/images/gallery`,
@@ -327,6 +328,12 @@ export const ENDPOINTS = {
     CITIES: "/locations/cities",
     COUNTRIES: "/locations/countries",
     DETAIL: (slug) => `/locations/${slug}`,
+  },
+
+  CAPTURED_MOMENTS: {
+    LIST: "/captured-moments",
+    CREATE: "/captured-moments",
+    REACTION: (id) => `/captured-moments/${id}/reaction`,
   },
 
   TAGS: {

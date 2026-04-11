@@ -189,6 +189,36 @@ export const normalizeTicketType = (ticket, currency = "BDT") => {
   };
 };
 
+const normalizeImageReactionSummary = (summary = {}, images = []) => {
+  const normalizedSummary = {};
+
+  if (summary && typeof summary === "object" && !Array.isArray(summary)) {
+    Object.entries(summary).forEach(([imageUrl, value]) => {
+      if (!imageUrl) {
+        return;
+      }
+
+      normalizedSummary[imageUrl] = {
+        count: Math.max(0, Number(value?.count || 0)),
+        hasReacted: Boolean(value?.hasReacted),
+      };
+    });
+  }
+
+  images.forEach((imageUrl) => {
+    if (!imageUrl || normalizedSummary[imageUrl]) {
+      return;
+    }
+
+    normalizedSummary[imageUrl] = {
+      count: 0,
+      hasReacted: false,
+    };
+  });
+
+  return normalizedSummary;
+};
+
 export const normalizeEvent = (event = {}) => {
   const totalCapacity = Number(event.totalCapacity || 0);
   const totalSold = Number(event.totalSold || 0);
@@ -227,6 +257,10 @@ export const normalizeEvent = (event = {}) => {
     [event.coverImage, ...(event.images || [])].filter(Boolean),
     (image) => image,
   );
+  const imageReactionSummary = normalizeImageReactionSummary(
+    event.imageReactionSummary,
+    images,
+  );
 
   return {
     ...event,
@@ -240,6 +274,7 @@ export const normalizeEvent = (event = {}) => {
     tags: Array.isArray(event.tags) ? event.tags.map(normalizeTaxonomy) : [],
     images,
     coverImage: event.coverImage || images[0] || null,
+    imageReactionSummary,
     location,
     totalCapacity,
     totalSold,

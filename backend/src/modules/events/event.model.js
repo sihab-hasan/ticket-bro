@@ -123,6 +123,18 @@ const sponsorSchema = new mongoose.Schema({
   tier:  { type: String, enum: ['platinum', 'gold', 'silver', 'bronze', 'partner'], default: 'partner' },
 }, { _id: true });
 
+const imageReactionSchema = new mongoose.Schema({
+  imageUrl: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  reactorIds: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  }],
+}, { _id: false });
+
 // ── Main Event Schema ───────────────────────────────────────────────────────
 const eventSchema = new mongoose.Schema({
 
@@ -158,6 +170,7 @@ const eventSchema = new mongoose.Schema({
   // ── Media ────────────────────────────────────────────────────────────────
   coverImage: { type: String, trim: true },
   images:     [{ type: String, trim: true }],
+  imageReactions: [imageReactionSchema],
   videoUrl:   { type: String, trim: true },
   thumbnail:  { type: String, trim: true }, // auto-generated low-res preview
 

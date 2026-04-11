@@ -24,6 +24,7 @@ const {
   rejectEventSchema,
   galleryImagesDeleteSchema,
   galleryImagesOrderSchema,
+  imageReactionSchema,
 } = require('./event.validation');
 
 // Lazy-load controller
@@ -34,10 +35,10 @@ const ctrl = () => { if (!_ctrl) _ctrl = require('./event.controller'); return _
 // PUBLIC ROUTES
 // ════════════════════════════════════════════════════════════════════════════════
 router.get('/',          validateRequest(eventListQuerySchema, 'query'), optionalAuth, cache('2m'),  (req, res, next) => ctrl().getEvents(req, res, next));
-router.get('/featured',  validateRequest(eventListQuerySchema, 'query'), cache('5m'),  (req, res, next) => ctrl().getFeaturedEvents(req, res, next));
-router.get('/trending',  validateRequest(eventListQuerySchema, 'query'), cache('5m'),  (req, res, next) => ctrl().getTrendingEvents(req, res, next));
-router.get('/offers',    validateRequest(eventListQuerySchema, 'query'), cache('5m'),  (req, res, next) => ctrl().getOfferEvents(req, res, next));
-router.get('/upcoming',  validateRequest(eventListQuerySchema, 'query'), cache('5m'),  (req, res, next) => ctrl().getUpcomingEvents(req, res, next));
+router.get('/featured',  validateRequest(eventListQuerySchema, 'query'), optionalAuth, cache('5m'),  (req, res, next) => ctrl().getFeaturedEvents(req, res, next));
+router.get('/trending',  validateRequest(eventListQuerySchema, 'query'), optionalAuth, cache('5m'),  (req, res, next) => ctrl().getTrendingEvents(req, res, next));
+router.get('/offers',    validateRequest(eventListQuerySchema, 'query'), optionalAuth, cache('5m'),  (req, res, next) => ctrl().getOfferEvents(req, res, next));
+router.get('/upcoming',  validateRequest(eventListQuerySchema, 'query'), optionalAuth, cache('5m'),  (req, res, next) => ctrl().getUpcomingEvents(req, res, next));
 
 // Admin-scoped read — must be before :slug to avoid route collision
 router.get('/admin/all',
@@ -55,6 +56,13 @@ router.get('/:slug/ticket-types', validateRequest(eventSlugParamsSchema, 'params
 router.get('/:slug/seat-sections', validateRequest(eventSlugParamsSchema, 'params'), optionalAuth, (req, res, next) => ctrl().getSeatSections(req, res, next));
 router.get('/:slug/seat-map',   validateRequest(eventSlugParamsSchema, 'params'), optionalAuth, cache('30s'), (req, res, next) => ctrl().getSeatMap(req, res, next));
 router.post('/:slug/view',      validateRequest(eventSlugParamsSchema, 'params'), optionalAuth, (req, res, next) => ctrl().trackView(req, res, next));
+router.post(
+  '/:slug/images/reaction',
+  authenticate,
+  validateRequest(eventSlugParamsSchema, 'params'),
+  validateRequest(imageReactionSchema),
+  (req, res, next) => ctrl().toggleImageReaction(req, res, next),
+);
 
 // ════════════════════════════════════════════════════════════════════════════════
 // ORGANIZER ROUTES

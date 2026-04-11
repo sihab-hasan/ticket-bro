@@ -6,23 +6,23 @@ const getId = (u) => u?._id || u?.id || u?.userId;
 
 class EventController {
   getEvents = asyncHandler(async (req, res) => {
-    sendSuccess(res, 'Events fetched.', await eventService.getEvents(req.query));
+    sendSuccess(res, 'Events fetched.', await eventService.getEvents(req.query, req.user));
   });
 
   getFeaturedEvents = asyncHandler(async (req, res) => {
-    sendSuccess(res, 'Featured events fetched.', await eventService.getFeaturedEvents(req.query));
+    sendSuccess(res, 'Featured events fetched.', await eventService.getFeaturedEvents(req.query, req.user));
   });
 
   getTrendingEvents = asyncHandler(async (req, res) => {
-    sendSuccess(res, 'Trending events fetched.', await eventService.getTrendingEvents(req.query));
+    sendSuccess(res, 'Trending events fetched.', await eventService.getTrendingEvents(req.query, req.user));
   });
 
   getOfferEvents = asyncHandler(async (req, res) => {
-    sendSuccess(res, 'Offer events fetched.', await eventService.getOfferEvents(req.query));
+    sendSuccess(res, 'Offer events fetched.', await eventService.getOfferEvents(req.query, req.user));
   });
 
   getUpcomingEvents = asyncHandler(async (req, res) => {
-    sendSuccess(res, 'Upcoming events fetched.', await eventService.getUpcomingEvents(req.query));
+    sendSuccess(res, 'Upcoming events fetched.', await eventService.getUpcomingEvents(req.query, req.user));
   });
 
   getEventBySlug = asyncHandler(async (req, res) => {
@@ -63,6 +63,18 @@ class EventController {
 
   trackView = asyncHandler(async (req, res) => {
     sendSuccess(res, 'Event view tracked.', await eventService.trackView(req.params.slug, req.user));
+  });
+
+  toggleImageReaction = asyncHandler(async (req, res) => {
+    const result = await eventService.toggleImageReaction(
+      req.params.slug,
+      req.body.url,
+      req.user,
+    );
+    const message = result?.reaction?.hasReacted
+      ? 'Photo reaction added.'
+      : 'Photo reaction removed.';
+    sendSuccess(res, message, result);
   });
 
   createEvent = asyncHandler(async (req, res) => {
@@ -108,15 +120,15 @@ class EventController {
   });
 
   getOrgEvents = asyncHandler(async (req, res) => {
-    sendSuccess(res, 'Events fetched.', await eventService.getOrganizerEvents(getId(req.user), req.query));
+    sendSuccess(res, 'Events fetched.', await eventService.getOrganizerEvents(getId(req.user), req.query, req.user));
   });
 
   getAllAdmin = asyncHandler(async (req, res) => {
-    sendSuccess(res, 'Events fetched.', await eventService.getAllEventsAdmin(req.query));
+    sendSuccess(res, 'Events fetched.', await eventService.getAllEventsAdmin(req.query, req.user));
   });
 
   adminGetAllEvents = asyncHandler(async (req, res) => {
-    sendSuccess(res, 'Events fetched.', await eventService.getAllEventsAdmin(req.query));
+    sendSuccess(res, 'Events fetched.', await eventService.getAllEventsAdmin(req.query, req.user));
   });
 
   approveEvent = asyncHandler(async (req, res) => {
@@ -128,7 +140,7 @@ class EventController {
   });
 
   featureEvent = asyncHandler(async (req, res) => {
-    sendSuccess(res, 'Updated.', { event: await eventService.featureEvent(req.params.id, req.body.featured) });
+    sendSuccess(res, 'Updated.', { event: await eventService.featureEvent(req.params.id, req.body.featured, req.user) });
   });
 
   // ── POST /events/:slug/images/cover ─────────────────────────────────────────

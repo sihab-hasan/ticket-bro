@@ -27,6 +27,129 @@ class EventService {
     return `${currency} ${safeAmount.toLocaleString()}`;
   }
 
+  _toPlainEvent(event) {
+    if (!event) {
+      return event;
+    }
+
+    if (typeof event.toObject === 'function') {
+      return event.toObject({ virtuals: true });
+    }
+
+    return { ...event };
+  }
+
+  _getEventImageUrls(event = {}) {
+    return [...new Set([
+      event?.coverImage,
+      ...(Array.isArray(event?.images) ? event.images : []),
+    ].filter(Boolean))];
+  }
+
+  _normalizeImageReactions(imageReactions = []) {
+    const reactionMap = new Map();
+
+    imageReactions.forEach((entry) => {
+      const imageUrl = String(entry?.imageUrl || '').trim();
+      if (!imageUrl) {
+        return;
+      }
+
+      const existingReactors = reactionMap.get(imageUrl) || new Set();
+      const rawReactorIds = Array.isArray(entry?.reactorIds) ? entry.reactorIds : [];
+
+      rawReactorIds.forEach((reactorId) => {
+        const normalizedReactorId =
+          reactorId?._id?.toString?.() ||
+          reactorId?.id?.toString?.() ||
+          reactorId?.toString?.() ||
+          null;
+
+        if (normalizedReactorId) {
+          existingReactors.add(normalizedReactorId);
+        }
+      });
+
+      reactionMap.set(imageUrl, existingReactors);
+    });
+
+    return Array.from(reactionMap.entries()).map(([imageUrl, reactorIds]) => ({
+      imageUrl,
+      reactorIds: Array.from(reactorIds),
+    }));
+  }
+
+  _pruneImageReactionsForState(state = {}, imageReactions = []) {
+    const validImageUrls = new Set(this._getEventImageUrls(state));
+    return this._normalizeImageReactions(imageReactions).filter((entry) =>
+      validImageUrls.has(entry.imageUrl)
+    );
+  }
+
+  _buildImageReactionSummary(event = {}, user = null) {
+    const userId = getId(user)?.toString?.() || null;
+    const summary = {};
+    const normalizedReactions = this._pruneImageReactionsForState(
+      event,
+      event?.imageReactions,
+    );
+
+    normalizedReactions.forEach((entry) => {
+      const reactorIds = Array.isArray(entry?.reactorIds)
+        ? entry.reactorIds.map((reactorId) => reactorId?.toString?.() || reactorId)
+        : [];
+
+      summary[entry.imageUrl] = {
+        count: reactorIds.length,
+        hasReacted: Boolean(userId && reactorIds.includes(userId)),
+      };
+    });
+
+    this._getEventImageUrls(event).forEach((imageUrl) => {
+      if (!summary[imageUrl]) {
+        summary[imageUrl] = {
+          count: 0,
+          hasReacted: false,
+        };
+      }
+    });
+
+    return summary;
+  }
+
+  _serializeEvent(event, user = null) {
+    if (!event) {
+      return null;
+    }
+
+    const plainEvent = this._toPlainEvent(event);
+    const imageReactions = this._pruneImageReactionsForState(
+      plainEvent,
+      plainEvent.imageReactions,
+    );
+    const serializedEvent = {
+      ...plainEvent,
+      imageReactionSummary: this._buildImageReactionSummary(
+        { ...plainEvent, imageReactions },
+        user,
+      ),
+    };
+
+    delete serializedEvent.imageReactions;
+    return serializedEvent;
+  }
+
+  _serializeEventList(result, user = null) {
+    if (!result?.events) {
+      return result;
+    }
+
+    return {
+      ...result,
+      events: result.events.map((event) => this._serializeEvent(event, user)),
+    };
+  }
+
   _buildOfferMeta(promotion, event) {
     const basePrice = Math.max(Number(event?.minPrice || event?.maxPrice || 0), 0);
     const currency = event?.currency || 'BDT';
@@ -277,26 +400,35 @@ class EventService {
 
     await this._invalidatePublicEventCaches();
     logger.info(`Event created: ${event._id} by ${organizerId}`);
-    return event;
+    return this._serializeEvent(event, user);
   }
 
-  async getEvents(query = {}) {
-    return eventRepository.findPublished(query);
+  async getEvents(query = {}, user = null) {
+    return this._serializeEventList(
+      await eventRepository.findPublished(query),
+      user,
+    );
   }
 
-  async getFeaturedEvents(query = {}) {
-    return eventRepository.findPublished({ ...query, isFeatured: true });
+  async getFeaturedEvents(query = {}, user = null) {
+    return this._serializeEventList(
+      await eventRepository.findPublished({ ...query, isFeatured: true }),
+      user,
+    );
   }
 
-  async getTrendingEvents(query = {}) {
-    return eventRepository.findPublished({
-      ...query,
-      startDate: query.startDate || new Date().toISOString(),
-      sort: query.sort || '-isTrending -trendScore -totalSold startDate',
-    });
+  async getTrendingEvents(query = {}, user = null) {
+    return this._serializeEventList(
+      await eventRepository.findPublished({
+        ...query,
+        startDate: query.startDate || new Date().toISOString(),
+        sort: query.sort || '-isTrending -trendScore -totalSold startDate',
+      }),
+      user,
+    );
   }
 
-  async getOfferEvents(query = {}) {
+  async getOfferEvents(query = {}, user = null) {
     const page = Number(query.page || 1);
     const limit = Number(query.limit || 20);
     const normalizedSearch = String(query.search || '').trim().toLowerCase();
@@ -401,7 +533,7 @@ class EventService {
       )
       : 0;
 
-    return {
+    return this._serializeEventList({
       events: pagedItems,
       pagination: {
         total,
@@ -416,27 +548,30 @@ class EventService {
         averageDiscountPercent,
         expiringSoon,
       },
-    };
+    }, user);
   }
 
-  async getUpcomingEvents(query = {}) {
-    return eventRepository.findPublished({
-      ...query,
-      startDate: query.startDate || new Date().toISOString(),
-      sort: query.sort || 'startDate',
-    });
+  async getUpcomingEvents(query = {}, user = null) {
+    return this._serializeEventList(
+      await eventRepository.findPublished({
+        ...query,
+        startDate: query.startDate || new Date().toISOString(),
+        sort: query.sort || 'startDate',
+      }),
+      user,
+    );
   }
 
   async getEventById(id, user) {
     const event = await this._getEventByIdOrThrow(id);
     this._assertCanView(event, user);
-    return event;
+    return this._serializeEvent(event, user);
   }
 
   async getEventBySlug(slug, user) {
     const event = await this._getEventBySlugOrThrow(slug);
     this._assertCanView(event, user);
-    return event;
+    return this._serializeEvent(event, user);
   }
 
   async updateEvent(slug, data, user) {
@@ -450,7 +585,7 @@ class EventService {
 
     const updatedEvent = await eventRepository.updateById(event._id, payload);
     await this._invalidatePublicEventCaches();
-    return updatedEvent;
+    return this._serializeEvent(updatedEvent, user);
   }
 
   // ── Cover image (Cloudinary) ─────────────────────────────────────────────────
@@ -462,18 +597,30 @@ class EventService {
     if (event.coverImage && event.coverImage !== url) {
       await eventImageService.deleteCover(event.coverImage);
     }
-    const updatedEvent = await eventRepository.updateById(event._id, { coverImage: url });
+    const updatedEvent = await eventRepository.updateById(event._id, {
+      coverImage: url,
+      imageReactions: this._pruneImageReactionsForState(
+        { ...event, coverImage: url },
+        event.imageReactions,
+      ),
+    });
     await this._invalidatePublicEventCaches();
-    return updatedEvent;
+    return this._serializeEvent(updatedEvent, user);
   }
 
   async removeCoverImage(slug, user) {
     const event = await this._getEventBySlugOrThrow(slug);
     await this._assertCanManage(event, user);
     if (event.coverImage) await eventImageService.deleteCover(event.coverImage);
-    const updatedEvent = await eventRepository.updateById(event._id, { coverImage: null });
+    const updatedEvent = await eventRepository.updateById(event._id, {
+      coverImage: null,
+      imageReactions: this._pruneImageReactionsForState(
+        { ...event, coverImage: null },
+        event.imageReactions,
+      ),
+    });
     await this._invalidatePublicEventCaches();
-    return updatedEvent;
+    return this._serializeEvent(updatedEvent, user);
   }
 
   // ── Gallery images (Cloudinary) ──────────────────────────────────────────────
@@ -497,9 +644,16 @@ class EventService {
     }
 
     const newUrls = await eventImageService.uploadGallery(incomingFiles, event._id.toString());
-    const updatedEvent = await eventRepository.updateById(event._id, { images: [...existing, ...newUrls] });
+    const nextImages = [...existing, ...newUrls];
+    const updatedEvent = await eventRepository.updateById(event._id, {
+      images: nextImages,
+      imageReactions: this._pruneImageReactionsForState(
+        { ...event, images: nextImages },
+        event.imageReactions,
+      ),
+    });
     await this._invalidatePublicEventCaches();
-    return updatedEvent;
+    return this._serializeEvent(updatedEvent, user);
   }
 
   async removeGalleryImage(slug, imageUrl, user) {
@@ -507,9 +661,15 @@ class EventService {
     await this._assertCanManage(event, user);
     await eventImageService.deleteGalleryImage(imageUrl);
     const updated = (event.images || []).filter((u) => u !== imageUrl);
-    const updatedEvent = await eventRepository.updateById(event._id, { images: updated });
+    const updatedEvent = await eventRepository.updateById(event._id, {
+      images: updated,
+      imageReactions: this._pruneImageReactionsForState(
+        { ...event, images: updated },
+        event.imageReactions,
+      ),
+    });
     await this._invalidatePublicEventCaches();
-    return updatedEvent;
+    return this._serializeEvent(updatedEvent, user);
   }
 
   async removeGalleryImages(slug, imageUrls = [], user) {
@@ -521,15 +681,21 @@ class EventService {
       .filter((url) => currentImages.includes(url));
 
     if (!removableUrls.length) {
-      return event;
+      return this._serializeEvent(event, user);
     }
 
     await eventImageService.deleteGallery(removableUrls);
     const removableSet = new Set(removableUrls);
     const nextImages = currentImages.filter((url) => !removableSet.has(url));
-    const updatedEvent = await eventRepository.updateById(event._id, { images: nextImages });
+    const updatedEvent = await eventRepository.updateById(event._id, {
+      images: nextImages,
+      imageReactions: this._pruneImageReactionsForState(
+        { ...event, images: nextImages },
+        event.imageReactions,
+      ),
+    });
     await this._invalidatePublicEventCaches();
-    return updatedEvent;
+    return this._serializeEvent(updatedEvent, user);
   }
 
   async reorderGalleryImages(slug, orderedUrls = [], user) {
@@ -550,9 +716,68 @@ class EventService {
       throw new BadRequestError('Gallery order contains invalid image URLs.');
     }
 
-    const updatedEvent = await eventRepository.updateById(event._id, { images: nextImages });
+    const updatedEvent = await eventRepository.updateById(event._id, {
+      images: nextImages,
+      imageReactions: this._pruneImageReactionsForState(
+        { ...event, images: nextImages },
+        event.imageReactions,
+      ),
+    });
     await this._invalidatePublicEventCaches();
-    return updatedEvent;
+    return this._serializeEvent(updatedEvent, user);
+  }
+
+  async toggleImageReaction(slug, imageUrl, user) {
+    const event = await this._getEventBySlugOrThrow(slug);
+    this._assertCanView(event, user);
+
+    const normalizedImageUrl = String(imageUrl || '').trim();
+    const validImageUrls = new Set(this._getEventImageUrls(event));
+
+    if (!normalizedImageUrl || !validImageUrls.has(normalizedImageUrl)) {
+      throw new BadRequestError('This image is not available for reactions.');
+    }
+
+    const userId = getId(user);
+    if (!userId) {
+      throw new ForbiddenError('You must be logged in to react to a photo.');
+    }
+
+    const nextImageReactions = this._normalizeImageReactions(event.imageReactions);
+    const targetReaction = nextImageReactions.find(
+      (entry) => entry.imageUrl === normalizedImageUrl,
+    );
+
+    if (!targetReaction) {
+      nextImageReactions.push({
+        imageUrl: normalizedImageUrl,
+        reactorIds: [userId],
+      });
+    } else if (targetReaction.reactorIds.includes(userId)) {
+      targetReaction.reactorIds = targetReaction.reactorIds.filter(
+        (reactorId) => reactorId !== userId,
+      );
+    } else {
+      targetReaction.reactorIds = [...targetReaction.reactorIds, userId];
+    }
+
+    const updatedEvent = await eventRepository.updateById(event._id, {
+      imageReactions: this._pruneImageReactionsForState(event, nextImageReactions),
+    });
+    await this._invalidatePublicEventCaches();
+
+    const serializedEvent = this._serializeEvent(updatedEvent, user);
+
+    return {
+      event: serializedEvent,
+      reaction: {
+        imageUrl: normalizedImageUrl,
+        ...(serializedEvent.imageReactionSummary?.[normalizedImageUrl] || {
+          count: 0,
+          hasReacted: false,
+        }),
+      },
+    };
   }
 
   async deleteEvent(slug, user) {
@@ -580,7 +805,7 @@ class EventService {
         rejectionReason: '',
       });
       await this._invalidatePublicEventCaches();
-      return updatedEvent;
+      return this._serializeEvent(updatedEvent, user);
     }
 
     if (event.status === 'pending') {
@@ -594,7 +819,7 @@ class EventService {
       rejectionReason: '',
     });
     await this._invalidatePublicEventCaches();
-    return updatedEvent;
+    return this._serializeEvent(updatedEvent, user);
   }
 
   async cancelEvent(slug, user) {
@@ -602,28 +827,34 @@ class EventService {
     await this._assertCanManage(event, user);
     const updatedEvent = await eventRepository.updateById(event._id, { status: 'cancelled' });
     await this._invalidatePublicEventCaches();
-    return updatedEvent;
+    return this._serializeEvent(updatedEvent, user);
   }
 
-  async getOrganizerEvents(organizerId, query = {}) {
-    return eventRepository.findByOrganizer(organizerId, query);
+  async getOrganizerEvents(organizerId, query = {}, user = null) {
+    return this._serializeEventList(
+      await eventRepository.findByOrganizer(organizerId, query),
+      user,
+    );
   }
 
-  async getAllEventsAdmin(query = {}) {
-    return eventRepository.findAll(query);
+  async getAllEventsAdmin(query = {}, user = null) {
+    return this._serializeEventList(await eventRepository.findAll(query), user);
   }
 
   async getRelatedEvents(slug, limit = 6, user) {
     const event = await this._getEventBySlugOrThrow(slug);
     this._assertCanView(event, user);
 
-    return eventRepository.findPublished({
-      category: event.category?._id || event.category,
-      excludeId: event._id,
-      page: 1,
-      limit,
-      sort: 'startDate',
-    });
+    return this._serializeEventList(
+      await eventRepository.findPublished({
+        category: event.category?._id || event.category,
+        excludeId: event._id,
+        page: 1,
+        limit,
+        sort: 'startDate',
+      }),
+      user,
+    );
   }
 
   async getTicketTypes(slug, user) {
@@ -764,7 +995,7 @@ class EventService {
       rejectionReason: '',
     });
     await this._invalidatePublicEventCaches();
-    return updatedEvent;
+    return this._serializeEvent(updatedEvent, actor);
   }
 
   async rejectEvent(slug, reason = '', actor) {
@@ -776,13 +1007,13 @@ class EventService {
       moderatedAt: new Date(),
     });
     await this._invalidatePublicEventCaches();
-    return updatedEvent;
+    return this._serializeEvent(updatedEvent, actor);
   }
 
-  async featureEvent(id, featured = true) {
+  async featureEvent(id, featured = true, user = null) {
     const updatedEvent = await eventRepository.updateById(id, { isFeatured: featured });
     await this._invalidatePublicEventCaches();
-    return updatedEvent;
+    return this._serializeEvent(updatedEvent, user);
   }
 
   async getStats() {
