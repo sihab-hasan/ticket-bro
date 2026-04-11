@@ -542,7 +542,8 @@ class AdminService {
     const [organizers, total] = await Promise.all([
       Organizer.find(filter)
         .populate('user', 'firstName lastName email avatar role status isActive')
-        .sort({ createdAt: -1 })
+        .populate('verificationReviewedBy', 'firstName lastName email')
+        .sort({ verificationRequestedAt: -1, createdAt: -1 })
         .skip(skip)
         .limit(Number(limit))
         .lean(),
@@ -564,6 +565,7 @@ class AdminService {
   async getOrganizerById(id) {
     const organizer = await Organizer.findOne({ _id: id, deletedAt: null })
       .populate('user', 'firstName lastName email avatar role status isActive')
+      .populate('verificationReviewedBy', 'firstName lastName email')
       .lean();
 
     if (!organizer) throw new NotFoundError('Organizer not found.');
@@ -571,12 +573,23 @@ class AdminService {
   }
 
   async verifyOrganizer(id, actor = null) {
+    const reviewedAt = new Date();
+    const actorId = getId(actor) || null;
     const organizer = await Organizer.findOneAndUpdate(
       { _id: id, deletedAt: null },
-      { $set: { verificationStatus: 'verified', verifiedAt: new Date() } },
+      {
+        $set: {
+          verificationStatus: 'verified',
+          verifiedAt: reviewedAt,
+          verificationReviewedAt: reviewedAt,
+          verificationReviewedBy: actorId,
+          rejectionReason: '',
+        },
+      },
       { new: true },
     )
       .populate('user', 'firstName lastName email avatar role status isActive')
+      .populate('verificationReviewedBy', 'firstName lastName email')
       .lean();
 
     if (!organizer) throw new NotFoundError('Organizer not found.');
@@ -608,12 +621,23 @@ class AdminService {
   }
 
   async rejectOrganizer(id, reason = '', actor = null) {
+    const reviewedAt = new Date();
+    const actorId = getId(actor) || null;
     const organizer = await Organizer.findOneAndUpdate(
       { _id: id, deletedAt: null },
-      { $set: { verificationStatus: 'rejected', rejectionReason: reason } },
+      {
+        $set: {
+          verificationStatus: 'rejected',
+          rejectionReason: reason || '',
+          verificationReviewedAt: reviewedAt,
+          verificationReviewedBy: actorId,
+          verifiedAt: null,
+        },
+      },
       { new: true },
     )
       .populate('user', 'firstName lastName email avatar role status isActive')
+      .populate('verificationReviewedBy', 'firstName lastName email')
       .lean();
 
     if (!organizer) throw new NotFoundError('Organizer not found.');

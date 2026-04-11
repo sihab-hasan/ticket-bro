@@ -93,28 +93,28 @@ class OrganizerService {
       throw new BadRequestError('Organizer profile is already verified.');
     }
 
+    if (profile.verificationStatus === 'pending') {
+      throw new BadRequestError('A verification request is already pending review.');
+    }
+
     if (data.verificationDoc) {
       profile.verificationDoc = data.verificationDoc;
     }
-
+    profile.verificationNotes = data.verificationNotes || '';
     profile.verificationStatus = 'pending';
+    profile.verificationRequestedAt = new Date();
+    profile.verificationReviewedAt = undefined;
+    profile.verificationReviewedBy = undefined;
+    profile.rejectionReason = undefined;
+    profile.verifiedAt = undefined;
     await profile.save();
 
-    return {
-      status: profile.verificationStatus,
-      verificationDoc: profile.verificationDoc || null,
-      submittedAt: profile.updatedAt,
-    };
+    return this._serialiseVerification(profile);
   }
 
   async getVerificationStatus(userId) {
     const profile = await this._ensureProfile(userId);
-    return {
-      status: profile.verificationStatus,
-      verificationDoc: profile.verificationDoc || null,
-      verifiedAt: profile.verifiedAt || null,
-      updatedAt: profile.updatedAt,
-    };
+    return this._serialiseVerification(profile);
   }
 
   async _ensureProfile(userId) {
@@ -161,6 +161,10 @@ class OrganizerService {
       createdAt: source.createdAt,
       updatedAt: source.updatedAt,
       verificationDoc: includePrivateFields ? (source.verificationDoc || null) : undefined,
+      verificationNotes: includePrivateFields ? (source.verificationNotes || '') : undefined,
+      verificationRequestedAt: includePrivateFields ? (source.verificationRequestedAt || null) : undefined,
+      verificationReviewedAt: includePrivateFields ? (source.verificationReviewedAt || null) : undefined,
+      rejectionReason: includePrivateFields ? (source.rejectionReason || '') : undefined,
       user: {
         id: user._id,
         firstName: user.firstName,
@@ -168,6 +172,21 @@ class OrganizerService {
         email: includePrivateFields ? user.email : undefined,
         avatar: user.avatar || null,
       },
+    };
+  }
+
+  _serialiseVerification(profile) {
+    const source = profile.toObject ? profile.toObject() : profile;
+
+    return {
+      status: source.verificationStatus,
+      verificationDoc: source.verificationDoc || null,
+      verificationNotes: source.verificationNotes || '',
+      requestedAt: source.verificationRequestedAt || null,
+      reviewedAt: source.verificationReviewedAt || null,
+      verifiedAt: source.verifiedAt || null,
+      rejectionReason: source.rejectionReason || '',
+      updatedAt: source.updatedAt,
     };
   }
 

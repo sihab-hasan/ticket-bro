@@ -19,6 +19,8 @@ const STATUS_STYLES = {
   pending_review: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
   postponed:   'bg-purple-500/10 text-purple-600 border-purple-500/20',
   rejected:    'bg-red-500/10 text-red-500 border-red-500/20',
+  verified:    'bg-green-500/10 text-green-600 border-green-500/20',
+  unverified:  'bg-gray-500/10 text-gray-500 border-gray-500/20',
   // User
   active:      'bg-green-500/10 text-green-600 border-green-500/20',
   inactive:    'bg-gray-500/10 text-gray-500 border-gray-500/20',
