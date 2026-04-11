@@ -256,7 +256,7 @@ const EventHeroSection = ({ event, saved, onSave, onShare, onBook }) => {
                       style={{ fontFamily: "var(--font-sans)" }}
                     >
                       <BadgeCheck size={12} />
-                      Trusted Host
+                      Trusted Organizer
                     </span>
                   )}
                 </div>
