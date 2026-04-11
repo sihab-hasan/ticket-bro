@@ -46,6 +46,11 @@ const EMPTY_FORM = {
   youtube: '',
 };
 
+const EMPTY_VERIFICATION_FORM = {
+  verificationDoc: '',
+  verificationNotes: '',
+};
+
 const SettingsPage = () => {
   const [profile, setProfile] = useState(null);
   const [verification, setVerification] = useState(null);
@@ -53,6 +58,7 @@ const SettingsPage = () => {
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [verificationForm, setVerificationForm] = useState(EMPTY_VERIFICATION_FORM);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -79,6 +85,16 @@ const SettingsPage = () => {
           twitter: profileResult?.socialLinks?.twitter || '',
           youtube: profileResult?.socialLinks?.youtube || '',
         });
+        setVerificationForm({
+          verificationDoc:
+            verificationResult?.verificationDoc ||
+            profileResult?.verificationDoc ||
+            '',
+          verificationNotes:
+            verificationResult?.verificationNotes ||
+            profileResult?.verificationNotes ||
+            '',
+        });
       } catch (error) {
         toast.error(getApiErrorMessage(error, 'Failed to load organizer settings'));
       } finally {
@@ -91,6 +107,9 @@ const SettingsPage = () => {
 
   const setValue = (key, value) =>
     setForm((current) => ({ ...current, [key]: value }));
+
+  const setVerificationValue = (key, value) =>
+    setVerificationForm((current) => ({ ...current, [key]: value }));
 
   const handleProfileImagesUpdated = (updatedProfile) => {
     if (!updatedProfile) return;
@@ -131,12 +150,27 @@ const SettingsPage = () => {
   };
 
   const submitVerification = async () => {
+    const verificationDoc = verificationForm.verificationDoc.trim();
+    const verificationNotes = verificationForm.verificationNotes.trim();
+
+    if (!verificationDoc) {
+      toast.error('Add a verification proof link before sending the request');
+      return;
+    }
+
     setSubmitting(true);
 
     try {
-      await organizersService.submitVerification();
+      await organizersService.submitVerification({
+        verificationDoc,
+        verificationNotes: verificationNotes || undefined,
+      });
       const nextVerification = await organizersService.getVerification();
       setVerification(nextVerification || null);
+      setVerificationForm({
+        verificationDoc: nextVerification?.verificationDoc || verificationDoc,
+        verificationNotes: nextVerification?.verificationNotes || verificationNotes,
+      });
       toast.success('Verification request submitted');
     } catch (error) {
       toast.error(
@@ -163,25 +197,25 @@ const SettingsPage = () => {
   const verificationStatus = {
     unverified: {
       icon: Shield,
-      text: 'Not Verified Yet',
+      text: 'Not Trusted Yet',
       color: 'text-muted-foreground',
       bg: 'bg-muted/50 border-border',
     },
     pending: {
       icon: Clock,
-      text: 'Verification Pending',
+      text: 'Waiting For Admin Review',
       color: 'text-yellow-600',
       bg: 'bg-yellow-500/10 border-yellow-500/20',
     },
     verified: {
       icon: CheckCircle2,
-      text: 'Verified Organizer',
+      text: 'Trusted Organizer',
       color: 'text-green-600',
       bg: 'bg-green-500/10 border-green-500/20',
     },
     rejected: {
       icon: AlertCircle,
-      text: 'Verification Rejected',
+      text: 'Request Rejected',
       color: 'text-red-500',
       bg: 'bg-red-500/10 border-red-500/20',
     },
@@ -344,12 +378,12 @@ const SettingsPage = () => {
               </div>
 
               <div className="space-y-3">
-                <p className="text-sm font-semibold">Why get verified?</p>
+                <p className="text-sm font-semibold">How trusted organizer review works</p>
                 {[
-                  'Verified trust signal on your organizer profile',
-                  'Improved confidence for attendees before purchase',
-                  'A cleaner path for moderation and support reviews',
-                  'Better alignment with future organizer tooling',
+                  'You send a verification request directly to the admin team',
+                  'Admins review your proof link and your organizer note before deciding',
+                  'Approved organizers get a visible trusted badge on public event pages',
+                  'Rejected requests can be updated and submitted again after changes',
                 ].map((benefit) => (
                   <div
                     key={benefit}
@@ -361,15 +395,104 @@ const SettingsPage = () => {
                 ))}
               </div>
 
-              {(!verification || ['unverified', 'rejected'].includes(verification.status)) && (
-                <Button
-                  onClick={submitVerification}
-                  disabled={submitting}
-                  className="w-full font-bold"
+              <Separator />
+
+              <div className="space-y-4">
+                <Field
+                  label="Proof Link For Admin"
+                  hint="Share a website, registration, or document URL the admin can review."
                 >
-                  {submitting ? 'Submitting...' : 'Submit Verification Request'}
-                </Button>
+                  <Input
+                    value={verificationForm.verificationDoc}
+                    onChange={(event) =>
+                      setVerificationValue('verificationDoc', event.target.value)
+                    }
+                    placeholder="https://..."
+                    className="h-9"
+                    disabled={['pending', 'verified'].includes(verification?.status)}
+                  />
+                </Field>
+
+                <Field
+                  label="Message To Admin"
+                  hint="Tell the admin why this organizer account should receive the trusted badge."
+                >
+                  <Textarea
+                    value={verificationForm.verificationNotes}
+                    onChange={(event) =>
+                      setVerificationValue('verificationNotes', event.target.value)
+                    }
+                    rows={4}
+                    className="text-sm resize-none"
+                    placeholder="We are the official organizer for..."
+                    disabled={['pending', 'verified'].includes(verification?.status)}
+                  />
+                </Field>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="rounded-xl border border-border bg-muted/30 p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Requested
+                  </p>
+                  <p className="mt-1 text-sm font-semibold">
+                    {verification?.requestedAt
+                      ? formatDate(verification.requestedAt, {
+                          dateStyle: 'medium',
+                          timeStyle: undefined,
+                        })
+                      : 'Not sent yet'}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-border bg-muted/30 p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Reviewed
+                  </p>
+                  <p className="mt-1 text-sm font-semibold">
+                    {verification?.reviewedAt
+                      ? formatDate(verification.reviewedAt, {
+                          dateStyle: 'medium',
+                          timeStyle: undefined,
+                        })
+                      : 'Awaiting review'}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-border bg-muted/30 p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Trusted Badge
+                  </p>
+                  <p className="mt-1 text-sm font-semibold">
+                    {verification?.status === 'verified' ? 'Active' : 'Not active'}
+                  </p>
+                </div>
+              </div>
+
+              {verification?.rejectionReason && (
+                <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-red-500">
+                    Admin Feedback
+                  </p>
+                  <p className="mt-2 text-sm text-red-600">
+                    {verification.rejectionReason}
+                  </p>
+                </div>
               )}
+
+              <Button
+                onClick={submitVerification}
+                disabled={submitting || ['pending', 'verified'].includes(verification?.status)}
+                className="w-full font-bold"
+              >
+                {submitting
+                  ? 'Submitting...'
+                  : verification?.status === 'rejected'
+                    ? 'Resubmit Verification Request'
+                    : verification?.status === 'verified'
+                      ? 'Trusted Badge Already Active'
+                    : verification?.status === 'pending'
+                      ? 'Waiting For Admin Review'
+                      : 'Send Verification Request To Admin'}
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>

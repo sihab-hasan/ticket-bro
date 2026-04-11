@@ -20,6 +20,7 @@ const updateOrganizerProfileSchema = Joi.object({
 
 const submitVerificationSchema = Joi.object({
   verificationDoc: trimmedString(3, 2048).required(),
+  verificationNotes: optionalString(2000),
 });
 
 const organizerSlugParamsSchema = Joi.object({

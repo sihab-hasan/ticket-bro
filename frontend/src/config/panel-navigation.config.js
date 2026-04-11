@@ -166,6 +166,12 @@ export const PANEL_NAVIGATION = {
           description: "Manage accounts and account status",
         },
         {
+          label: "Organizers",
+          href: "/admin/organizers",
+          icon: Shield,
+          description: "Review trusted badge requests from organizers",
+        },
+        {
           label: "Events",
           href: "/admin/events",
           icon: Calendar,

@@ -45,6 +45,15 @@ const pickPayments = (payload) => {
   };
 };
 
+const pickOrganizers = (payload) => {
+  const result = pickPaginated("organizers")(payload);
+  return {
+    organizers: result.items,
+    pagination: result.pagination,
+    total: result.total,
+  };
+};
+
 const pickPromotions = (payload) => {
   const result = pickPaginated("promotions")(payload);
   return {
@@ -80,6 +89,21 @@ const adminService = {
   unbanUser: (id) => patch(ENDPOINTS.ADMIN.UNBAN_USER(id), {}, { select: pickEntity("user") }),
   changeUserRole: (id, role) =>
     patch(ENDPOINTS.ADMIN.USER_ROLE(id), { role }, { select: pickEntity("user") }),
+
+  getOrganizers: (params) =>
+    get(ENDPOINTS.ADMIN.ORGANIZERS, { params, select: pickOrganizers }),
+  getOrganizerById: (id) =>
+    get(ENDPOINTS.ADMIN.ORGANIZER(id), { select: pickEntity("organizer") }),
+  verifyOrganizer: (id) =>
+    put(ENDPOINTS.ADMIN.VERIFY_ORGANIZER(id), {}, { select: pickEntity("organizer") }),
+  rejectOrganizer: (id, data) =>
+    put(ENDPOINTS.ADMIN.REJECT_ORGANIZER(id), data || {}, {
+      select: pickEntity("organizer"),
+    }),
+  suspendOrganizer: (id, data) =>
+    put(ENDPOINTS.ADMIN.SUSPEND_ORGANIZER(id), data || {}, {
+      select: pickEntity("organizer"),
+    }),
 
   getEvents: (params) => get(ENDPOINTS.ADMIN.EVENTS, { params, select: pickEvents }),
   getEventBySlug: (slug) =>

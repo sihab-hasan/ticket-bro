@@ -75,6 +75,7 @@ const OrgAnalyticsPage = lazy(() => import("@/pages/organizer/AnalyticsPage"));
 const OrganizerSettingsPage = lazy(() => import("@/pages/organizer/SettingsPage"));
 const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
 const AdminUserManagementPage = lazy(() => import("@/pages/admin/UserManagementPage"));
+const AdminOrganizerManagementPage = lazy(() => import("@/pages/admin/OrganizerManagementPage"));
 const AdminEventManagementPage = lazy(() => import("@/pages/admin/EventManagementPage"));
 const AdminBookingManagementPage = lazy(() => import("@/pages/admin/BookingManagementPage"));
 const AdminPaymentManagementPage = lazy(() => import("@/pages/admin/PaymentManagementPage"));
@@ -205,6 +206,8 @@ export const ROUTES = {
     DASHBOARD: "/admin/dashboard",
     USERS: "/admin/users",
     USER: (id) => `/admin/users/${id}`,
+    ORGANIZERS: "/admin/organizers",
+    ORGANIZER: (id) => `/admin/organizers/${id}`,
     EVENTS: "/admin/events",
     EVENT: (id) => `/admin/events/${id}`,
     BOOKINGS: "/admin/bookings",
@@ -384,6 +387,10 @@ const AppRoutes = () => (
             <Route path="users">
               <Route index element={<AdminUserManagementPage />} />
               <Route path=":userId" element={<AdminUserManagementPage />} />
+            </Route>
+            <Route path="organizers">
+              <Route index element={<AdminOrganizerManagementPage />} />
+              <Route path=":organizerId" element={<AdminOrganizerManagementPage />} />
             </Route>
             <Route path="events">
               <Route index element={<AdminEventManagementPage />} />
