@@ -8,11 +8,16 @@ const reviewRepository = require('../reviews/review.repository');
 const promotionRepository = require('../promotions/promotion.repository');
 const { NotFoundError, ForbiddenError, BadRequestError } = require('../../common/errors/AppError');
 const { ROLES } = require('../../common/constants/roles');
+const { invalidateCachePatterns } = require('../../common/middleware/cache.middleware');
 const logger = require('../../infrastructure/logger/logger');
 
 const getId = (user) => user?._id?.toString() || user?.id || user?.userId;
 
 class EventService {
+  async _invalidatePublicEventCaches() {
+    await invalidateCachePatterns(['http-cache:GET:*/events*']);
+  }
+
   _formatCurrency(amount, currency = 'BDT') {
     const safeAmount = Number(amount || 0);
     if (currency === 'BDT') {
@@ -270,6 +275,7 @@ class EventService {
       organizerProfile: payload.organizerProfile || organizerProfileId,
     });
 
+    await this._invalidatePublicEventCaches();
     logger.info(`Event created: ${event._id} by ${organizerId}`);
     return event;
   }
@@ -442,7 +448,9 @@ class EventService {
       payload.organizerProfile = event.organizerProfile?._id || event.organizerProfile || await this._resolveOrganizerProfileId(getId(user));
     }
 
-    return eventRepository.updateById(event._id, payload);
+    const updatedEvent = await eventRepository.updateById(event._id, payload);
+    await this._invalidatePublicEventCaches();
+    return updatedEvent;
   }
 
   // ── Cover image (Cloudinary) ─────────────────────────────────────────────────
@@ -454,14 +462,18 @@ class EventService {
     if (event.coverImage && event.coverImage !== url) {
       await eventImageService.deleteCover(event.coverImage);
     }
-    return eventRepository.updateById(event._id, { coverImage: url });
+    const updatedEvent = await eventRepository.updateById(event._id, { coverImage: url });
+    await this._invalidatePublicEventCaches();
+    return updatedEvent;
   }
 
   async removeCoverImage(slug, user) {
     const event = await this._getEventBySlugOrThrow(slug);
     await this._assertCanManage(event, user);
     if (event.coverImage) await eventImageService.deleteCover(event.coverImage);
-    return eventRepository.updateById(event._id, { coverImage: null });
+    const updatedEvent = await eventRepository.updateById(event._id, { coverImage: null });
+    await this._invalidatePublicEventCaches();
+    return updatedEvent;
   }
 
   // ── Gallery images (Cloudinary) ──────────────────────────────────────────────
@@ -485,7 +497,9 @@ class EventService {
     }
 
     const newUrls = await eventImageService.uploadGallery(incomingFiles, event._id.toString());
-    return eventRepository.updateById(event._id, { images: [...existing, ...newUrls] });
+    const updatedEvent = await eventRepository.updateById(event._id, { images: [...existing, ...newUrls] });
+    await this._invalidatePublicEventCaches();
+    return updatedEvent;
   }
 
   async removeGalleryImage(slug, imageUrl, user) {
@@ -493,13 +507,59 @@ class EventService {
     await this._assertCanManage(event, user);
     await eventImageService.deleteGalleryImage(imageUrl);
     const updated = (event.images || []).filter((u) => u !== imageUrl);
-    return eventRepository.updateById(event._id, { images: updated });
+    const updatedEvent = await eventRepository.updateById(event._id, { images: updated });
+    await this._invalidatePublicEventCaches();
+    return updatedEvent;
+  }
+
+  async removeGalleryImages(slug, imageUrls = [], user) {
+    const event = await this._getEventBySlugOrThrow(slug);
+    await this._assertCanManage(event, user);
+
+    const currentImages = Array.isArray(event.images) ? event.images.filter(Boolean) : [];
+    const removableUrls = [...new Set(imageUrls.filter(Boolean))]
+      .filter((url) => currentImages.includes(url));
+
+    if (!removableUrls.length) {
+      return event;
+    }
+
+    await eventImageService.deleteGallery(removableUrls);
+    const removableSet = new Set(removableUrls);
+    const nextImages = currentImages.filter((url) => !removableSet.has(url));
+    const updatedEvent = await eventRepository.updateById(event._id, { images: nextImages });
+    await this._invalidatePublicEventCaches();
+    return updatedEvent;
+  }
+
+  async reorderGalleryImages(slug, orderedUrls = [], user) {
+    const event = await this._getEventBySlugOrThrow(slug);
+    await this._assertCanManage(event, user);
+
+    const currentImages = Array.isArray(event.images) ? event.images.filter(Boolean) : [];
+    const nextImages = Array.isArray(orderedUrls) ? orderedUrls.filter(Boolean) : [];
+
+    if (currentImages.length !== nextImages.length) {
+      throw new BadRequestError('Gallery order must include every current image exactly once.');
+    }
+
+    const currentSet = new Set(currentImages);
+    const nextSet = new Set(nextImages);
+
+    if (currentSet.size !== nextSet.size || currentImages.some((url) => !nextSet.has(url))) {
+      throw new BadRequestError('Gallery order contains invalid image URLs.');
+    }
+
+    const updatedEvent = await eventRepository.updateById(event._id, { images: nextImages });
+    await this._invalidatePublicEventCaches();
+    return updatedEvent;
   }
 
   async deleteEvent(slug, user) {
     const event = await this._getEventBySlugOrThrow(slug);
     await this._assertCanManage(event, user);
     await eventRepository.softDeleteById(event._id);
+    await this._invalidatePublicEventCaches();
     return { message: 'Event deleted.' };
   }
 
@@ -512,13 +572,15 @@ class EventService {
         throw new BadRequestError('Event already published.');
       }
 
-      return eventRepository.updateById(event._id, {
+      const updatedEvent = await eventRepository.updateById(event._id, {
         status: 'published',
         publishedAt: new Date(),
         moderatedBy: getId(user),
         moderatedAt: new Date(),
         rejectionReason: '',
       });
+      await this._invalidatePublicEventCaches();
+      return updatedEvent;
     }
 
     if (event.status === 'pending') {
@@ -527,16 +589,20 @@ class EventService {
 
     await this._assertReadyForReview(event);
 
-    return eventRepository.updateById(event._id, {
+    const updatedEvent = await eventRepository.updateById(event._id, {
       status: 'pending',
       rejectionReason: '',
     });
+    await this._invalidatePublicEventCaches();
+    return updatedEvent;
   }
 
   async cancelEvent(slug, user) {
     const event = await this._getEventBySlugOrThrow(slug);
     await this._assertCanManage(event, user);
-    return eventRepository.updateById(event._id, { status: 'cancelled' });
+    const updatedEvent = await eventRepository.updateById(event._id, { status: 'cancelled' });
+    await this._invalidatePublicEventCaches();
+    return updatedEvent;
   }
 
   async getOrganizerEvents(organizerId, query = {}) {
@@ -618,6 +684,7 @@ class EventService {
     });
 
     await this._syncEventPricingSummary(event._id);
+    await this._invalidatePublicEventCaches();
     return ticketType;
   }
 
@@ -634,6 +701,7 @@ class EventService {
     if (!ticketType) throw new NotFoundError('Ticket type not found.');
 
     await this._syncEventPricingSummary(event._id);
+    await this._invalidatePublicEventCaches();
     return ticketType;
   }
 
@@ -650,6 +718,7 @@ class EventService {
     if (!ticketType) throw new NotFoundError('Ticket type not found.');
 
     await this._syncEventPricingSummary(event._id);
+    await this._invalidatePublicEventCaches();
     return { message: 'Ticket type deleted.' };
   }
 
@@ -687,27 +756,33 @@ class EventService {
 
   async approveEvent(slug, actor) {
     const event = await this._getEventBySlugOrThrow(slug);
-    return eventRepository.updateById(event._id, {
+    const updatedEvent = await eventRepository.updateById(event._id, {
       status: 'published',
       publishedAt: new Date(),
       moderatedBy: getId(actor),
       moderatedAt: new Date(),
       rejectionReason: '',
     });
+    await this._invalidatePublicEventCaches();
+    return updatedEvent;
   }
 
   async rejectEvent(slug, reason = '', actor) {
     const event = await this._getEventBySlugOrThrow(slug);
-    return eventRepository.updateById(event._id, {
+    const updatedEvent = await eventRepository.updateById(event._id, {
       status: 'rejected',
       rejectionReason: reason,
       moderatedBy: getId(actor),
       moderatedAt: new Date(),
     });
+    await this._invalidatePublicEventCaches();
+    return updatedEvent;
   }
 
   async featureEvent(id, featured = true) {
-    return eventRepository.updateById(id, { isFeatured: featured });
+    const updatedEvent = await eventRepository.updateById(id, { isFeatured: featured });
+    await this._invalidatePublicEventCaches();
+    return updatedEvent;
   }
 
   async getStats() {

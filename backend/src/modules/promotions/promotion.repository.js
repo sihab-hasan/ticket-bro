@@ -14,7 +14,7 @@ class PromotionRepository {
     ]);
     return { promotions, pagination: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total/Number(limit)) } };
   }
-  async updateById(id, data) { return Promotion.findByIdAndUpdate(id, { $set: data }, { new: true, runValidators: true }).exec(); }
+  async updateById(id, data) { return Promotion.findByIdAndUpdate(id, { $set: data }, { returnDocument: 'after', runValidators: true }).exec(); }
   async incrementUses(id) { return Promotion.findByIdAndUpdate(id, { $inc: { usedCount: 1 } }).exec(); }
   async deleteById(id, organizerId) { return Promotion.findOneAndUpdate({ _id: id, organizer: organizerId }, { $set: { deletedAt: new Date() } }).exec(); }
   async findPublicEventOffers({ category } = {}) {

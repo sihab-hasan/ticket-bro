@@ -21,4 +21,5 @@ export { default as superAdminService } from "./super-admin.api";
 export { default as locationsService } from "./locations.api";
 export { default as tagsService } from "./tags.api";
 export { default as eventDetailsService } from "./event-details.api";
+export { default as eventTypesService } from "./event-types.api";
 export { default as supportService } from "./support.api";

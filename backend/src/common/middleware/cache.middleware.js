@@ -92,6 +92,32 @@ const writeCache = async (key, value, ttlSeconds) => {
   await cacheService.set(key, value, ttlSeconds);
 };
 
+const patternToRegex = (pattern) => {
+  const escaped = String(pattern || "")
+    .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    .replace(/\\\*/g, ".*");
+
+  return new RegExp(`^${escaped}$`);
+};
+
+const invalidateCachePatterns = async (patterns = []) => {
+  const normalizedPatterns = patterns.filter(Boolean);
+
+  normalizedPatterns.forEach((pattern) => {
+    const matcher = patternToRegex(pattern);
+
+    for (const key of memoryStore.keys()) {
+      if (matcher.test(key)) {
+        memoryStore.delete(key);
+      }
+    }
+  });
+
+  await Promise.all(
+    normalizedPatterns.map((pattern) => cacheService.flush(pattern)),
+  );
+};
+
 const cache = (duration = '5m') => {
   const ttlSeconds = parseCacheDuration(duration);
 
@@ -135,5 +161,6 @@ const cache = (duration = '5m') => {
 
 module.exports = {
   cache,
+  invalidateCachePatterns,
   parseCacheDuration,
 };

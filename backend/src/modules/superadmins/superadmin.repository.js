@@ -11,7 +11,7 @@ class SuperAdminRepository {
     ]);
     return { admins, pagination: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total/Number(limit)) } };
   }
-  async promoteToAdmin(userId) { return User.findByIdAndUpdate(userId, { $set: { role: 'admin' } }, { new: true }).exec(); }
-  async demoteFromAdmin(userId){ return User.findByIdAndUpdate(userId, { $set: { role: 'user'  } }, { new: true }).exec(); }
+  async promoteToAdmin(userId) { return User.findByIdAndUpdate(userId, { $set: { role: 'admin' } }, { returnDocument: 'after' }).exec(); }
+  async demoteFromAdmin(userId){ return User.findByIdAndUpdate(userId, { $set: { role: 'user'  } }, { returnDocument: 'after' }).exec(); }
 }
 module.exports = new SuperAdminRepository();

@@ -134,7 +134,7 @@ const OrganizerDashboard = () => {
   ];
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 font-sans">
+    <div className="space-y-6 font-sans">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <PageHeader
           title="My Dashboard"

@@ -19,8 +19,13 @@ const pickEvents = (payload) => {
   };
 };
 
-export const getAllEvents = (params) =>
-  get(ENDPOINTS.EVENTS.LIST, { params, select: pickEvents });
+export const getAllEvents = (params, options = {}) =>
+  get(ENDPOINTS.EVENTS.LIST, {
+    params,
+    headers: options.headers,
+    signal: options.signal,
+    select: pickEvents,
+  });
 
 export const getFeaturedEvents = (limit = 6) =>
   get(ENDPOINTS.EVENTS.FEATURED, {
@@ -55,8 +60,10 @@ export const getUpcomingEvents = (limit = 8) =>
 export const getAdminEvents = (params) =>
   get(ENDPOINTS.EVENTS.ADMIN_LIST, { params, select: pickEvents });
 
-export const getEventBySlug = (slug) =>
+export const getEventBySlug = (slug, options = {}) =>
   get(ENDPOINTS.EVENTS.DETAIL(slug), {
+    headers: options.headers,
+    signal: options.signal,
     select: pickEntity("event"),
   });
 
@@ -331,6 +338,21 @@ export const removeGalleryImage = (slug, imageUrl) =>
     select: (p) => p?.event ?? p,
   });
 
+export const removeGalleryImages = (slug, imageUrls) =>
+  del(ENDPOINTS.EVENTS.GALLERY_IMAGE_BATCH(slug), {
+    data: { urls: imageUrls },
+    select: (p) => p?.event ?? p,
+  });
+
+export const reorderGalleryImages = (slug, orderedUrls) =>
+  put(
+    ENDPOINTS.EVENTS.GALLERY_IMAGE_ORDER(slug),
+    { images: orderedUrls },
+    {
+      select: (p) => p?.event ?? p,
+    },
+  );
+
 export default {
   getAllEvents,
   getFeaturedEvents,
@@ -379,4 +401,6 @@ export default {
   removeCoverImage,
   uploadGalleryImages,
   removeGalleryImage,
+  removeGalleryImages,
+  reorderGalleryImages,
 };

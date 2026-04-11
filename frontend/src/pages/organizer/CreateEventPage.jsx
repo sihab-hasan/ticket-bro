@@ -26,8 +26,11 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import PageHeader from '@/components/shared/PageHeader';
+import ImagePicker from '@/components/shared/ImagePicker';
 import { toast } from '@/components/shared/common';
 import { ROUTES } from '@/app/AppRoutes';
+import useEventImages from '@/hooks/useEventImages';
+import Container from '@/components/layout/Container';
 
 const StepIndicator = ({ steps, current }) => (
   <div className="flex items-center justify-center gap-2 mb-8 flex-wrap">
@@ -361,6 +364,7 @@ const getDraftTicketPayloads = (form) => {
 
 const CreateEventPage = () => {
   const navigate = useNavigate();
+  const eventImages = useEventImages();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [savingMode, setSavingMode] = useState('');
@@ -532,6 +536,8 @@ const CreateEventPage = () => {
       const createdEvent = await eventsService.createEvent(buildEventPayload(form, 'draft'));
       const eventKey = createdEvent?.slug || createdEvent?._id;
       const ticketPayloads = getDraftTicketPayloads(form);
+      let ticketError = null;
+      let imageError = null;
 
       if (eventKey && ticketPayloads.length) {
         try {
@@ -540,11 +546,30 @@ const CreateEventPage = () => {
               eventsService.createTicketType(eventKey, ticket),
             ),
           );
-        } catch (ticketError) {
-          toast.success('Draft saved. Finish ticket setup from the event editor.');
-          navigate(ROUTES.ORGANIZER.EDIT_EVENT(eventKey));
-          return;
+        } catch (nextTicketError) {
+          ticketError = nextTicketError;
         }
+      }
+
+      if (eventKey) {
+        try {
+          await eventImages.saveImages(eventKey);
+        } catch (nextImageError) {
+          imageError = nextImageError;
+        }
+      }
+
+      if (ticketError || imageError) {
+        const issues = [
+          ticketError ? `ticket setup: ${getApiErrorMessage(ticketError, 'finish it in the event editor')}` : null,
+          imageError ? `image sync: ${getApiErrorMessage(imageError, 'finish it in the event editor')}` : null,
+        ]
+          .filter(Boolean)
+          .join(' · ');
+
+        toast.error(`Draft saved, but ${issues}.`);
+        navigate(ROUTES.ORGANIZER.EDIT_EVENT(eventKey));
+        return;
       }
 
       toast.success('Draft saved successfully');
@@ -568,20 +593,48 @@ const CreateEventPage = () => {
 
       const eventKey = createdEvent?.slug || createdEvent?._id;
       const ticketPayloads = getReviewTicketPayloads(form);
+      let ticketError = null;
+      let imageError = null;
 
-      try {
-        await Promise.all(
-          ticketPayloads.map((ticket) =>
-            eventsService.createTicketType(eventKey, ticket),
-          ),
-        );
-      } catch (ticketError) {
-        toast.error(
-          `Event created, but ticket setup failed: ${getApiErrorMessage(
-            ticketError,
-            'Please finish setup from the event editor',
-          )}`,
-        );
+      if (ticketPayloads.length) {
+        try {
+          await Promise.all(
+            ticketPayloads.map((ticket) =>
+              eventsService.createTicketType(eventKey, ticket),
+            ),
+          );
+        } catch (nextTicketError) {
+          ticketError = nextTicketError;
+        }
+      }
+
+      if (eventKey) {
+        try {
+          await eventImages.saveImages(eventKey);
+        } catch (nextImageError) {
+          imageError = nextImageError;
+        }
+      }
+
+      if (ticketError || imageError) {
+        const issues = [
+          ticketError
+            ? `ticket setup: ${getApiErrorMessage(
+                ticketError,
+                'finish it from the event editor',
+              )}`
+            : null,
+          imageError
+            ? `image sync: ${getApiErrorMessage(
+                imageError,
+                'finish it from the event editor',
+              )}`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(' · ');
+
+        toast.error(`Event created, but ${issues}.`);
         navigate(ROUTES.ORGANIZER.EDIT_EVENT(eventKey));
         return;
       }
@@ -597,7 +650,7 @@ const CreateEventPage = () => {
   };
 
   return (
-    <div className="p-4 sm:p-6 max-w-3xl mx-auto space-y-6 font-sans">
+    <Container className=" mx-auto space-y-6 font-sans">
       <div className="flex items-center gap-3">
         <Button
           variant="ghost"
@@ -1253,15 +1306,7 @@ const CreateEventPage = () => {
 
           {step === 3 && (
             <>
-              <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm">
-                <p className="font-semibold text-foreground">
-                  Event images are uploaded after the event is created
-                </p>
-                <p className="mt-1 text-muted-foreground">
-                  Save your draft or submit the event first, then open the event editor to upload the
-                  cover image and gallery directly to Cloudinary.
-                </p>
-              </div>
+              <ImagePicker imageState={eventImages} disabled={saving} />
               <Field
                 label="Promo Video URL"
                 hint="Optional YouTube, Vimeo, or hosted video link."
@@ -1479,7 +1524,7 @@ const CreateEventPage = () => {
           </Button>
         )}
       </div>
-    </div>
+    </Container>
   );
 };
 

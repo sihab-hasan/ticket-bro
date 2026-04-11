@@ -92,6 +92,7 @@ const EventGridSection = () => {
     config,
     locationLabel,
     isLoading,
+    isRefreshing,
     error,
     refreshBrowseData,
   } = useBrowse();
@@ -197,6 +198,14 @@ const EventGridSection = () => {
               >
                 {isLoading ? "Loading results..." : resultsSummary}
               </p>
+              {!isLoading && isRefreshing && (
+                <p
+                  className="mt-1 text-xs font-medium text-primary"
+                  style={{ fontFamily: "var(--font-sans)" }}
+                >
+                  Refreshing live results in the background...
+                </p>
+              )}
               {!isLoading && activeFilters.length > 0 && (
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   {activeFilters.map((filter) => (

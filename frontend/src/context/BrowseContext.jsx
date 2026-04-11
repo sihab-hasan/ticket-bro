@@ -1,10 +1,12 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, {
   createContext,
+  startTransition,
   useCallback,
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import categoriesService from "@/api/categories.api";
@@ -17,6 +19,7 @@ import {
   normalizeBrowseReview,
   normalizeEvent,
 } from "@/utils/browse.utils";
+import { subscribeToBrowseRefresh } from "@/lib/browseSync";
 
 const BrowseContext = createContext(null);
 
@@ -30,10 +33,16 @@ const EMPTY_STATE = {
   isLoading: true,
   isRefreshing: false,
   error: null,
+  lastUpdatedAt: 0,
 };
 
-const MAX_EVENT_PAGES = 5;
+const MAX_EVENT_PAGES = 20;
 const EVENTS_PER_PAGE = 100;
+const BACKGROUND_REFRESH_INTERVAL = 60 * 1000;
+const MIN_REFRESH_GAP = 5 * 1000;
+const FRESH_HEADERS = {
+  "Cache-Control": "no-cache",
+};
 
 const uniqueById = (items) => {
   const seen = new Set();
@@ -47,7 +56,7 @@ const uniqueById = (items) => {
   });
 };
 
-const fetchAllPublishedEvents = async () => {
+const fetchAllPublishedEvents = async (requestOptions = {}) => {
   const events = [];
   let page = 1;
   let totalPages = 1;
@@ -59,7 +68,7 @@ const fetchAllPublishedEvents = async () => {
       sort: "startDate",
       status: "published",
       visibility: "public",
-    });
+    }, requestOptions);
 
     events.push(...(result?.events || []));
     totalPages = Math.min(
@@ -74,20 +83,30 @@ const fetchAllPublishedEvents = async () => {
 
 export const BrowseProvider = ({ children }) => {
   const [state, setState] = useState(EMPTY_STATE);
+  const isLoadingRef = useRef(false);
+  const lastRefreshRef = useRef(0);
 
-  const loadBrowseData = useCallback(async ({ silent = false } = {}) => {
+  const loadBrowseData = useCallback(async ({ silent = false, forceFresh = false } = {}) => {
+    if (isLoadingRef.current) {
+      return;
+    }
+
+    isLoadingRef.current = true;
     setState((current) => ({
       ...current,
       isLoading: silent ? current.isLoading : true,
       isRefreshing: silent ? true : current.events.length > 0,
-      error: null,
+      error: silent && current.events.length > 0 ? current.error : null,
     }));
 
     try {
+      const eventRequestOptions = forceFresh
+        ? { headers: FRESH_HEADERS }
+        : {};
       const [categories, subcategories, events, reviewResult] = await Promise.all([
         categoriesService.getAll(),
         subcategoriesService.getAll(),
-        fetchAllPublishedEvents(),
+        fetchAllPublishedEvents(eventRequestOptions),
         reviewsService
           .getAll({
             page: 1,
@@ -111,7 +130,7 @@ export const BrowseProvider = ({ children }) => {
         events,
       });
 
-      setState({
+      const nextState = {
         categories: categories || [],
         subcategories: subcategories || [],
         events,
@@ -121,25 +140,82 @@ export const BrowseProvider = ({ children }) => {
         isLoading: false,
         isRefreshing: false,
         error: null,
+        lastUpdatedAt: Date.now(),
+      };
+
+      startTransition(() => {
+        setState(nextState);
       });
     } catch (error) {
       setState((current) => ({
         ...current,
         isLoading: false,
         isRefreshing: false,
-        error,
+        error: current.events.length > 0 ? null : error,
       }));
+    } finally {
+      lastRefreshRef.current = Date.now();
+      isLoadingRef.current = false;
     }
   }, []);
 
   useEffect(() => {
-    loadBrowseData();
+    void loadBrowseData();
   }, [loadBrowseData]);
+
+  const requestLiveRefresh = useCallback(
+    ({ allowHidden = false, force = false } = {}) => {
+      if (typeof document !== "undefined") {
+        const isHidden = document.visibilityState === "hidden";
+        if (!allowHidden && isHidden) {
+          return;
+        }
+      }
+
+      const now = Date.now();
+      if (!force && now - lastRefreshRef.current < MIN_REFRESH_GAP) {
+        return;
+      }
+
+      lastRefreshRef.current = now;
+      void loadBrowseData({ silent: true, forceFresh: true });
+    },
+    [loadBrowseData],
+  );
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      requestLiveRefresh();
+    }, BACKGROUND_REFRESH_INTERVAL);
+
+    const handleFocus = () => requestLiveRefresh();
+    const handleOnline = () => requestLiveRefresh({ force: true });
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        requestLiveRefresh();
+      }
+    };
+    const unsubscribeBrowseRefresh = subscribeToBrowseRefresh(() =>
+      requestLiveRefresh({ force: true }),
+    );
+
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("online", handleOnline);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("online", handleOnline);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      unsubscribeBrowseRefresh();
+    };
+  }, [requestLiveRefresh]);
 
   const value = useMemo(
     () => ({
       ...state,
-      refreshBrowseData: () => loadBrowseData({ silent: true }),
+      refreshBrowseData: () => loadBrowseData({ silent: true, forceFresh: true }),
     }),
     [loadBrowseData, state],
   );

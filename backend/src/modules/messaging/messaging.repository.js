@@ -188,7 +188,7 @@ class MessagingRepository {
     return Conversation.findOneAndUpdate(
       { _id: id, participants: userId },
       { $pull: { deletedBy: userId } },
-      { new: true },
+      { returnDocument: 'after' },
     ).exec();
   }
 
@@ -196,7 +196,7 @@ class MessagingRepository {
     return Conversation.findOneAndUpdate(
       { _id: id, participants: userId },
       { $addToSet: { deletedBy: userId } },
-      { new: true },
+      { returnDocument: 'after' },
     ).exec();
   }
 }

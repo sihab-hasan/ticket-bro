@@ -75,6 +75,8 @@ export const ENDPOINTS = {
     // Image upload (Cloudinary)
     COVER_IMAGE: (slug) => `/events/${slug}/images/cover`,
     GALLERY_IMAGES: (slug) => `/events/${slug}/images/gallery`,
+    GALLERY_IMAGE_BATCH: (slug) => `/events/${slug}/images/gallery/batch`,
+    GALLERY_IMAGE_ORDER: (slug) => `/events/${slug}/images/gallery`,
   },
 
   BOOKINGS: {
@@ -175,6 +177,7 @@ export const ENDPOINTS = {
 
   CATEGORIES: {
     LIST: "/categories",
+    ADMIN_LIST: "/categories/admin/all",
     DETAIL: (slug) => `/categories/${slug}`,
     SUBS: (slug) => `/categories/${slug}/subcategories`,
     CREATE: "/categories",
@@ -184,10 +187,19 @@ export const ENDPOINTS = {
 
   SUBCATEGORIES: {
     LIST: "/subcategories",
+    ADMIN_LIST: "/subcategories/admin/all",
     DETAIL: (slug) => `/subcategories/${slug}`,
     CREATE: "/subcategories",
     UPDATE: (slug) => `/subcategories/${slug}`,
     DELETE: (slug) => `/subcategories/${slug}`,
+  },
+  EVENT_TYPES: {
+    LIST: "/event-types",
+    ADMIN_LIST: "/event-types/admin/all",
+    DETAIL: (slug) => `/event-types/${slug}`,
+    CREATE: "/event-types",
+    UPDATE: (slug) => `/event-types/${slug}`,
+    DELETE: (slug) => `/event-types/${slug}`,
   },
 
   REVIEWS: {
