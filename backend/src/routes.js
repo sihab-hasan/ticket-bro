@@ -25,6 +25,7 @@ const cartRoutes = require("./modules/cart/cart.routes");
 const paymentRoutes = require("./modules/payments/payment.routes");
 const webhookRoutes = require("./modules/payments/payment.webhook");
 const reviewRoutes = require("./modules/reviews/review.routes");
+const capturedMomentRoutes = require("./modules/capturedMoments/capturedMoment.routes");
 const searchRoutes = require("./modules/search/search.routes");
 const messagingRoutes = require("./modules/messaging/messaging.routes");
 const notificationRoutes = require("./modules/notifications/notification.routes");
@@ -229,6 +230,12 @@ router.use("/payments", authenticate, requireEmailVerified, paymentRoutes);
 //   Public reads — Authenticated writes
 // ════════════════════════════════════════════════════════════════════════════
 router.use("/reviews", reviewRoutes);
+
+// ════════════════════════════════════════════════════════════════════════════════
+//   CAPTURED MOMENTS
+//   Public reads — authenticated users can upload/react
+// ════════════════════════════════════════════════════════════════════════════════
+router.use("/captured-moments", capturedMomentRoutes);
 
 // GET    /events/:slug/reviews                    public
 // GET    /events/:slug/reviews/summary            public + cached 5min

@@ -75,6 +75,9 @@ exports.eventCover = withErrorHandling(eventCoverUpload.single('coverImage'));
 const eventGalleryUpload = multer({ storage: memStorage, fileFilter: makeFilter(RASTER_IMAGE_MIMES), limits: { fileSize: 10 * 1024 * 1024 } });
 exports.eventGallery = withErrorHandling(eventGalleryUpload.array('images', 10));
 
+const capturedMomentUpload = multer({ storage: memStorage, fileFilter: makeFilter(RASTER_IMAGE_MIMES), limits: { fileSize: 8 * 1024 * 1024 } });
+exports.capturedMomentImages = withErrorHandling(capturedMomentUpload.array('images', 6));
+
 const eventFullUpload = multer({ storage: memStorage, fileFilter: makeFilter(RASTER_IMAGE_MIMES), limits: { fileSize: 10 * 1024 * 1024 } });
 exports.eventFull = withErrorHandling(
   eventFullUpload.fields([
