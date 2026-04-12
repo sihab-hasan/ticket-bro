@@ -1,0 +1,522 @@
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--lime:#a8e63d;--lime-dim:#8ec82a;--dark:#0d0f0a;--card:rgba(255,255,255,0.04);--border:rgba(255,255,255,0.08);--text:rgba(255,255,255,0.92);--muted:rgba(255,255,255,0.45);--radius:12px;--amber:#f5a623}
+body{background:#0d0f0a;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px;line-height:1.6;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+
+nav{position:sticky;top:0;z-index:100;background:rgba(13,15,10,0.88);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:0.5px solid var(--border);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:56px}
+.nav-logo{display:flex;align-items:center;gap:9px;font-weight:600;font-size:15px;letter-spacing:-.01em}
+.nav-logo img{width:28px;height:28px;border-radius:6px;object-fit:contain}
+.nav-logo-fallback{width:28px;height:28px;background:var(--lime);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.nav-links{display:flex;align-items:center;gap:2px}
+.nav-links a{padding:6px 11px;border-radius:7px;font-size:13px;color:var(--muted);transition:color .15s,background .15s;cursor:pointer}
+.nav-links a:hover{color:var(--text);background:rgba(255,255,255,0.06)}
+.nav-links a.active{color:var(--lime)}
+.nav-cta{background:var(--lime);color:#0d0f0a;border:none;padding:7px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s}
+.nav-cta:hover{opacity:.85}
+
+.hero{padding:7rem 2rem 5rem;max-width:780px;margin:0 auto;text-align:center}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:7px;background:rgba(168,230,61,0.1);border:0.5px solid rgba(168,230,61,0.25);color:var(--lime);font-size:12px;padding:5px 14px;border-radius:100px;margin-bottom:2rem;font-weight:500}
+.hero-eyebrow-dot{width:6px;height:6px;border-radius:50%;background:var(--lime);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.hero h1{font-size:clamp(2.4rem,5vw,3.8rem);font-weight:700;line-height:1.1;letter-spacing:-.03em;margin-bottom:1.25rem}
+.hero h1 span{color:var(--lime)}
+.hero-sub{font-size:1rem;color:var(--muted);max-width:520px;margin:0 auto 2.5rem;line-height:1.75}
+.hero-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:3rem}
+.btn-primary{background:var(--lime);color:#0d0f0a;border:none;padding:11px 24px;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .15s}
+.btn-primary:hover{opacity:.87}
+.btn-ghost{background:transparent;color:var(--text);border:0.5px solid rgba(255,255,255,0.15);padding:11px 24px;border-radius:9px;font-size:14px;cursor:pointer;transition:background .15s}
+.btn-ghost:hover{background:rgba(255,255,255,0.06)}
+
+.skill-icons{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center;padding:1.75rem 0;border-top:0.5px solid var(--border);border-bottom:0.5px solid var(--border)}
+.skill-icons img{width:32px;height:32px;border-radius:6px;opacity:.8;transition:opacity .15s}
+.skill-icons img:hover{opacity:1}
+
+.divider{height:0.5px;background:var(--border);max-width:960px;margin:0 auto}
+.section{padding:5rem 2rem;max-width:960px;margin:0 auto}
+.label{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--lime);margin-bottom:1rem}
+.section-title{font-size:1.85rem;font-weight:700;letter-spacing:-.02em;margin-bottom:.6rem}
+.section-sub{color:var(--muted);font-size:.92rem;max-width:500px;line-height:1.75;margin-bottom:2.5rem}
+
+.roles-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:2rem}
+@media(max-width:620px){.roles-row{grid-template-columns:1fr}}
+.role-card{background:rgba(255,255,255,0.03);border:0.5px solid var(--border);border-radius:var(--radius);padding:1.2rem}
+.role-tag{font-size:11px;padding:3px 9px;border-radius:100px;font-weight:600;margin-bottom:.8rem;display:inline-block}
+.role-tag.user{background:rgba(168,230,61,0.12);color:var(--lime)}
+.role-tag.org{background:rgba(55,138,221,0.12);color:#64a8f0}
+.role-tag.admin{background:rgba(212,83,126,0.12);color:#e485ab}
+.role-card h4{font-size:.85rem;font-weight:600;margin-bottom:.6rem}
+.role-list{list-style:none;display:flex;flex-direction:column;gap:5px}
+.role-list li{font-size:.77rem;color:var(--muted);display:flex;align-items:flex-start;gap:7px}
+.role-list li::before{content:'';width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,0.2);flex-shrink:0;margin-top:7px}
+
+.feats{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:1px;background:var(--border);border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.feat{background:#0d0f0a;padding:1.4rem;transition:background .15s}
+.feat:hover{background:rgba(255,255,255,0.025)}
+.feat-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;margin-bottom:.9rem}
+.feat h3{font-size:.85rem;font-weight:600;margin-bottom:.3rem}
+.feat p{font-size:.77rem;color:var(--muted);line-height:1.6}
+
+.stack-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:600px){.stack-grid{grid-template-columns:1fr}}
+.stack-card{background:rgba(255,255,255,0.03);border:0.5px solid var(--border);border-radius:var(--radius);padding:1.2rem}
+.stack-card h4{font-size:.75rem;font-weight:600;color:var(--muted);margin-bottom:.85rem;text-transform:uppercase;letter-spacing:.07em}
+.tech-item{display:flex;justify-content:space-between;align-items:center;font-size:.78rem;padding:5px 0;border-bottom:0.5px solid rgba(255,255,255,0.04)}
+.tech-item:last-child{border-bottom:none}
+.tech-left{display:flex;align-items:center;gap:8px}
+.tech-left img{width:16px;height:16px;border-radius:3px}
+.tech-ver{color:var(--muted);font-size:.7rem;font-family:monospace;background:rgba(255,255,255,0.05);padding:1px 6px;border-radius:4px}
+
+.steps{display:flex;flex-direction:column}
+.step{display:grid;grid-template-columns:44px 1fr;gap:1rem;padding:1.5rem 0;border-bottom:0.5px solid var(--border)}
+.step:last-child{border-bottom:none}
+.step-num{width:30px;height:30px;border-radius:50%;border:0.5px solid rgba(168,230,61,0.3);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--lime);flex-shrink:0}
+.step h4{font-size:.88rem;font-weight:600;margin-bottom:.3rem}
+.step p{font-size:.78rem;color:var(--muted);margin-bottom:.7rem;line-height:1.6}
+.code-block{background:#0a0c08;border:0.5px solid rgba(255,255,255,0.07);border-radius:8px;padding:.75rem 1rem;font-family:'Fira Code',monospace,monospace;font-size:11.5px;color:#b8d97a;overflow-x:auto;line-height:1.7}
+.code-comment{color:#4a5c30}
+.code-key{color:#7ab4ff}
+.code-val{color:#c9e896}
+
+.api-section{margin-bottom:1.75rem}
+.api-section h4{font-size:.78rem;font-weight:600;color:var(--muted);margin-bottom:.65rem;text-transform:uppercase;letter-spacing:.06em}
+.api-table{width:100%;border-collapse:collapse;font-size:.76rem}
+.api-table th{text-align:left;padding:5px 10px;color:rgba(255,255,255,0.25);font-weight:400;border-bottom:0.5px solid var(--border)}
+.api-table td{padding:6px 10px;border-bottom:0.5px solid rgba(255,255,255,0.03);vertical-align:middle}
+.method{font-family:monospace;font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:4px;letter-spacing:.03em}
+.method.get{background:rgba(30,180,100,0.12);color:#3dba7a}
+.method.post{background:rgba(55,138,221,0.12);color:#64a8f0}
+.method.put,.method.patch{background:rgba(186,117,23,0.12);color:#e8a840}
+.method.delete{background:rgba(226,75,74,0.12);color:#e87575}
+.endpoint{font-family:monospace;color:rgba(255,255,255,0.4);font-size:11px}
+.auth-badge{background:rgba(168,230,61,0.1);color:var(--lime);font-size:9.5px;padding:1px 6px;border-radius:100px;font-weight:500;white-space:nowrap}
+
+.sec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.sec-card{background:rgba(255,255,255,0.03);border:0.5px solid var(--border);border-radius:10px;padding:1rem}
+.sec-card h5{font-size:.8rem;font-weight:600;margin-bottom:.3rem}
+.sec-card p{font-size:.74rem;color:var(--muted);line-height:1.55}
+
+/* ── Carbon widget — pixel-matched to screenshot ── */
+.carbon-layout{display:grid;grid-template-columns:1fr 200px;gap:2rem;align-items:start}
+@media(max-width:620px){.carbon-layout{grid-template-columns:1fr}}
+.carbon-widget{background:#1a1e17;border:0.5px solid rgba(255,255,255,0.09);border-radius:14px;padding:1.1rem 1.2rem;width:200px;flex-shrink:0}
+@media(max-width:620px){.carbon-widget{width:100%}}
+.cw-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.cw-title{display:flex;align-items:center;gap:6px;font-size:.78rem;font-weight:500;color:rgba(255,255,255,0.75)}
+.cw-leaf{width:14px;height:14px;color:#4caf50;font-size:13px}
+.cw-controls{display:flex;gap:8px;color:rgba(255,255,255,0.3);font-size:12px}
+.cw-section{margin-bottom:.85rem}
+.cw-label{font-size:.68rem;color:rgba(255,255,255,0.4);margin-bottom:3px;letter-spacing:.01em}
+.cw-value{font-size:1.3rem;font-weight:600;color:var(--amber);line-height:1.1}
+.cw-unit{font-size:.68rem;color:rgba(255,255,255,0.4);margin-left:2px;vertical-align:super}
+.cw-plain{font-size:.95rem;font-weight:500;color:rgba(255,255,255,0.8)}
+.cw-divider{height:0.5px;background:rgba(255,255,255,0.07);margin:0 -.2rem .85rem}
+.cw-note{font-size:.65rem;color:rgba(255,255,255,0.3);line-height:1.55}
+
+.contrib-steps{display:flex;flex-direction:column;gap:7px;margin-bottom:1.5rem}
+.cs{background:rgba(255,255,255,0.03);border:0.5px solid var(--border);border-radius:8px;padding:.65rem 1rem;display:flex;align-items:center;gap:.7rem;font-size:.78rem}
+.cs-num{width:20px;height:20px;border-radius:50%;background:rgba(168,230,61,0.1);color:var(--lime);display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;flex-shrink:0}
+
+.footer{border-top:0.5px solid var(--border);padding:2.5rem 2rem;max-width:960px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1.5rem}
+.footer-logo{display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px}
+.footer-logo img{width:24px;height:24px;border-radius:5px}
+.footer-logo-fallback{width:24px;height:24px;background:var(--lime);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px}
+.footer-copy{font-size:.72rem;color:var(--muted);margin-top:2px}
+.footer-tags{display:flex;gap:7px;flex-wrap:wrap}
+.footer-tag{background:rgba(255,255,255,0.04);border:0.5px solid var(--border);border-radius:6px;padding:4px 9px;font-size:.7rem;color:var(--muted)}
+</style>
+
+<nav id="nav">
+  <div class="nav-logo">
+    <img src="https://raw.githubusercontent.com/sifat-fahimul/ticket-bro/main/frontend/public/assets/logos/ticket-bro-logo.png"
+         onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+         alt="logo"/>
+    <div class="nav-logo-fallback" style="display:none">🎟</div>
+    Ticket Bro
+  </div>
+  <div class="nav-links" id="nav-links">
+    <a onclick="goTo('features')">Features</a>
+    <a onclick="goTo('stack')">Stack</a>
+    <a onclick="goTo('start')">Get Started</a>
+    <a onclick="goTo('api')">API</a>
+    <a onclick="goTo('security')">Security</a>
+    <a onclick="goTo('carbon')">Carbon</a>
+  </div>
+  <button class="nav-cta" onclick="goTo('start')">Get started</button>
+</nav>
+
+<div class="hero" id="hero">
+  <div class="hero-eyebrow"><span class="hero-eyebrow-dot"></span>MERN · Turborepo monorepo · Production ready</div>
+  <h1>Smart event ticketing,<br/><span>done right</span></h1>
+  <p class="hero-sub">A full-stack platform for managing, discovering, and attending every kind of event — from sold-out concerts to free community workshops. Anti-fraud QR tickets, real-time chat, and live CO₂ tracking built in.</p>
+  <div class="hero-actions">
+    <button class="btn-primary" onclick="goTo('start')">Get started</button>
+    <button class="btn-ghost" onclick="goTo('api')">View API docs</button>
+  </div>
+
+  <div class="skill-icons">
+    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nodejs/nodejs-original.svg" title="Node.js" alt="Node.js"/>
+    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg" title="React" alt="React"/>
+    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mongodb/mongodb-original.svg" title="MongoDB" alt="MongoDB"/>
+    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/express/express-original.svg" title="Express" alt="Express" style="background:#fff;padding:2px;border-radius:4px"/>
+    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/redis/redis-original.svg" title="Redis" alt="Redis"/>
+    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/vitejs/vitejs-original.svg" title="Vite" alt="Vite"/>
+    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/tailwindcss/tailwindcss-original.svg" title="Tailwind" alt="Tailwind"/>
+    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/redux/redux-original.svg" title="Redux" alt="Redux"/>
+    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg" title="Docker" alt="Docker"/>
+    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/jest/jest-plain.svg" title="Jest" alt="Jest"/>
+    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" title="GitHub" alt="GitHub" style="background:#fff;padding:2px;border-radius:4px"/>
+    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/eslint/eslint-original.svg" title="ESLint" alt="ESLint"/>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<section class="section" id="features">
+  <div class="label">Platform features</div>
+  <div class="section-title">Everything a ticketing platform needs</div>
+  <p class="section-sub">Built for users, organizers, and admins — with real-time everything under the hood.</p>
+
+  <div class="roles-row">
+    <div class="role-card">
+      <span class="role-tag user">For users</span>
+      <h4>Attendee experience</h4>
+      <ul class="role-list">
+        <li>JWT + OAuth + 2FA auth</li>
+        <li>Browse & filter by location, date, price</li>
+        <li>Interactive Leaflet map view</li>
+        <li>QR-code PDF tickets via email</li>
+        <li>Real-time notifications</li>
+        <li>Direct organizer messaging</li>
+        <li>Loyalty points & rewards</li>
+        <li>Waitlist & booking history</li>
+      </ul>
+    </div>
+    <div class="role-card">
+      <span class="role-tag org">For organizers</span>
+      <h4>Event management</h4>
+      <ul class="role-list">
+        <li>Real-time revenue & attendance analytics</li>
+        <li>VIP, Standard & Early Bird tiers</li>
+        <li>Post-event photo gallery</li>
+        <li>Attendee CSV export</li>
+        <li>Payout tracking & reports</li>
+        <li>Dynamic demand-based pricing</li>
+      </ul>
+    </div>
+    <div class="role-card">
+      <span class="role-tag admin">For admins</span>
+      <h4>Platform control</h4>
+      <ul class="role-list">
+        <li>Full user & organizer management</li>
+        <li>Event approval workflow</li>
+        <li>Anti-fraud QR validation</li>
+        <li>Platform-wide analytics</li>
+        <li>Complete audit logs</li>
+        <li>System broadcast notifications</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="feats">
+    <div class="feat">
+      <div class="feat-icon" style="background:rgba(168,230,61,0.1)">⚡</div>
+      <h3>Real-time everything</h3>
+      <p>Socket.io WebSockets power live notifications, messaging, and booking updates across all roles.</p>
+    </div>
+    <div class="feat">
+      <div class="feat-icon" style="background:rgba(220,56,45,0.1)"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/redis/redis-original.svg" style="width:18px;height:18px"/></div>
+      <h3>Redis caching</h3>
+      <p>High-performance API response caching and rate-limit store to keep the platform fast under load.</p>
+    </div>
+    <div class="feat">
+      <div class="feat-icon" style="background:rgba(106,75,199,0.1)">🖼</div>
+      <h3>Image pipeline</h3>
+      <p>Multer → Sharp resize/compress → Cloudinary CDN. Optimised delivery on every device, automatically.</p>
+    </div>
+    <div class="feat">
+      <div class="feat-icon" style="background:rgba(55,138,221,0.1)">🗺</div>
+      <h3>Map discovery</h3>
+      <p>OpenStreetMap-powered Leaflet maps for geo-based event search with real distance filtering.</p>
+    </div>
+    <div class="feat">
+      <div class="feat-icon" style="background:rgba(168,230,61,0.1)">🎫</div>
+      <h3>QR ticket system</h3>
+      <p>Cryptographically unique QR codes, PDFKit export, email delivery, and server-side check-in validation.</p>
+    </div>
+    <div class="feat">
+      <div class="feat-icon" style="background:rgba(76,175,80,0.1)">🌿</div>
+      <h3>Carbon tracking</h3>
+      <p>Live CO₂ footprint widget using the Sustainable Web Design model on both frontend and backend.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section class="section" id="stack">
+  <div class="label">Tech stack</div>
+  <div class="section-title">Built on proven technology</div>
+  <p class="section-sub">Modern versions of every tool, in a monorepo designed to scale.</p>
+
+  <div class="stack-grid">
+    <div class="stack-card">
+      <h4>Frontend</h4>
+      <div class="tech-item"><div class="tech-left"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg"/>React</div><span class="tech-ver">19.x</span></div>
+      <div class="tech-item"><div class="tech-left"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/vitejs/vitejs-original.svg"/>Vite</div><span class="tech-ver">7.x</span></div>
+      <div class="tech-item"><div class="tech-left"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/tailwindcss/tailwindcss-original.svg"/>Tailwind CSS</div><span class="tech-ver">4.x</span></div>
+      <div class="tech-item"><div class="tech-left"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/redux/redux-original.svg"/>Redux Toolkit</div><span class="tech-ver">2.x</span></div>
+      <div class="tech-item"><div class="tech-left"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg" style="opacity:.5"/>React Router DOM</div><span class="tech-ver">7.x</span></div>
+      <div class="tech-item"><div class="tech-left"><span style="font-size:12px">🗺</span>React Leaflet</div><span class="tech-ver">5.x</span></div>
+      <div class="tech-item"><div class="tech-left"><span style="font-size:12px">⚡</span>Framer Motion</div><span class="tech-ver">12.x</span></div>
+      <div class="tech-item"><div class="tech-left"><span style="font-size:12px">🔗</span>Axios</div><span class="tech-ver">1.x</span></div>
+    </div>
+    <div class="stack-card">
+      <h4>Backend</h4>
+      <div class="tech-item"><div class="tech-left"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nodejs/nodejs-original.svg"/>Node.js</div><span class="tech-ver">24.x</span></div>
+      <div class="tech-item"><div class="tech-left"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/express/express-original.svg" style="background:#fff;padding:2px;border-radius:3px"/>Express.js</div><span class="tech-ver">4.x</span></div>
+      <div class="tech-item"><div class="tech-left"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mongodb/mongodb-original.svg"/>MongoDB + Mongoose</div><span class="tech-ver">9.x</span></div>
+      <div class="tech-item"><div class="tech-left"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/redis/redis-original.svg"/>Redis</div><span class="tech-ver">latest</span></div>
+      <div class="tech-item"><div class="tech-left"><span style="font-size:12px">🔌</span>Socket.io</div><span class="tech-ver">4.x</span></div>
+      <div class="tech-item"><div class="tech-left"><span style="font-size:12px">🔐</span>Passport.js + JWT</div><span class="tech-ver">latest</span></div>
+      <div class="tech-item"><div class="tech-left"><span style="font-size:12px">📧</span>Nodemailer</div><span class="tech-ver">8.x</span></div>
+      <div class="tech-item"><div class="tech-left"><span style="font-size:12px">☁</span>Cloudinary + Sharp</div><span class="tech-ver">latest</span></div>
+    </div>
+    <div class="stack-card">
+      <h4>DevOps & tooling</h4>
+      <div class="tech-item"><div class="tech-left"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg"/>Docker</div><span class="tech-ver">containerized</span></div>
+      <div class="tech-item"><div class="tech-left"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/jest/jest-plain.svg"/>Jest + Supertest</div><span class="tech-ver">testing</span></div>
+      <div class="tech-item"><div class="tech-left"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/eslint/eslint-original.svg"/>ESLint</div><span class="tech-ver">linting</span></div>
+      <div class="tech-item"><div class="tech-left"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" style="background:#fff;padding:2px;border-radius:3px"/>GitHub</div><span class="tech-ver">source control</span></div>
+      <div class="tech-item"><div class="tech-left"><span style="font-size:12px">⚙</span>Turborepo</div><span class="tech-ver">monorepo</span></div>
+      <div class="tech-item"><div class="tech-left"><span style="font-size:12px">📦</span>pnpm workspaces</div><span class="tech-ver">v8+</span></div>
+    </div>
+    <div class="stack-card">
+      <h4>Architecture</h4>
+      <div class="tech-item"><div class="tech-left"><span style="font-size:12px">🔒</span>RBAC</div><span class="tech-ver">route + service layer</span></div>
+      <div class="tech-item"><div class="tech-left"><span style="font-size:12px">🧩</span>Module pattern</div><span class="tech-ver">30+ backend modules</span></div>
+      <div class="tech-item"><div class="tech-left"><span style="font-size:12px">🗂</span>Feature slices</div><span class="tech-ver">Redux domain isolation</span></div>
+      <div class="tech-item"><div class="tech-left"><span style="font-size:12px">🏗</span>Infrastructure layer</div><span class="tech-ver">cache, mail, storage, ws</span></div>
+      <div class="tech-item"><div class="tech-left"><span style="font-size:12px">🌿</span>Carbon middleware</div><span class="tech-ver">SWD model</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section class="section" id="start">
+  <div class="label">Getting started</div>
+  <div class="section-title">Up and running in minutes</div>
+  <p class="section-sub">One pnpm command installs everything. Four steps to a running app.</p>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>
+        <h4>Clone the repository</h4>
+        <p>Pull the monorepo and enter the project root.</p>
+        <div class="code-block">git clone https://github.com/your-username/ticket-bro.git<br/>cd ticket-bro</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>
+        <h4>Install dependencies</h4>
+        <p>pnpm workspaces installs root, backend, and frontend in a single command.</p>
+        <div class="code-block">pnpm install</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>
+        <h4>Configure environment</h4>
+        <p>Copy and fill in both env files. You need MongoDB, Redis, Cloudinary, and SMTP credentials.</p>
+        <div class="code-block">cp backend/.env.example backend/.env<br/>cp frontend/.env.example frontend/.env<br/><br/><span class="code-comment"># Key backend variables</span><br/><span class="code-key">MONGODB_URI</span>=<span class="code-val">mongodb://localhost:27017/ticketbro</span><br/><span class="code-key">JWT_ACCESS_SECRET</span>=<span class="code-val">your_64byte_random_secret</span><br/><span class="code-key">CLOUDINARY_CLOUD_NAME</span>=<span class="code-val">your_cloud_name</span><br/><span class="code-key">EMAIL_USER</span>=<span class="code-val">your@email.com</span><br/><br/><span class="code-comment"># Frontend</span><br/><span class="code-key">VITE_API_URL</span>=<span class="code-val">http://localhost:5000/api/v1</span><br/><span class="code-key">VITE_SOCKET_URL</span>=<span class="code-val">http://localhost:5000</span></div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div>
+        <h4>Run the application</h4>
+        <p>Turborepo starts both concurrently.</p>
+        <div class="code-block">pnpm dev</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:.7rem">
+          <div class="code-block" style="font-size:10.5px"><span class="code-comment"># Frontend</span><br/>localhost:<span class="code-val">5173</span></div>
+          <div class="code-block" style="font-size:10.5px"><span class="code-comment"># Backend API</span><br/>localhost:<span class="code-val">5000</span>/api/v1</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section class="section" id="api">
+  <div class="label">API reference</div>
+  <div class="section-title">RESTful API &nbsp;<code style="font-size:.85rem;background:rgba(255,255,255,0.06);padding:3px 9px;border-radius:5px;font-family:monospace">base /api/v1</code></div>
+  <p class="section-sub">Role-guarded endpoints across auth, events, bookings, messaging, payments, and admin.</p>
+
+  <div class="api-section">
+    <h4>Authentication</h4>
+    <table class="api-table">
+      <tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Description</th></tr>
+      <tr><td><span class="method post">POST</span></td><td class="endpoint">/auth/register</td><td>—</td><td>Register new user</td></tr>
+      <tr><td><span class="method post">POST</span></td><td class="endpoint">/auth/login</td><td>—</td><td>Login with email & password</td></tr>
+      <tr><td><span class="method post">POST</span></td><td class="endpoint">/auth/refresh</td><td>—</td><td>Refresh access token</td></tr>
+      <tr><td><span class="method post">POST</span></td><td class="endpoint">/auth/logout</td><td><span class="auth-badge">✓</span></td><td>Logout & invalidate tokens</td></tr>
+      <tr><td><span class="method get">GET</span></td><td class="endpoint">/auth/oauth/google</td><td>—</td><td>Google OAuth login</td></tr>
+      <tr><td><span class="method post">POST</span></td><td class="endpoint">/auth/forgot-password</td><td>—</td><td>Send reset email</td></tr>
+      <tr><td><span class="method post">POST</span></td><td class="endpoint">/auth/2fa/enable</td><td><span class="auth-badge">✓</span></td><td>Enable 2FA</td></tr>
+      <tr><td><span class="method post">POST</span></td><td class="endpoint">/auth/2fa/verify</td><td><span class="auth-badge">✓</span></td><td>Verify TOTP code</td></tr>
+    </table>
+  </div>
+
+  <div class="api-section">
+    <h4>Events</h4>
+    <table class="api-table">
+      <tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Description</th></tr>
+      <tr><td><span class="method get">GET</span></td><td class="endpoint">/events</td><td>—</td><td>List events (filterable)</td></tr>
+      <tr><td><span class="method get">GET</span></td><td class="endpoint">/events/:id</td><td>—</td><td>Single event details</td></tr>
+      <tr><td><span class="method post">POST</span></td><td class="endpoint">/events</td><td><span class="auth-badge">Organizer</span></td><td>Create event</td></tr>
+      <tr><td><span class="method put">PUT</span></td><td class="endpoint">/events/:id</td><td><span class="auth-badge">Organizer</span></td><td>Update event</td></tr>
+      <tr><td><span class="method delete">DELETE</span></td><td class="endpoint">/events/:id</td><td><span class="auth-badge">Org/Admin</span></td><td>Delete event</td></tr>
+      <tr><td><span class="method get">GET</span></td><td class="endpoint">/events/nearby</td><td>—</td><td>Events near coordinates</td></tr>
+      <tr><td><span class="method post">POST</span></td><td class="endpoint">/events/:id/images</td><td><span class="auth-badge">Organizer</span></td><td>Upload event images</td></tr>
+    </table>
+  </div>
+
+  <div class="api-section">
+    <h4>Bookings</h4>
+    <table class="api-table">
+      <tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Description</th></tr>
+      <tr><td><span class="method post">POST</span></td><td class="endpoint">/bookings</td><td><span class="auth-badge">✓</span></td><td>Create booking</td></tr>
+      <tr><td><span class="method get">GET</span></td><td class="endpoint">/bookings/my</td><td><span class="auth-badge">✓</span></td><td>User booking history</td></tr>
+      <tr><td><span class="method get">GET</span></td><td class="endpoint">/bookings/:id</td><td><span class="auth-badge">✓</span></td><td>Booking details</td></tr>
+      <tr><td><span class="method post">POST</span></td><td class="endpoint">/bookings/:id/cancel</td><td><span class="auth-badge">✓</span></td><td>Cancel booking</td></tr>
+      <tr><td><span class="method get">GET</span></td><td class="endpoint">/bookings/:id/ticket</td><td><span class="auth-badge">✓</span></td><td>Download PDF ticket</td></tr>
+      <tr><td><span class="method post">POST</span></td><td class="endpoint">/bookings/:id/validate</td><td><span class="auth-badge">Organizer</span></td><td>QR check-in</td></tr>
+    </table>
+  </div>
+
+  <div class="api-section">
+    <h4>Admin</h4>
+    <table class="api-table">
+      <tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Description</th></tr>
+      <tr><td><span class="method get">GET</span></td><td class="endpoint">/admins/dashboard</td><td><span class="auth-badge">Admin</span></td><td>Platform analytics</td></tr>
+      <tr><td><span class="method get">GET</span></td><td class="endpoint">/admins/users</td><td><span class="auth-badge">Admin</span></td><td>Manage all users</td></tr>
+      <tr><td><span class="method patch">PATCH</span></td><td class="endpoint">/admins/users/:id/ban</td><td><span class="auth-badge">Admin</span></td><td>Ban a user</td></tr>
+      <tr><td><span class="method patch">PATCH</span></td><td class="endpoint">/admins/events/:id/approve</td><td><span class="auth-badge">Admin</span></td><td>Approve event</td></tr>
+      <tr><td><span class="method get">GET</span></td><td class="endpoint">/admins/audit-logs</td><td><span class="auth-badge">Admin</span></td><td>Full audit trail</td></tr>
+      <tr><td><span class="method post">POST</span></td><td class="endpoint">/admins/broadcast</td><td><span class="auth-badge">Admin</span></td><td>System-wide notification</td></tr>
+    </table>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section class="section" id="security">
+  <div class="label">Security</div>
+  <div class="section-title">Defense in depth across every layer</div>
+  <p class="section-sub">Role hierarchy: Super Admin → Admin → Moderator → Organizer → User, enforced at both route and service levels.</p>
+  <div class="sec-grid">
+    <div class="sec-card"><h5>🔑 Passwords</h5><p>bcrypt with 12 salt rounds. Never stored in plain text or logged anywhere.</p></div>
+    <div class="sec-card"><h5>🎟 JWT tokens</h5><p>15-minute access tokens + 7-day refresh tokens with rotation on every use.</p></div>
+    <div class="sec-card"><h5>📱 Two-factor auth</h5><p>RFC 6238 TOTP via speakeasy. Works with Google Authenticator and Authy.</p></div>
+    <div class="sec-card"><h5>🛡 HTTP headers</h5><p>Helmet.js enforces XSS, CSRF, and clickjacking protections on every response.</p></div>
+    <div class="sec-card"><h5>🚦 Rate limiting</h5><p>express-rate-limit backed by Redis to block brute-force and abuse patterns.</p></div>
+    <div class="sec-card"><h5>💉 NoSQL injection</h5><p>express-mongo-sanitize strips malicious operators from all incoming query data.</p></div>
+    <div class="sec-card"><h5>🎫 Ticket fraud</h5><p>Each QR code is unique and single-use, validated server-side on check-in.</p></div>
+    <div class="sec-card"><h5>📋 Audit logging</h5><p>Every admin action logged with actor ID, target, action type, and timestamp.</p></div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section class="section" id="carbon">
+  <div class="label">Carbon footprint</div>
+  <div class="section-title">Built with environmental accountability</div>
+  <p class="section-sub">Real-time CO₂ tracking using the Sustainable Web Design model — surfaced to every visitor via a live widget.</p>
+
+  <div class="carbon-layout">
+    <div>
+      <p style="font-size:.83rem;color:var(--muted);margin-bottom:.9rem;line-height:1.7">The <code style="font-size:.77rem;background:rgba(255,255,255,0.07);padding:1px 5px;border-radius:4px">useCarbonFootprint</code> hook uses the browser's <code style="font-size:.77rem;background:rgba(255,255,255,0.07);padding:1px 5px;border-radius:4px">PerformanceObserver</code> API to track all network transfers live. The backend middleware measures bytes per request via <code style="font-size:.77rem;background:rgba(255,255,255,0.07);padding:1px 5px;border-radius:4px">@tgwf/co2</code>.</p>
+      <div class="code-block" style="margin-bottom:1rem">CO₂ (g) = Bytes Transferred × 0.0000001822</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1rem">
+        <span style="background:rgba(245,166,35,0.12);color:var(--amber);padding:4px 12px;border-radius:100px;font-size:.72rem;font-weight:500">~1.25g CO₂eq — current</span>
+        <span style="background:rgba(76,175,80,0.12);color:#4caf50;padding:4px 12px;border-radius:100px;font-size:.72rem;font-weight:500">&lt;1g CO₂eq — target (Excellent)</span>
+      </div>
+      <p style="font-size:.77rem;color:var(--muted);line-height:1.65">Reaching Excellent requires lazy-loading all routes, Vite manual chunk splitting, and Brotli compression — projected to push the score to 0.4–0.6g CO₂eq.</p>
+    </div>
+
+    <div class="carbon-widget">
+      <div class="cw-header">
+        <div class="cw-title"><span style="color:#4caf50;font-size:13px">🌿</span> Carbon Footprint</div>
+        <div class="cw-controls"><span>∨</span><span>✕</span></div>
+      </div>
+      <div class="cw-section">
+        <div class="cw-label">CO₂ Emissions</div>
+        <div class="cw-value">0.0138 <span class="cw-unit">g CO₂eq</span></div>
+      </div>
+      <div class="cw-section">
+        <div class="cw-label">Data Transferred</div>
+        <div class="cw-plain">73.9 KB</div>
+      </div>
+      <div class="cw-divider"></div>
+      <div class="cw-note">Estimates based on network data transfer during this session.</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section class="section" id="contributing">
+  <div class="label">Contributing</div>
+  <div class="section-title">Open to contributions</div>
+  <p class="section-sub">Fork, branch, commit, push, PR. Follow existing code style and ensure tests pass before submitting.</p>
+  <div class="contrib-steps">
+    <div class="cs"><span class="cs-num">1</span><span>Fork the repository on GitHub</span></div>
+    <div class="cs"><span class="cs-num">2</span><code style="font-size:.76rem;color:var(--muted)">git checkout -b feature/your-feature-name</code></div>
+    <div class="cs"><span class="cs-num">3</span><code style="font-size:.76rem;color:var(--muted)">git commit -m 'feat: add amazing feature'</code></div>
+    <div class="cs"><span class="cs-num">4</span><code style="font-size:.76rem;color:var(--muted)">git push origin feature/your-feature-name</code></div>
+    <div class="cs"><span class="cs-num">5</span><span>Open a Pull Request — tests must pass</span></div>
+  </div>
+  <div style="display:flex;gap:7px;flex-wrap:wrap;font-size:.72rem">
+    <span style="background:rgba(30,180,100,0.1);color:#3dba7a;padding:3px 10px;border-radius:100px">feat:</span>
+    <span style="background:rgba(226,75,74,0.1);color:#e87575;padding:3px 10px;border-radius:100px">fix:</span>
+    <span style="background:rgba(55,138,221,0.1);color:#64a8f0;padding:3px 10px;border-radius:100px">docs:</span>
+    <span style="background:rgba(127,119,221,0.1);color:#9a94ee;padding:3px 10px;border-radius:100px">refactor:</span>
+    <span style="background:rgba(186,117,23,0.1);color:#e8a840;padding:3px 10px;border-radius:100px">test:</span>
+    <span style="background:rgba(255,255,255,0.05);color:var(--muted);padding:3px 10px;border-radius:100px">chore:</span>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<div class="footer">
+  <div>
+    <div class="footer-logo">
+      <img src="https://raw.githubusercontent.com/sifat-fahimul/ticket-bro/main/frontend/public/assets/logos/ticket-bro-logo.png"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+           alt="logo"/>
+      <div class="footer-logo-fallback" style="display:none">🎟</div>
+      Ticket Bro
+    </div>
+    <div class="footer-copy">Licensed under ISC &nbsp;·&nbsp; Made with care by Team Ticket Bro</div>
+  </div>
+  <div class="footer-tags">
+    <span class="footer-tag">Node.js v24</span>
+    <span class="footer-tag">React v19</span>
+    <span class="footer-tag">MongoDB</span>
+    <span class="footer-tag">ISC License</span>
+  </div>
+</div>
+
+<script>
+function goTo(id){const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:'smooth',block:'start'})}
+const ids=['features','stack','start','api','security','carbon'];
+const links=document.querySelectorAll('#nav-links a');
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting){const id=e.target.id;links.forEach((l,i)=>{l.classList.toggle('active',ids[i]===id)})}});
+},{threshold:0.25});
+ids.forEach(id=>{const el=document.getElementById(id);if(el)obs.observe(el)});
+</script>
